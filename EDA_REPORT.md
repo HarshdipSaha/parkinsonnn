@@ -3,7 +3,7 @@
 - **Filename(s):** `train_labels.csv`, `niftis.zip` (1,362 `.nii`/`.nii.gz` volumes)
 - **Generated:** 2026-09-05
 - **Source notebook:** [dat-parkinsons-challenge-starter](https://www.kaggle.com/code/harshdipsaha/dat-parkinsons-challenge-starter/edit) (Kaggle, private)
-- **Methodology note:** structured per a generic scientific-data EDA checklist (file-type detection → format-specific statistical analysis → quality/consistency checks → findings + preprocessing recommendations).
+- **Methodology note:** structured per a generic scientific-data EDA checklist (file-type detection → format-specific statistical analysis → quality/consistency checks → findings + preprocessing recommendations), extended per K-Dense's more rigorous `exploratory-data-analysis` scientific-agent skill (missingness/leakage audit, robust vs. classical statistics, provenance).
 
 ## 1. File properties & format identification
 
@@ -79,11 +79,23 @@ Built a crude "central-peak / background-ring" uptake-ratio proxy (fixed relativ
 
 **Interpretation:** this is *not* evidence of an unsolvable problem — it means the real diagnostic pattern is washed out by unregistered shape/spacing/orientation heterogeneity, consistent with the literature review finding that every published high-accuracy DaT-SPECT result first registers scans to a common template (e.g., MNI space) before extracting features or training a model.
 
-## 8. Recommendations (preprocessing & approach)
+## 8. Leakage/duplicate audit, robust statistics, and data-integrity checks
+
+Extended the EDA per a more rigorous scientific-data EDA methodology (K-Dense's `exploratory-data-analysis` skill), which emphasizes missingness/leakage audits, robust vs. classical statistics, and provenance:
+
+- **Metadata-signature "duplicate" check — initially a false alarm, then corrected.** Grouping by `(shape, spacing, file_size_mb)` flagged 61 groups sharing >1 volume. This was **misleading**: for uncompressed `.nii` files, `file_size_mb` is a deterministic function of `(shape, dtype)` alone and carries no pixel-content information, so these groups just reflect many patients sharing a scanner protocol. A **real content-hash check** (SHA-1 of a coarse 8×8×8-strided downsample) on the single largest group (460 volumes, all 256×256×256 @ 2.46mm) found **zero true collisions** — confirming no actual duplicate/leaked entries in that group, and that file-size is not a valid duplicate signature for this format.
+- **Robust vs. classical statistics on `intensity_max`:** mean/std are dominated by the high-magnitude outlier subset (Normal: mean 6675/std 11297; Abnormal: mean 5707/std 12244) and are not very informative on their own. Median/MAD are more revealing: **Normal median 255 (MAD 210) vs. Abnormal median 117 (MAD 109)** — roughly a 2× gap.
+- **Confound check on that 2× gap:** cross-tabbing the "low vs. high intensity_max regime" against label shows only a **modest** association (low-magnitude regime: 61.0% abnormal vs. high-magnitude regime: 52.7% abnormal, vs. 54.8% baseline) — not large enough to fully explain the 2× median gap. So the gap is likely *partly* genuine signal and partly regime composition; worth re-examining after normalization rather than trusting it as-is.
+- **Degenerate/blank-scan integrity check:** 25/500 sampled volumes (5%) had `intensity_max < 10`. Visual inspection of 3 examples confirmed these are **real anatomy with clear bilateral striatal uptake**, not corrupted/blank data — just a third, even-lower intensity-magnitude regime (the dataset spans at least **ultra-low ~5–10, low ~100–1,000, and high ~10,000–65,000** raw-count regimes). Rules out "drop low-signal scans as corrupted" as a valid preprocessing shortcut.
+- **Provenance (library versions used):** numpy 2.0.2, pandas 2.3.3, nibabel 5.4.2, matplotlib 3.10.0, scikit-learn 1.6.1.
+
+## 9. Recommendations (preprocessing & approach)
 
 1. **Registration/resampling is the top engineering priority**, ahead of model architecture: resample every volume to a common isotropic spacing and align to a common frame (minimum: center-of-mass + isotropic resample; ideally: affine registration to a template).
-2. **Per-volume intensity normalization is mandatory** (e.g., clip to [p1, p99] then rescale to [0, 1]) — confirmed necessary since no header metadata can correct the scale mismatch.
+2. **Per-volume intensity normalization is mandatory** (e.g., clip to [p1, p99] then rescale to [0, 1], applied per-volume) — confirmed necessary since (a) no header metadata can correct the scale mismatch and (b) the dataset spans at least three distinct raw-count magnitude regimes, all clinically valid.
 3. Class imbalance (1.21:1) is mild — standard log-loss training + stratified CV is sufficient; don't over-engineer class-weighting.
 4. Re-test a hand-crafted striatal-ratio feature *after* proper registration — the AUROC≈0.5 result here reflects a bad unregistered ROI heuristic, not necessarily an absence of signal (classical radiomics matched deep learning on registered PPMI data in the literature).
 5. Use a spacing/hospital-aware stratified k-fold for cross-validation to mirror the real multi-center held-out test set.
 6. Tabular/labels data needs no cleaning — it's already clean (no dupes, no missing values, consistent uid format, clean label domain).
+7. No evidence of true duplicate/leaked training examples was found (in the one large group checked with real content hashing) — but if a genuine full-dataset duplicate audit is needed later, use pixel-content hashing, not file metadata.
+8. Don't discard or special-case the very-low-intensity-magnitude scans — they are valid data, not corrupted acquisitions.
