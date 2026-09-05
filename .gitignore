@@ -16,3 +16,6 @@ __pycache__/
 *.pyc
 .pytest_cache/
 qc/
+cache_v3/
+pretrained/
+artifacts_v3/
