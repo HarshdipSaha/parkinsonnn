@@ -114,3 +114,10 @@ A forum thread (["Clarification on AI coding assistants and cloud GPU compute wi
 - [Runtime repository (GitHub)](https://github.com/drivendataorg/competition-sfmn-parkinsons-runtime)
 - [Community forum](https://community.drivendata.org/c/dat-parkinsons-challenge/110)
 - [Kaggle/cloud-GPU compliance thread](https://community.drivendata.org/t/clarification-on-ai-coding-assistants-and-cloud-gpu-compute-with-competition-data/11479)
+
+## Submission mechanics (measured Sept 5, 2026)
+
+- **Real submissions are rationed: 3 per rolling 7 days** ("Submissions used: 0 of 3 … 3 of 3 submissions left per 7 days"). With the Sept 16 deadline that is ~4–5 real submissions total. Best private-set score counts automatically (no manual selection).
+- **Smoke tests: 3 per day, do NOT count against the real-submission quota and are not on the leaderboard.** They run the zip end-to-end against 20 training-set scans (6-minute cap) and are scored (log loss) so the format/container path can be validated at zero cost.
+- First smoke test (prior-only zip, id-321144) completed with score 0.6687. Container log: `stage0 prior written for 20 rows at 1s`, `preprocessed 20/20 volumes in 6s` with 20 workers (~6 CPU-s/volume → ~10 min for 2,000 volumes on the 24-vCPU box), exit code 0. Queue wait before "Starting" → "Completed" was ~20 min (shared cluster).
+- Inverting 0.6687 at constant p=0.548 gives ~65% abnormal in the smoke set (training-set sample; not the real test prevalence).
