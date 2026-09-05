@@ -44,8 +44,8 @@ def main():
     print(f"stage0 prior written for {len(uids)} rows at {time.time()-T0:.0f}s", flush=True)
 
     n_workers = max(1, min(20, (os.cpu_count() or 4) - 2))
-    crops, sc, rad, ok = infer.preprocess_all(uids, config.RUNTIME_NIFTI_DIR, n_workers,
-                                              deadline_s=infer.LADDER_SKIP_CNN_S, t0=T0)
+    crops, crops_com, sc, rad, ok = infer.preprocess_all(uids, config.RUNTIME_NIFTI_DIR, n_workers,
+                                                         deadline_s=infer.LADDER_SKIP_CNN_S, t0=T0)
     p_lr = np.full(len(uids), pi)
     if (ARTIFACTS / "lr.json").exists():
         p_lr = infer.run_lr(ARTIFACTS / "lr.json", rad, sc, ok, pi)
@@ -54,9 +54,11 @@ def main():
         infer.write_submission(uids, np.where(ok, lr_only.apply(p_lr, p_lr), pi), config.RUNTIME_OUTPUT_CSV)
         print(f"stage1 LR written at {time.time()-T0:.0f}s", flush=True)
 
-    weights = sorted(p for p in ARTIFACTS.glob("cnn_f*_s*.pt") if "_com" not in p.name)
-    if weights and time.time() - T0 < infer.LADDER_SKIP_CNN_S:
-        p_cnn = infer.run_cnn(weights, crops, sc, ok, T0)
+    all_w = sorted(ARTIFACTS.glob("cnn_f*_s*.pt"))
+    hot_w = [p for p in all_w if "_com" not in p.name]
+    com_w = [p for p in all_w if "_com" in p.name]
+    if all_w and time.time() - T0 < infer.LADDER_SKIP_CNN_S:
+        p_cnn = infer.run_cnn([(hot_w, crops), (com_w, crops_com)], sc, ok, T0)
         if p_cnn is not None:
             final = calib.apply(np.where(np.isnan(p_cnn), p_lr, p_cnn), p_lr)
             final = np.where(ok, final, pi)

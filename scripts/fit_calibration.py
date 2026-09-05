@@ -22,13 +22,13 @@ if __name__ == "__main__":
     ap.add_argument("--pi", type=float, default=DEFAULT_PRIOR)
     a = ap.parse_args()
     art = Path(a.artifacts)
-    files = [f for f in glob.glob(str(art / "oof_f*_s*.csv")) if "_com" not in f]
+    files = sorted(glob.glob(str(art / "oof_f*_s*.csv")))   # hotspot AND _com checkpoints: inference averages all of them
     assert files, "no CNN OOF files found"
     cnn = pd.concat([pd.read_csv(f, dtype={"uid": str}) for f in files]).groupby("uid").agg(y=("y", "first"), p_cnn=("p", "mean")).reset_index()
     lr = pd.read_csv(Path(a.cache) / "oof_lr.csv", dtype={"uid": str})[["uid", "p_lr"]]
     df = cnn.merge(lr, on="uid")
     y = df["y"].values.astype(float)
-    print(f"n={len(df)}  seeds/fold~{len(files)//5}  logloss cnn={cb.logloss(y, df.p_cnn):.4f}  lr={cb.logloss(y, df.p_lr):.4f}")
+    print(f"n={len(df)}  checkpoints={len(files)}  logloss cnn-avg={cb.logloss(y, df.p_cnn):.4f}  lr={cb.logloss(y, df.p_lr):.4f}")
     c = cb.fit(df["p_cnn"].values, df["p_lr"].values, y, lam=a.lam, pi=a.pi)
     final = c.apply(df["p_cnn"].values, df["p_lr"].values)
     print(f"w={c.w:.2f} T={c.T:.3f} lam={c.lam} pi={c.pi:.3f}  OOF logloss after calibration={cb.logloss(y, final):.4f}")

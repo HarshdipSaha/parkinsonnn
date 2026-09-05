@@ -26,7 +26,7 @@ def _worker_init():
 
 def _prep(path):
     r = preprocess(path)
-    return r["crop"], r["scalars"], hotspot_radiomics(r["crop"].astype(np.float32))
+    return r["crop"], r["crop_com"], r["scalars"], hotspot_radiomics(r["crop"].astype(np.float32))
 
 
 def write_submission(uids, probs, out_csv):
@@ -34,9 +34,10 @@ def write_submission(uids, probs, out_csv):
 
 
 def preprocess_all(uids, nifti_dir: Path, n_workers: int, deadline_s: float, t0: float):
-    """Returns (crops[N,X,Y,Z] fp16, scalars[N,8], radiomics[N,14], ok[N] bool)."""
+    """Returns (crops[N,X,Y,Z] fp16, crops_com[N,X,Y,Z] fp16, scalars[N,8], radiomics[N,14], ok[N] bool)."""
     N = len(uids)
-    crops = np.zeros((N,) + CROP_SHAPE, np.float16); sc = np.zeros((N, N_SCALARS), np.float32)
+    crops = np.zeros((N,) + CROP_SHAPE, np.float16); crops_com = np.zeros((N,) + CROP_SHAPE, np.float16)
+    sc = np.zeros((N, N_SCALARS), np.float32)
     rad = np.zeros((N, N_RADIOMICS), np.float32); ok = np.zeros(N, bool)
     paths = [find_nifti_path(nifti_dir, u) for u in uids]
     ex = ProcessPoolExecutor(max_workers=n_workers, initializer=_worker_init)
@@ -47,8 +48,8 @@ def preprocess_all(uids, nifti_dir: Path, n_workers: int, deadline_s: float, t0:
             print("ladder: preprocessing deadline hit; cancelling remaining volumes")
             break
         try:
-            c, s, r = fut.result(timeout=min(PER_VOLUME_TIMEOUT_S, remaining))
-            crops[i], sc[i], rad[i], ok[i] = c, s, r, True
+            c, cc, s, r = fut.result(timeout=min(PER_VOLUME_TIMEOUT_S, remaining))
+            crops[i], crops_com[i], sc[i], rad[i], ok[i] = c, cc, s, r, True
         except (Exception, FutTimeout):  # noqa: BLE001
             ok[i] = False
     # never block on a hung worker: drop queued work, then hard-terminate every worker process.
@@ -66,7 +67,7 @@ def preprocess_all(uids, nifti_dir: Path, n_workers: int, deadline_s: float, t0:
         except Exception:  # noqa: BLE001
             pass
     print(f"preprocessed {int(ok.sum())}/{N} volumes in {time.time()-t0:.0f}s")
-    return crops, sc, rad, ok
+    return crops, crops_com, sc, rad, ok
 
 
 def run_lr(lr_json: Path, rad, sc, ok, pi):
@@ -77,27 +78,33 @@ def run_lr(lr_json: Path, rad, sc, ok, pi):
     return p
 
 
-def run_cnn(weights: list, crops, sc, ok, t0: float, batch_size: int = 32):
+def run_cnn(weight_groups: list, sc, ok, t0: float, batch_size: int = 32):
+    """weight_groups: list of (list_of_weight_paths, crops_array) — e.g. hotspot checkpoints on the
+    hotspot crop and `_com` checkpoints on the CoM crop. All checkpoints are averaged with equal weight."""
     import torch
     from .model import SmallResNet3D
     device = "cuda" if torch.cuda.is_available() else "cpu"
     idx = np.where(ok)[0]
     acc = np.zeros(len(idx)); used = 0
-    x_all = torch.from_numpy(crops[idx].astype(np.float32))[:, None]
+    total = sum(len(w) for w, _ in weight_groups)
     s_all = torch.from_numpy(sc[idx])
-    for wpath in weights:
-        if time.time() - t0 > LADDER_SKIP_CNN_S:
-            print("ladder: skipping remaining checkpoints"); break
-        model = SmallResNet3D(n_scalars=N_SCALARS).to(device)
-        model.load_state_dict(torch.load(wpath, map_location=device)); model.eval()
-        out = []
-        with torch.no_grad():
-            for b in range(0, len(idx), batch_size):
-                x = x_all[b:b + batch_size].to(device); s = s_all[b:b + batch_size].to(device)
-                z = 0.5 * (model(x, s) + model(x.flip(dims=[2]), s))
-                out.append(torch.sigmoid(z).float().cpu().numpy())
-        acc += np.concatenate(out); used += 1
-    print(f"cnn checkpoints used: {used}/{len(weights)}")
+    for weights, crops in weight_groups:
+        if not weights:
+            continue
+        x_all = torch.from_numpy(crops[idx].astype(np.float32))[:, None]
+        for wpath in weights:
+            if time.time() - t0 > LADDER_SKIP_CNN_S:
+                print("ladder: skipping remaining checkpoints"); break
+            model = SmallResNet3D(n_scalars=N_SCALARS).to(device)
+            model.load_state_dict(torch.load(wpath, map_location=device)); model.eval()
+            out = []
+            with torch.no_grad():
+                for b in range(0, len(idx), batch_size):
+                    x = x_all[b:b + batch_size].to(device); s = s_all[b:b + batch_size].to(device)
+                    z = 0.5 * (model(x, s) + model(x.flip(dims=[2]), s))
+                    out.append(torch.sigmoid(z).float().cpu().numpy())
+            acc += np.concatenate(out); used += 1
+    print(f"cnn checkpoints used: {used}/{total}")
     if used == 0:
         return None
     p = np.full(len(ok), np.nan); p[idx] = acc / used

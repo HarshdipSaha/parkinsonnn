@@ -15,7 +15,7 @@ if __name__ == "__main__":
     a = ap.parse_args()
     art = Path(a.artifacts)
     need = [art / "lr.json", art / "calib.json"]
-    weights = sorted(p for p in art.glob("cnn_f*_s*.pt") if "_com" not in p.name)
+    weights = sorted(art.glob("cnn_f*_s*.pt"))   # hotspot + _com checkpoints (dual-crop ensemble)
     for p in need:
         assert p.exists(), f"missing {p}"
     with zipfile.ZipFile(ROOT / a.out, "w", zipfile.ZIP_DEFLATED) as z:
