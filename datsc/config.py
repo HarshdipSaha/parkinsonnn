@@ -9,10 +9,11 @@ from pathlib import Path
 SPACING_MM = 3.0                   # isotropic resampling target
 CROP_SHAPE = (72, 72, 48)          # [x, y, z] voxels at SPACING_MM (216x216x144 mm)
 SMOOTH_MM = 6.0                    # gaussian sigma used for mask + anchor
-ANCHOR_THRESH = 0.6                # fraction of smoothed max defining the hotspot
-ANCHOR_MIN_ML, ANCHOR_MAX_ML = 1.0, 30.0
-ANCHOR_MAX_DIST_MM = 40.0
-FALLBACK_SUPERIOR_OFFSET_MM = 15.0 # CoM fallback: striatum sits above the head CoM
+ANCHOR_THRESH = 0.7                # fraction of (interior) smoothed max defining the hotspot
+ANCHOR_INTERIOR_MM = 20.0          # hotspot search restricted to voxels this deep inside the head mask
+ANCHOR_MIN_ML, ANCHOR_MAX_ML = 1.0, 30.0   # informational flag bounds (anchor is used regardless)
+ANCHOR_MAX_DIST_MM = 50.0
+FALLBACK_SUPERIOR_OFFSET_MM = 15.0 # CoM fallback only when the interior region is empty (degenerate mask)
 STRIATAL_HALF_MM = (15.0, 15.0, 9.0)  # half-extent of the striatal box for radiomics
 
 # --- scalars (order is a contract between preprocess, LR, CNN head) --------

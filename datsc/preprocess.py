@@ -8,9 +8,9 @@ from __future__ import annotations
 import numpy as np
 from scipy import ndimage as ndi
 
-from .config import (ANCHOR_MAX_DIST_MM, ANCHOR_MAX_ML, ANCHOR_MIN_ML, ANCHOR_THRESH,
-                     CROP_SHAPE, FALLBACK_SUPERIOR_OFFSET_MM, N_SCALARS, SMOOTH_MM,
-                     SPACING_MM)
+from .config import (ANCHOR_INTERIOR_MM, ANCHOR_MAX_DIST_MM, ANCHOR_MAX_ML, ANCHOR_MIN_ML,
+                     ANCHOR_THRESH, CROP_SHAPE, FALLBACK_SUPERIOR_OFFSET_MM, N_SCALARS,
+                     SMOOTH_MM, SPACING_MM)
 
 
 def _otsu(values: np.ndarray) -> float:
@@ -58,30 +58,38 @@ def normalize_p75(vol: np.ndarray, mask: np.ndarray):
 
 
 def find_anchor(norm: np.ndarray, mask: np.ndarray, spacing_mm: float = SPACING_MM):
-    """Hotspot anchor: x from the brain-mask midline, y/z from the brightest smoothed blob.
+    """Hotspot anchor: x from the brain-mask midline, y/z from the brightest smoothed blob found
+    in the deep-brain interior (> ANCHOR_INTERIOR_MM from the head-mask boundary).
 
-    Returns ((cx, cy, cz) in voxel coords, fallback_flag).
-    Fallback = brain-mask centre of mass shifted superiorly (striatum lies above the head CoM).
+    Restricting the search to the interior removes scalp/edge uptake as a candidate, which is
+    what made the plain "brightest blob" fail preferentially on low-uptake (abnormal) scans.
+    The interior hotspot is used unconditionally; the returned flag only records whether the
+    component looked unusual (size/distance) so it can be fed to the models as a scalar.
+    Returns ((cx, cy, cz) in voxel coords, flag). A CoM fallback is used only if the interior is empty.
     """
     vox_ml = spacing_mm ** 3 / 1000.0
     brain_c = np.array(ndi.center_of_mass(mask), dtype=float)
     fallback_c = brain_c.copy()
     fallback_c[2] += FALLBACK_SUPERIOR_OFFSET_MM / spacing_mm
 
+    depth = ndi.distance_transform_edt(mask, sampling=spacing_mm)
+    inner = depth > ANCHOR_INTERIOR_MM
+    if inner.sum() < 50:                       # tiny/degenerate mask: use the whole mask
+        inner = mask
     sm = ndi.gaussian_filter(norm * mask, sigma=SMOOTH_MM / spacing_mm)
-    peak = float(sm.max())
+    sm_in = np.where(inner, sm, 0.0)
+    peak = float(sm_in.max())
     if not np.isfinite(peak) or peak <= 0:
         return tuple(fallback_c), True
-    comp = sm > ANCHOR_THRESH * peak
-    comp = _largest_component(comp)
+    comp = _largest_component(sm_in > ANCHOR_THRESH * peak)
+    if comp.sum() == 0:
+        return tuple(fallback_c), True
+    hot_c = np.array(ndi.center_of_mass(sm_in, labels=comp.astype(int), index=1), dtype=float)
     ml = comp.sum() * vox_ml
-    if ml < ANCHOR_MIN_ML or ml > ANCHOR_MAX_ML:
-        return tuple(fallback_c), True
-    hot_c = np.array(ndi.center_of_mass(sm, labels=comp.astype(int), index=1), dtype=float)
-    if np.linalg.norm((hot_c - brain_c) * spacing_mm) > ANCHOR_MAX_DIST_MM:
-        return tuple(fallback_c), True
+    dist = float(np.linalg.norm((hot_c - brain_c) * spacing_mm))
+    flag = bool(ml < ANCHOR_MIN_ML or ml > ANCHOR_MAX_ML or dist > ANCHOR_MAX_DIST_MM)
     # x from the mask midline so a one-sided (asymmetric) hotspot cannot shift the crop laterally
-    return (float(brain_c[0]), float(hot_c[1]), float(hot_c[2])), False
+    return (float(brain_c[0]), float(hot_c[1]), float(hot_c[2])), flag
 
 
 def crop_at(vol: np.ndarray, center, shape=CROP_SHAPE) -> np.ndarray:
