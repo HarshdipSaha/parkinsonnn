@@ -72,6 +72,15 @@ Budget: Kaggle ~17 GPU-h left this week (resets Sat), 30 h next week. Every addi
 - [ ] Step 6: Label-noise bound: count scans where every seed of both arms is > 0.95 confident against the label; list uid/site; treat as the practical floor.
 - [ ] Step 7: EMA-lag guard: in the report cell, flag any checkpoint whose `val_logloss` exceeds the last `val_raw_logloss` by > 0.02 (from `history`).
 
+### Task B1b: Items from `docs/RESEARCH_SIMILAR_COMPETITIONS.md` (added Sept 6 11:30 UTC)
+
+- [ ] Augmentation strength ablation: "unrealistic" Gaussian blur + noise (Buddenkotte & Buchert 2024 lifted cross-camera accuracy 0.953 → 0.975); ours caps blur at σ 4 mm / noise 15 % — try σ up to 8 mm and noise 30 % on fold 0/1 of both arms (2 × 2 runs, ~1 h). Keep if fold loss improves ≥ 0.01.
+- [ ] Hamburg-recipe arm (Budd 2024): single 12 mm slab at 2 mm, 72×72 central crop, ~200k-param ResNet from scratch, 5 seeds × 5 folds (each run a few minutes on a T4). New arm `a2d_tiny`; needs `--n-slabs 1 --slab-mm 12 --hw 72` and a tiny 2D net in `datsc/models_v3.py`. Cheap, historically the strongest DaT recipe (98 % / 94 % / 98 % on three test sets).
+- [ ] Uncertainty hedging in the combiner: shrink scans where the arms disagree strongly (e.g. spread of arm logits > threshold fitted on OOF) toward the prior; Hamburg's ensemble flags 4.3 % of scans and catches 90 % of its errors there. Gate on nested OOF (est. −0.005 to −0.02).
+- [ ] Clip final probabilities to [0.02, 0.98] and evaluate on OOF (winners' log-loss playbook); ship the better of clipped/unclipped.
+- [ ] TTA caution: BatchNorm backbones can lose accuracy under shifted inputs; the re-OOF step measures the z-shift TTA per arm — keep it only where it helps, otherwise `--tta-z 0`.
+- [ ] Submission strategy: public LB is noise at this test size and the best *private* submission counts automatically → make each weekly slot a *diverse* variant (e.g. different T / hedging / member set), not a re-run.
+
 ### Task B2: Diversity members (GPU ~4 h)
 
 Add jobs to `JOBS2` in `kaggle/gen_run3_inject.py`, regenerate, `python kaggle/push_cells.py`, run the queue-2 cell, then re-OOF → stack → pack → e2e → split.

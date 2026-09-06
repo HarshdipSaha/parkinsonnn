@@ -54,6 +54,7 @@ Python 3.12, numpy / scipy / nibabel / SimpleITK / scikit-learn, PyTorch + torch
 | Post-mortem brainstorm (subagent, non-interactive) | `docs/RUN3_BRAINSTORM.md` |
 | Deep-research workflow (5 verified claims before the subagent quota ran out) | Registration + reference-region normalisation + 12 mm slab 2D CNNs reach 97 %+ in the literature; blur augmentation gives resolution robustness |
 | Run 3 construction | `efforts/002-run3-registered-ensemble/` |
+| Single-agent research on similar competitions' winners (RSNA series, OSIC, TReNDS, ISIC, DrivenData code-execution winners, DaT-SPECT literature) | `docs/RESEARCH_SIMILAR_COMPETITIONS.md` |
 | Plan to finish run 3 and run 4 | `docs/superpowers/plans/2026-09-06-run3-finish-and-run4.md` |
 
 ## Known results
