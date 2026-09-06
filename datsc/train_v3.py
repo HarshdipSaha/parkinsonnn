@@ -77,11 +77,12 @@ def predict(model, loader, spec: InputSpec, device, tta_flip=True):
 
 
 class EMA:
-    """Exponential moving average of the weights with a step-adaptive decay min(decay, (1+t)/(10+t)), so the
-    random initialisation never dominates short runs (with a fixed 0.999 and ~1,000 steps, 36 % of the average
-    would still be the init -> under-confident logits)."""
+    """Exponential moving average of the weights with a step-adaptive decay min(decay, (1+t)/(10+t)).
+    Keep the window SHORT (2-3 epochs: 0.99 for ~35 steps/epoch, 0.995 for ~70): a 0.998 window of ~15 epochs
+    averaged weights from when the model was still poor and produced compressed, under-confident logits
+    (measured: val log loss 0.58 at AUROC 0.87 on the 2.5D arm)."""
 
-    def __init__(self, model, decay=0.998):
+    def __init__(self, model, decay=0.995):
         self.m = copy.deepcopy(model).eval(); self.decay = decay; self.t = 0
         for p in self.m.parameters():
             p.requires_grad_(False)
@@ -106,7 +107,7 @@ def _grad_scaler(amp: bool):
 
 def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_kw: dict, tag: str,
               epochs=60, batch_size=16, lr=5e-4, backbone_lr=None, weight_decay=1e-2, warmup_epochs=3,
-              mixup=0.0, ema_decay=0.998, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
+              mixup=0.0, ema_decay=0.995, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
               augment=True, save_fp16=True, select: str = "final") -> dict:
     cache_dir, out_dir = Path(cache_dir), Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu"); amp = device.startswith("cuda")
@@ -164,8 +165,15 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
         p, uids = predict(eval_model, dl_va, spec, device, tta_flip=False)
         yv = yv_lookup.loc[uids].values.astype(float)
         vl, va_auc = logloss_np(yv, p), auroc_np(yv, p)
-        hist.append({"epoch": ep, "train_loss": tl / max(n, 1), "val_logloss": vl, "val_auroc": va_auc, "sec": time.time() - t0})
-        print(f"[{tag}] ep{ep:02d} train={tl/max(n,1):.4f} val_logloss={vl:.4f} val_auroc={va_auc:.4f} ({time.time()-t0:.0f}s)", flush=True)
+        raw = ""
+        rec = {"epoch": ep, "train_loss": tl / max(n, 1), "val_logloss": vl, "val_auroc": va_auc, "sec": time.time() - t0}
+        if ema is not None:                                   # raw-model metrics next to the EMA ones (lag / collapse detector)
+            p_raw, u_raw = predict(model, dl_va, spec, device, tta_flip=False)
+            y_raw = yv_lookup.loc[u_raw].values.astype(float)
+            rec["val_raw_logloss"], rec["val_raw_auroc"] = logloss_np(y_raw, p_raw), auroc_np(y_raw, p_raw)
+            raw = f" raw={rec['val_raw_logloss']:.4f}/{rec['val_raw_auroc']:.4f}"
+        hist.append(rec)
+        print(f"[{tag}] ep{ep:02d} train={tl/max(n,1):.4f} val_logloss={vl:.4f} val_auroc={va_auc:.4f}{raw} ({time.time()-t0:.0f}s)", flush=True)
         if vl < best:
             best = vl
             if select == "best":

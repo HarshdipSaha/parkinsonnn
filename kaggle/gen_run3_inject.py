@@ -18,11 +18,11 @@ RAW_DS = "/kaggle/input/datasets/harshdipsaha/dat-parkinsons-challenge-data"
 
 # (tag_prefix, command args) -- one entry per (fold, seed) is expanded by the runner
 JOBS = [
-    {"name": "r2d_effb0", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --z-center {ZC}"},
-    {"name": "r3d", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
-    {"name": "r2d_effb0_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --z-center {ZC}"},
-    {"name": "r3d_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
-    {"name": "r2d_effv2s", "seeds": [0, 1], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_v2_s --weights pretrained/efficientnet_v2_s_in1k.pt --n-slabs 3 --slab-mm 8 --hw 224 --epochs 30 --batch-size 24 --lr 5e-4 --backbone-lr 1e-4 --mixup 0.2 --z-center {ZC}"},
+    {"name": "r2d_effb0", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --ema 0.99 --z-center {ZC}"},
+    {"name": "r3d", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2 --ema 0.995"},
+    {"name": "r2d_effb0_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --ema 0.99 --z-center {ZC}"},
+    {"name": "r3d_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2 --ema 0.995"},
+    {"name": "r2d_effv2s", "seeds": [0, 1], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_v2_s --weights pretrained/efficientnet_v2_s_in1k.pt --n-slabs 3 --slab-mm 8 --hw 224 --epochs 30 --batch-size 24 --lr 5e-4 --backbone-lr 1e-4 --mixup 0.2 --ema 0.99 --z-center {ZC}"},
 ]
 ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("lr", "lrarm", "lrarm_site")]
 

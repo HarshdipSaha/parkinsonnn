@@ -28,7 +28,7 @@ if __name__ == "__main__":
     ap.add_argument("--weight-decay", type=float, default=1e-2)
     ap.add_argument("--warmup", type=int, default=3)
     ap.add_argument("--mixup", type=float, default=0.0)
-    ap.add_argument("--ema", type=float, default=0.998)
+    ap.add_argument("--ema", type=float, default=0.995)
     ap.add_argument("--select", default="final", choices=["final", "best"])
     ap.add_argument("--norm", default="ref", choices=["ref", "p75", "median", "zscore", "p99"])
     ap.add_argument("--n-scalars", type=int, default=0)
