@@ -105,6 +105,19 @@ def run_feat_arm(arm_cfg: dict, root: Path, vols, st, ok):
     return p
 
 
+def typicality_all(arm_cfg: dict, root: Path, vols, st, ok):
+    """Per-scan typicality (Mahalanobis distance in the feature arm's PCA space) for the ok volumes; nan elsewhere."""
+    from .featmodel import FeatModel
+    from .features_v4 import striatal_patch
+    m = FeatModel.load(root / Path(arm_cfg["checkpoints"][0]).name)
+    idx = np.where(ok)[0]
+    d = np.full(len(ok), np.nan)
+    if len(idx):
+        P = np.stack([striatal_patch(renormalise(vols[i], st[i], arm_cfg.get("norm", "ref")).astype(np.float32)) for i in idx])
+        d[idx] = m.typicality(P)
+    return d
+
+
 def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: int = 16):
     """Average of all checkpoints of one arm over the ok volumes. Returns probs[N] (nan where not ok) or None."""
     if arm_cfg["arm"] == "lr":
@@ -150,18 +163,25 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
     return p
 
 
-def combine(arm_probs: dict, weights: dict, T: float, lam: float, pi: float, clip=None, hedge=None):
+def combine(arm_probs: dict, weights: dict, T: float, lam: float, pi: float, clip=None, hedge=None, typ=None):
     """Weighted logit average over the arms that produced predictions, temperature, prior mix.
     clip: [lo, hi] final probability bounds (winners' log-loss playbook), default [EPS, 1-EPS].
     hedge: {"thresh": t, "lam": l}: scans whose arm logits disagree by more than t are mixed with the prior at
-    strength l instead of lam (uncertainty hedging; only meaningful with >= 2 arms)."""
+    strength l instead of lam (uncertainty hedging; only meaningful with >= 2 arms).
+    typ: {"kappa": k, "d0": d0, "d": per-scan typicality}: temperature T_i = T * (1 + k * max(0, d_i - d0)) so scans far
+    from the training distribution are shrunk toward the prior (per-sample; nan d -> T)."""
     names = [n for n in weights if n in arm_probs and arm_probs[n] is not None]
     if not names:
         return None
     w = np.array([weights[n] for n in names], float); w = w / w.sum()
     Z = np.stack([logit(arm_probs[n]) for n in names])          # [A, N] (nan where not ok)
     z = np.nansum(Z * w[:, None], axis=0) / np.nansum(np.where(np.isnan(Z), 0, w[:, None]), axis=0)
-    p = sigmoid(z / T)
+    if typ and typ.get("kappa", 0) > 0 and typ.get("d") is not None:
+        d = np.asarray(typ["d"], float)
+        Ti = T * (1 + float(typ["kappa"]) * np.maximum(0.0, np.nan_to_num(d, nan=float(typ["d0"])) - float(typ["d0"])))
+    else:
+        Ti = T
+    p = sigmoid(z / Ti)
     lam_i = np.full(p.shape, float(lam))
     if hedge and len(names) >= 2:
         spread = np.nanmax(Z, axis=0) - np.nanmin(Z, axis=0)

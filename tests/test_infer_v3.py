@@ -60,3 +60,15 @@ def test_selftest_v3():
     r = subprocess.run([sys.executable, str(ROOT / "main_v3.py"), "--selftest"], cwd=ROOT, capture_output=True, text=True, timeout=600,
                        env={**os.environ, "DATSC_ARTIFACTS": str(ROOT / "nonexistent_artifacts")})
     assert r.returncode == 0 and "SELFTEST OK" in r.stdout, r.stdout + r.stderr
+
+
+def test_combine_typicality_shrinks_atypical_toward_prior():
+    import numpy as np
+    from datsc.infer_v3 import combine
+    probs = {"a": np.array([0.95, 0.95]), "b": np.array([0.9, 0.9])}
+    base = combine(probs, {"a": 0.5, "b": 0.5}, 1.0, 0.02, 0.548)
+    typ = combine(probs, {"a": 0.5, "b": 0.5}, 1.0, 0.02, 0.548, typ={"kappa": 0.5, "d0": 2.0, "d": np.array([1.0, 6.0])})
+    assert np.isclose(typ[0], base[0]) and typ[1] < base[1] and typ[1] > 0.548     # typical unchanged, atypical shrunk toward the prior
+    nan = combine(probs, {"a": 0.5, "b": 0.5}, 1.0, 0.02, 0.548, typ={"kappa": 0.5, "d0": 2.0, "d": np.array([np.nan, np.nan])})
+    assert np.allclose(nan, base)
+

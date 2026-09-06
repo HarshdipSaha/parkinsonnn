@@ -41,14 +41,14 @@ def build(cache: Path, T, force=False):
     return F, P, meta
 
 
-def oof(F, P, y, folds, n_comp, C):
-    p = np.zeros(len(y))
+def oof(F, P, y, folds, n_comp, C, with_d=False):
+    p = np.zeros(len(y)); d = np.zeros(len(y))
     for k in np.unique(folds):
         tr, va = folds != k, folds == k
         m = FeatModel(n_comp, C).fit(np.concatenate([F[tr, 0], F[tr, 1]]), np.concatenate([P[tr, 0], P[tr, 1]]), np.concatenate([y[tr], y[tr]]))
         z = 0.5 * (m.decision(F[va, 0], P[va, 0]) + m.decision(F[va, 1], P[va, 1]))      # average over both orientations
-        p[va] = 1 / (1 + np.exp(-z))
-    return p
+        p[va] = 1 / (1 + np.exp(-z)); d[va] = m.typicality(P[va, 0])
+    return (p, d) if with_d else p
 
 
 def ll(y, p):
@@ -80,14 +80,14 @@ if __name__ == "__main__":
                 print(f"  n_comp={nc:3d} C={c:<5} OOF logloss={rows[-1][0]:.4f} AUROC={rows[-1][1]:.4f}", flush=True)
         best = min(rows); n_comp, C = best[2], best[3]
         print(f"grid best: n_comp={n_comp} C={C} (logloss {best[0]:.4f})")
-    p = oof(F, P, y, folds, n_comp, C)
+    p, d = oof(F, P, y, folds, n_comp, C, with_d=True)
     auc, l = roc_auc_score(y, p), ll(y, p)
-    print(f"feat arm random folds: OOF AUROC={auc:.4f} logloss={l:.4f}  (run-3 LR arm: 0.902 / 0.4015)")
-    pd.DataFrame({"uid": meta.uid, "y": y, "p": p}).to_csv(out / "oof_featarm.csv", index=False)
+    print(f"feat arm random folds: OOF AUROC={auc:.4f} logloss={l:.4f}  (run-3 LR arm: 0.902 / 0.4015); typicality d: median {np.median(d):.2f} p90 {np.percentile(d, 90):.2f} max {d.max():.2f}")
+    pd.DataFrame({"uid": meta.uid, "y": y, "p": p, "d": d}).to_csv(out / "oof_featarm.csv", index=False)
     if fs is not None:
-        ps = oof(F, P, y, fs, n_comp, C)
-        print(f"feat arm site folds  : OOF AUROC={roc_auc_score(y, ps):.4f} logloss={ll(y, ps):.4f}")
-        pd.DataFrame({"uid": meta.uid, "y": y, "p": ps}).to_csv(out / "oof_featarm_site.csv", index=False)
+        ps, ds = oof(F, P, y, fs, n_comp, C, with_d=True)
+        print(f"feat arm site folds  : OOF AUROC={roc_auc_score(y, ps):.4f} logloss={ll(y, ps):.4f}; typicality d (site folds): median {np.median(ds):.2f} p90 {np.percentile(ds, 90):.2f}")
+        pd.DataFrame({"uid": meta.uid, "y": y, "p": ps, "d": ds}).to_csv(out / "oof_featarm_site.csv", index=False)
         sites = pd.read_csv(cache / "sites.csv", dtype={"uid": str}).set_index("uid").loc[meta.uid, "site"].values
         for s in pd.Series(sites).value_counts().index[:8]:
             m = sites == s

@@ -29,7 +29,10 @@ def arm_oof(art: Path, pattern: str):
     files = sorted(glob.glob(str(art / f"oof_{pattern}.csv")))
     assert files, f"no OOF files for {pattern}"
     df = pd.concat([pd.read_csv(f, dtype={"uid": str}) for f in files])
-    oof = df.groupby("uid").agg(y=("y", "first"), p=("p", "mean"))
+    agg = dict(y=("y", "first"), p=("p", "mean"))
+    if "d" in df.columns:
+        agg["d"] = ("d", "mean")
+    oof = df.groupby("uid").agg(**agg)
     tags = [Path(f).name[4:-4] for f in files]
     mp = art / f"{tags[0]}.json"
     meta = json.loads(mp.read_text()) if mp.exists() else None    # site-fold OOFs only need the predictions
@@ -64,6 +67,7 @@ if __name__ == "__main__":
     ap.add_argument("--clip", type=float, nargs="*", default=[0.0, 0.01, 0.02, 0.03], help="candidate tail clips (0 = none)")
     ap.add_argument("--hedge-q", type=float, nargs="*", default=[0.0, 0.85, 0.95], help="candidate disagreement quantiles (0 = no hedge)")
     ap.add_argument("--hedge-lam", type=float, nargs="*", default=[0.15, 0.3])
+    ap.add_argument("--typ", action="store_true", help="select a typicality-aware temperature (needs a 'd' column in the feat arm OOF) by the nested estimate")
     a = ap.parse_args()
     art = Path(a.out)
     arms, oofs = [], {}
@@ -107,8 +111,10 @@ if __name__ == "__main__":
         zz = (bw[:, None] * Zs).sum(0)
         return bw, max(fit_temperature(zz, ys), a.t_floor)
 
-    def apply(Zs, ww, TT, clip, hedge):
-        zz = (ww[:, None] * Zs).sum(0); pp = sigmoid(zz / TT)
+    def apply(Zs, ww, TT, clip, hedge, typ=None, dd=None):
+        zz = (ww[:, None] * Zs).sum(0)
+        Ti = TT * (1 + typ[0] * np.maximum(0.0, dd - typ[1])) if (typ is not None and dd is not None) else TT
+        pp = sigmoid(zz / Ti)
         lam_i = np.full(pp.shape, a.lam)
         if hedge is not None and Zs.shape[0] >= 2:
             spread = Zs.max(0) - Zs.min(0); lam_i = np.where(spread > hedge[0], hedge[1], lam_i)
@@ -154,6 +160,26 @@ if __name__ == "__main__":
                 m = sites == st
                 au = roc_auc_score(y[m], pn[m]) if 0 < y[m].mean() < 1 else float("nan")
                 print(f"  {st:<26} {m.sum():4d} {y[m].mean():.2f} {pn[m].mean():.2f} {logloss(y[m], pn[m]):.4f} {au:.3f}")
+    chosen_typ = None
+    if a.typ and a.nested and "feat" in oofs and "d" in oofs["feat"].columns:
+        dd = oofs["feat"].loc[uids, "d"].values.astype(float)
+        folds = pd.read_csv(Path(a.cache) / "folds.csv", dtype={"uid": str}).set_index("uid").loc[uids, "fold"].values
+        def nested_ll(typ):
+            pn = np.zeros(len(y))
+            for k in np.unique(folds):
+                tr, va = folds != k, folds == k
+                ww, TT = fit_wt(Z[:, tr], y[tr]); pn[va] = apply(Z[:, va], ww, TT, chosen_clip, chosen_hedge, typ, dd[va] if typ else None)
+            return logloss(y, pn)
+        base_t = nested_ll(None); cands_t = []
+        for kappa in (0.25, 0.5, 1.0, 2.0):
+            for q in (0.75, 0.9):
+                d0 = float(np.quantile(dd, q)); cands_t.append((nested_ll((kappa, d0)), kappa, d0, q))
+        cands_t.sort(); bt = cands_t[0]
+        print(f"typicality: nested {base_t:.4f} -> best {bt[0]:.4f} (kappa={bt[1]}, d0=q{bt[3]}={bt[2]:.2f}); d median {np.median(dd):.2f}")
+        if bt[0] < base_t - 0.003:
+            chosen_typ = (bt[1], bt[2]); print(f"selected typicality temperature kappa={bt[1]} d0={bt[2]:.3f}")
+        else:
+            print("typicality temperature gives no reliable nested gain; not selected")
     T_site = None
     site = dict(a.site_arm)
     if site and all(x["name"] in site for x in arms):
@@ -166,12 +192,13 @@ if __name__ == "__main__":
         print(f"site-fold pool: n={len(y_s)} AUROC={roc_auc_score(y_s, sigmoid(z_s)):.4f} logloss(T=1)={logloss(y_s, sigmoid(z_s)):.4f} "
               f"logloss(T_site)={logloss(y_s, sigmoid(z_s / T_site)):.4f} T_site={T_site:.3f} (random-fold T={T_rand:.3f})")
     T = max(T_site if T_site is not None else T_rand, a.t_floor)
-    final = apply(Z, w, T, chosen_clip, chosen_hedge)
+    final = apply(Z, w, T, chosen_clip, chosen_hedge, chosen_typ, (oofs["feat"].loc[uids, "d"].values.astype(float) if chosen_typ else None))
     print(f"weights={dict(zip([x['name'] for x in arms], np.round(w, 2)))}  T={T:.3f} (random {T_rand:.3f}, site {T_site}, floor {a.t_floor})  lam={a.lam}  pi={a.pi:.3f}")
     print(f"stack OOF: AUROC={roc_auc_score(y, final):.4f} logloss={logloss(y, final):.4f}  (equal-weight logloss={logloss(y, sigmoid(Z.mean(0))):.4f})")
     man = {"pi": a.pi, "T": float(T), "T_random": float(T_rand), "T_site": (float(T_site) if T_site is not None else None), "lam": a.lam,
            "clip": ([chosen_clip, 1 - chosen_clip] if chosen_clip > 0 else None),
-           "hedge": ({"thresh": float(chosen_hedge[0]), "lam": float(chosen_hedge[1])} if chosen_hedge else None), "weights": {x["name"]: float(wi) for x, wi in zip(arms, w)}, "arms": arms,
+           "hedge": ({"thresh": float(chosen_hedge[0]), "lam": float(chosen_hedge[1])} if chosen_hedge else None),
+           "typ": ({"kappa": float(chosen_typ[0]), "d0": float(chosen_typ[1])} if chosen_typ else None), "weights": {x["name"]: float(wi) for x, wi in zip(arms, w)}, "arms": arms,
            "oof_logloss": logloss(y, final), "oof_auroc": float(roc_auc_score(y, final)), "n": int(len(y))}
     (art / "manifest.json").write_text(json.dumps(man, indent=1))
     pd.DataFrame({"uid": uids, "y": y, "p": final}).to_csv(art / "oof_stack.csv", index=False)

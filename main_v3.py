@@ -55,6 +55,15 @@ def main():
     vols, sc, st, ok = infer.preprocess_all(uids, config.RUNTIME_NIFTI_DIR, n_workers, deadline_s=infer.LADDER_STOP_S, t0=T0,
                                             template_path=tpl if tpl.exists() else None)
     arm_probs = {}
+    typ = None
+    feat_cfg = next((a for a in man["arms"] if a.get("arm") == "feat"), None)
+    if man.get("typ") and feat_cfg is not None:
+        try:
+            d = infer.typicality_all(feat_cfg, ARTIFACTS, vols, st, ok)
+            typ = {**man["typ"], "d": d}
+            print(f"typicality: median {np.nanmedian(d):.2f}, {int(np.nansum(d > float(man['typ']['d0'])))} scans above d0={man['typ']['d0']:.2f}", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"typicality failed: {type(e).__name__}", flush=True)
     for a in man["arms"]:
         if time.time() - T0 > infer.LADDER_STOP_S:
             print("ladder: skipping remaining arms"); break
@@ -62,7 +71,7 @@ def main():
             arm_probs[a["name"]] = infer.run_arm(a, ARTIFACTS, vols, sc, st, ok, T0)
         except Exception as e:  # noqa: BLE001
             print(f"arm {a['name']} failed: {type(e).__name__}", flush=True); arm_probs[a["name"]] = None
-        p = infer.combine(arm_probs, man["weights"], float(man["T"]), float(man["lam"]), pi, clip=man.get("clip"), hedge=man.get("hedge"))
+        p = infer.combine(arm_probs, man["weights"], float(man["T"]), float(man["lam"]), pi, clip=man.get("clip"), hedge=man.get("hedge"), typ=typ)
         if p is not None:
             infer.write_submission(uids, np.where(ok & np.isfinite(p), p, pi), config.RUNTIME_OUTPUT_CSV)
             print(f"stage written after arm {a['name']} at {time.time()-T0:.0f}s", flush=True)
