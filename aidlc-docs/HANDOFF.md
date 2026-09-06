@@ -66,7 +66,9 @@ Monitoring: https://www.kaggle.com/code/harshdipsaha/dat-parkinsons-train/log?sc
 Never run more than ~2 h of training in one interactive session or one commit without persisting. Two mechanisms:
 
 1. **Chained commits (no credentials).** The cache-mount cell copies any `artifacts_v3/` or `out/` found under `/kaggle/input/` into the working `artifacts_v3/`, and both runners skip jobs whose `.pt` exists. So: commit N saves its outputs as a version → in the editor, Add Input → Your Work → that notebook version's output → commit N+1 resumes. Split `JOBS` into ≤ 2 h chunks per commit.
-2. **Per-job upload (needs secrets).** With `KAGGLE_USERNAME` / `KAGGLE_KEY` notebook secrets, the runner can push each finished checkpoint to a private dataset version immediately (not yet implemented; ask the user for the token first).
+2. **Per-job upload (implemented).** With `KAGGLE_USERNAME` / `KAGGLE_KEY` notebook Secrets (Add-ons → Secrets), both runner cells push `artifacts_v3/` to the private dataset `harshdipsaha/dat-run3-checkpoints` after every 4 finished jobs and at the end (`push_checkpoints`, background thread, upgrades the kaggle client first). To resume from it: attach that dataset as an input; the cache-mount cell copies its files into `artifacts_v3/`.
+
+**Kaggle CLI (local).** Credentials from `.env` (gitignored) are mirrored in `~/.kaggle/kaggle.json`; the fine-grained token only works with client >= 2.2 (`pip install -U kaggle`). Useful commands: `kaggle kernels status harshdipsaha/dat-parkinsons-train` (commit status), `kaggle kernels output harshdipsaha/dat-parkinsons-train -p data/kaggle_output` (download the latest version's output files, no size cap), `kaggle datasets version -p <dir> -m "<note>"` (push a dataset version).
 
 ## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 

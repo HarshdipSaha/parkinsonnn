@@ -120,6 +120,7 @@ def push_checkpoints(note):
             if os.path.isfile(f) and not os.path.exists(os.path.join(d, os.path.basename(f))): _sh.copy(f, d)
         json.dump({{'title': 'dat-run3-checkpoints', 'id': '{CKPT_DS}', 'licenses': [{{'name': 'other'}}]}}, open(os.path.join(d, 'dataset-metadata.json'), 'w'))
         env = {{**os.environ, 'KAGGLE_USERNAME': _KU, 'KAGGLE_KEY': _KK}}
+        subprocess.run(['python', '-m', 'pip', 'install', '-q', '-U', 'kaggle'], capture_output=True, timeout=600)   # fine-grained tokens need client >= 2.x
         r = subprocess.run(['kaggle', 'datasets', 'version', '-p', d, '-m', note, '-q', '--dir-mode', 'skip'], env=env, capture_output=True, text=True, timeout=1800)
         print(f"[upload] {{note}}: rc={{r.returncode}} {{(r.stdout or r.stderr).strip()[-160:]}}", flush=True)
     except Exception as e:
