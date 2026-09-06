@@ -58,12 +58,17 @@ def to_3d_input(x: torch.Tensor, size=(64, 64, 48)) -> torch.Tensor:
 
 
 def to_slabs(x: torch.Tensor, n_slabs: int = 3, slab_mm: float = 12.0, hw: int = 192,
-             spacing_mm: float = VOL_SPACING_MM, mode: str = "mean", z_center: float | None = None) -> torch.Tensor:
-    """[B,1,X,Y,Z] -> [B,n_slabs,hw,hw]: consecutive axial slabs centred on voxel z_center (default: box centre;
-    in the registered frame pass the template's striatal z). Each channel is the mean (or max) over `slab_mm` of z.
-    Spatial axes are (x, y) -> image (H=y, W=x)."""
+             spacing_mm: float = VOL_SPACING_MM, mode: str = "mean", z_center: float | None = None,
+             plane: str = "axial", crop: int | None = None) -> torch.Tensor:
+    """[B,1,X,Y,Z] -> [B,n_slabs,hw,hw]: consecutive slabs centred on voxel `z_center` along the slab axis
+    (axial: z, default box centre; coronal: y). In the registered frame pass the template's striatal centre.
+    Each channel is the mean (or max) over `slab_mm`. The image's last axis is always X (L/R), so a flip on
+    dim 3 is the label-preserving mirror for both planes."""
     B, _, X, Y, Z = x.shape
     t = max(1, int(round(slab_mm / spacing_mm)))
+    if plane == "coronal":
+        x = x.transpose(3, 4)                              # [B,1,X,Z,Y]: slab axis (y) last, rows will be z
+        Z = Y
     zc = Z // 2 if z_center is None else int(round(z_center))
     z0 = zc - (n_slabs * t) // 2
     chans = []
@@ -71,8 +76,11 @@ def to_slabs(x: torch.Tensor, n_slabs: int = 3, slab_mm: float = 12.0, hw: int =
         a, b = max(0, z0 + k * t), min(Z, z0 + (k + 1) * t)
         sl = x[:, 0, :, :, a:b]
         chans.append(sl.amax(dim=-1) if mode == "max" else sl.mean(dim=-1))
-    img = torch.stack(chans, dim=1)                       # [B, n, X, Y]
-    img = img.transpose(2, 3)                             # [B, n, Y, X]  (rows = anterior..posterior)
-    if hw != img.shape[-1]:
+    img = torch.stack(chans, dim=1)                       # [B, n, X, rows]
+    img = img.transpose(2, 3)                             # [B, n, rows, X]
+    if crop:                                              # central crop (e.g. 72 voxels = 144 mm at 2 mm) before resizing
+        H, W = img.shape[-2:]; c0 = max(0, (H - crop) // 2); c1 = max(0, (W - crop) // 2)
+        img = img[:, :, c0:c0 + crop, c1:c1 + crop]
+    if hw != img.shape[-1] or hw != img.shape[-2]:
         img = F.interpolate(img, size=(hw, hw), mode="bilinear", align_corners=False)
     return img

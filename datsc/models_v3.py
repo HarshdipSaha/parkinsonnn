@@ -62,7 +62,28 @@ class ResNet3D(nn.Module):
         return self.head(self.scalars(h, scalars)).squeeze(1)
 
 
+class TinyNet2D(nn.Module):
+    """~200k-parameter ResNet-style 2D net trained from scratch (the Hamburg DaT-SPECT recipe: small nets on a
+    single striatal slab generalise across cameras). GroupNorm, SiLU, global average pooling."""
+
+    def __init__(self, n_in: int = 3, widths=(16, 32, 64, 128)):
+        super().__init__()
+        def block(cin, cout, stride):
+            return nn.Sequential(nn.Conv2d(cin, cout, 3, stride, 1, bias=False), nn.GroupNorm(min(8, cout), cout), nn.SiLU(),
+                                 nn.Conv2d(cout, cout, 3, 1, 1, bias=False), nn.GroupNorm(min(8, cout), cout), nn.SiLU())
+        layers, cin = [], n_in
+        for i, w in enumerate(widths):
+            layers.append(block(cin, w, 1 if i == 0 else 2)); cin = w
+        self.features = nn.Sequential(*layers)
+        self.out_dim = cin
+
+    def forward(self, x):
+        return F.adaptive_avg_pool2d(self.features(x), 1).flatten(1)
+
+
 def _tv_backbone(name: str, weights_path: str | Path | None):
+    if name == "tiny":
+        m = TinyNet2D(); return m, m.out_dim
     import torchvision.models as tvm
     m = getattr(tvm, name)(weights=None)
     if weights_path:
@@ -90,9 +111,12 @@ class Net2D(nn.Module):
     def __init__(self, backbone: str = "efficientnet_b0", weights_path=None, n_scalars: int = 0, n_in: int = 3,
                  dropout: float = 0.3, in_scale: float = 8.0):
         super().__init__()
-        self.backbone, dim = _tv_backbone(backbone, weights_path)
-        if n_in != 3:
-            self._adapt_stem(n_in)
+        if backbone == "tiny":
+            self.backbone = TinyNet2D(n_in=n_in); dim = self.backbone.out_dim
+        else:
+            self.backbone, dim = _tv_backbone(backbone, weights_path)
+            if n_in != 3:
+                self._adapt_stem(n_in)
         self.in_scale = in_scale
         self.scalars = ScalarHead(n_scalars)
         self.head = nn.Sequential(nn.Dropout(dropout), nn.Linear(dim + n_scalars, 1))

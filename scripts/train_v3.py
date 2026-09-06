@@ -45,16 +45,20 @@ if __name__ == "__main__":
     ap.add_argument("--slab-mm", type=float, default=8.0)
     ap.add_argument("--slab-mode", default="mean", choices=["mean", "max"])
     ap.add_argument("--hw", type=int, default=192)
-    ap.add_argument("--z-center", type=float, default=None, help="voxel z of the striatal plane (template striatal_center[2])")
+    ap.add_argument("--z-center", type=float, default=None, help="voxel centre of the slab stack along the slab axis (template striatal_center[2] axial / [1] coronal)")
+    ap.add_argument("--plane", default="axial", choices=["axial", "coronal"])
+    ap.add_argument("--tta-z", type=int, nargs="+", default=[0], help="slab-centre offsets (voxels) averaged at test time, e.g. -1 0 1")
+    ap.add_argument("--crop", type=int, default=None, help="central crop (voxels) of the slab image before resizing, e.g. 72")
     a = ap.parse_args()
     if a.arm == "3d":
         spec = InputSpec("3d", size=a.size)
         model_kw = dict(widths=tuple(a.widths), stem_stride=a.stem_stride, n_scalars=a.n_scalars)
         tag = a.tag or f"r3d_{'x'.join(map(str, a.size))}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
     else:
-        spec = InputSpec("2d", n_slabs=a.n_slabs, slab_mm=a.slab_mm, hw=a.hw, slab_mode=a.slab_mode, z_center=a.z_center)
+        spec = InputSpec("2d", n_slabs=a.n_slabs, slab_mm=a.slab_mm, hw=a.hw, slab_mode=a.slab_mode, z_center=a.z_center,
+                         plane=a.plane, tta_z=a.tta_z, crop=a.crop)
         model_kw = dict(backbone=a.backbone, weights_path=a.weights, n_in=a.n_slabs, n_scalars=a.n_scalars)
-        tag = a.tag or f"r2d_{a.backbone}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
+        tag = a.tag or f"r2d_{a.backbone}{'_cor' if a.plane == 'coronal' else ''}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
     if a.folds_csv != "folds.csv":
         tag += "_" + Path(a.folds_csv).stem.replace("folds_", "")
     train_run(a.cache, a.fold, a.seed, a.out, spec, model_kw, tag, epochs=a.epochs, batch_size=a.batch_size, lr=a.lr,

@@ -112,9 +112,8 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
             with torch.no_grad(), torch.autocast(device_type="cuda", enabled=device.startswith("cuda")):
                 for b in range(0, len(idx), batch_size):
                     x = x_all[b:b + batch_size].to(device); s = s_all[b:b + batch_size].to(device)
-                    inp = spec(x)
-                    z = 0.5 * (model(inp, s) + model(spec.flip(inp), s))
-                    out.append(torch.sigmoid(z.float()).cpu().numpy())
+                    z = torch.stack([model(inp, s).float() for inp in spec.variants(x)]).mean(0)
+                    out.append(torch.sigmoid(z).cpu().numpy())
             acc += np.concatenate(out); used += 1
         except Exception as e:  # noqa: BLE001
             print(f"checkpoint failed ({Path(ck).name}): {type(e).__name__}", flush=True)
@@ -125,8 +124,11 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
     return p
 
 
-def combine(arm_probs: dict, weights: dict, T: float, lam: float, pi: float):
-    """Weighted logit average over the arms that produced predictions, temperature, prior mix."""
+def combine(arm_probs: dict, weights: dict, T: float, lam: float, pi: float, clip=None, hedge=None):
+    """Weighted logit average over the arms that produced predictions, temperature, prior mix.
+    clip: [lo, hi] final probability bounds (winners' log-loss playbook), default [EPS, 1-EPS].
+    hedge: {"thresh": t, "lam": l}: scans whose arm logits disagree by more than t are mixed with the prior at
+    strength l instead of lam (uncertainty hedging; only meaningful with >= 2 arms)."""
     names = [n for n in weights if n in arm_probs and arm_probs[n] is not None]
     if not names:
         return None
@@ -134,7 +136,13 @@ def combine(arm_probs: dict, weights: dict, T: float, lam: float, pi: float):
     Z = np.stack([logit(arm_probs[n]) for n in names])          # [A, N] (nan where not ok)
     z = np.nansum(Z * w[:, None], axis=0) / np.nansum(np.where(np.isnan(Z), 0, w[:, None]), axis=0)
     p = sigmoid(z / T)
-    return np.clip((1 - lam) * p + lam * pi, EPS, 1 - EPS)
+    lam_i = np.full(p.shape, float(lam))
+    if hedge and len(names) >= 2:
+        spread = np.nanmax(Z, axis=0) - np.nanmin(Z, axis=0)
+        lam_i = np.where(spread > float(hedge["thresh"]), float(hedge["lam"]), lam_i)
+    p = (1 - lam_i) * p + lam_i * pi
+    lo, hi = (clip if clip else (EPS, 1 - EPS))
+    return np.clip(p, max(lo, EPS), min(hi, 1 - EPS))
 
 
 def load_manifest(path: Path) -> dict:

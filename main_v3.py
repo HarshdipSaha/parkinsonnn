@@ -62,7 +62,7 @@ def main():
             arm_probs[a["name"]] = infer.run_arm(a, ARTIFACTS, vols, sc, st, ok, T0)
         except Exception as e:  # noqa: BLE001
             print(f"arm {a['name']} failed: {type(e).__name__}", flush=True); arm_probs[a["name"]] = None
-        p = infer.combine(arm_probs, man["weights"], float(man["T"]), float(man["lam"]), pi)
+        p = infer.combine(arm_probs, man["weights"], float(man["T"]), float(man["lam"]), pi, clip=man.get("clip"), hedge=man.get("hedge"))
         if p is not None:
             infer.write_submission(uids, np.where(ok & np.isfinite(p), p, pi), config.RUNTIME_OUTPUT_CSV)
             print(f"stage written after arm {a['name']} at {time.time()-T0:.0f}s", flush=True)

@@ -35,17 +35,27 @@ def auroc_np(y, p):
 
 
 class InputSpec:
-    """How a [B,1,96,96,72] box becomes model input."""
+    """How a [B,1,96,96,72] box becomes model input, and which test-time variants are averaged.
+    tta_z: slab-centre offsets in voxels for the 2D arm (e.g. [-1, 0, 1]); every variant is also L/R-flipped."""
 
     def __init__(self, arm: str, size=(64, 64, 48), n_slabs: int = 3, slab_mm: float = 12.0, hw: int = 192,
-                 slab_mode: str = "mean", z_center: float | None = None):
+                 slab_mode: str = "mean", z_center: float | None = None, plane: str = "axial", tta_z=(0,), crop=None):
         self.arm, self.size, self.n_slabs, self.slab_mm, self.hw, self.slab_mode, self.z_center = \
             arm, tuple(size), n_slabs, slab_mm, hw, slab_mode, z_center
+        self.plane, self.tta_z, self.crop = plane, tuple(tta_z), crop
 
-    def __call__(self, x):
+    def __call__(self, x, dz: int = 0):
         if self.arm == "3d":
             return to_3d_input(x, self.size)
-        return to_slabs(x, self.n_slabs, self.slab_mm, self.hw, mode=self.slab_mode, z_center=self.z_center)
+        zc = None if self.z_center is None else self.z_center + dz
+        return to_slabs(x, self.n_slabs, self.slab_mm, self.hw, mode=self.slab_mode, z_center=zc, plane=self.plane, crop=self.crop)
+
+    def variants(self, x):
+        """Yield every TTA input (shift x flip). Training uses only variant 0 (dz=0, no flip)."""
+        for dz in (self.tta_z if self.arm == "2d" else (0,)):
+            inp = self(x, dz)
+            yield inp
+            yield self.flip(inp)
 
     def flip(self, inp):
         """Left-right mirror of a model input (label-preserving)."""
@@ -53,7 +63,7 @@ class InputSpec:
 
     def to_dict(self):
         return dict(arm=self.arm, size=list(self.size), n_slabs=self.n_slabs, slab_mm=self.slab_mm, hw=self.hw,
-                    slab_mode=self.slab_mode, z_center=self.z_center)
+                    slab_mode=self.slab_mode, z_center=self.z_center, plane=self.plane, tta_z=list(self.tta_z), crop=self.crop)
 
 
 def _seed_all(seed):
@@ -64,15 +74,17 @@ def _seed_all(seed):
 
 @torch.no_grad()
 def predict(model, loader, spec: InputSpec, device, tta_flip=True):
+    """tta_flip=False: single plain pass (per-epoch monitoring). tta_flip=True: logit-average over spec.variants()."""
     model.eval(); ps, uids = [], []
     for x, s, _, u in loader:
         x, s = x.to(device, non_blocking=True), s.to(device)
-        inp = spec(x)
         with torch.autocast(device_type="cuda", enabled=device.startswith("cuda")):
-            z = model(inp, s)
             if tta_flip:
-                z = 0.5 * (z + model(spec.flip(inp), s))
-        ps.append(torch.sigmoid(z.float()).cpu().numpy()); uids += list(u)
+                zs = [model(inp, s).float() for inp in spec.variants(x)]
+                z = torch.stack(zs).mean(0)
+            else:
+                z = model(spec(x), s).float()
+        ps.append(torch.sigmoid(z).cpu().numpy()); uids += list(u)
     return np.concatenate(ps), uids
 
 
