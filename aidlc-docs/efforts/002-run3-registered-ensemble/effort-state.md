@@ -13,7 +13,8 @@ started: 2026-09-05 evening
 3. cache_v4 registered — done; fallback 0.1 %
 4. gate: ROI-LR AUROC 0.902 (unregistered 0.852) — below the 0.92 target, accepted
 5. tests: tests/test_v3.py, tests/test_infer_v3.py green; main_v3 --selftest OK with template
-6. Kaggle dataset dat-parkinsons-cache-v4 (2.08 GB) uploaded; notebook re-injected (48 cells); queue running
+6. Kaggle dataset dat-parkinsons-cache-v4 (2.08 GB) uploaded; notebook re-injected (48 cells); queue launched 06:20 UTC
+7. HOTFIX 06:45 UTC: first B0 folds under-confident (AUROC 0.87/0.92 but logloss 0.58/0.55) -> EMA warm-start bug (0.999^1020 = 36 % random init in the average); step-adaptive decay + 0.998 (commit fc44f48); affected checkpoints dropped, queue relaunched
 ## Next
 - stack + pack (notebook cells 46-47) -> submission_v3.zip -> DrivenData smoke test -> real submission (slot 2 of 3)
 - record OOF/site/public numbers in RESULTS_LOG.md

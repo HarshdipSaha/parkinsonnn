@@ -68,4 +68,4 @@ Hotspot folds 0.353/0.290/0.266/0.354/0.321 (mean 0.317); CoM control mean 0.302
 | registered cache (cache_v4) | 1,360 / 1,362 registered (fallback 0.1 %: 0.2 % of normals, 0.1 % of abnormals); NCC p2/50/90 = 0.703 / 0.810 / 0.860 |
 | gate G1: template-ROI features + L2 LR | AUROC **0.902** / log loss 0.402 on random folds (unregistered CoM frame: 0.852 / 0.482; run-2 hotspot radiomics: 0.862); site folds 0.893 / 0.418. Target 0.92 not met, fallback criterion met -> proceed to the CNN A/B, keep LR as a third arm |
 | Kaggle T4 timing (run 3) | 3D GroupNorm ResNet 64x64x48 (2.5M params): 21 s/epoch -> 18 min per 50-epoch fold; EfficientNet-B0 on 3 slabs @192 px: 8 s/epoch -> 5 min per 30-epoch fold |
-| queue (Sept 6 06:20 UTC) | 50 jobs: B0 5 folds x 3 seeds, 3D 5 x 3, B0 site-folds x 1, 3D site-folds x 1, V2-S 5 x 2 -> ~9.5 GPU-h, ~4.7 h wall on 2 GPUs |
+| queue (Sept 6 06:20 UTC, relaunched 06:45 after the EMA warm-start hotfix fc44f48) | 50 jobs: B0 5 folds x 3 seeds, 3D 5 x 3, B0 site-folds x 1, 3D site-folds x 1, V2-S 5 x 2 -> ~9.5 GPU-h, ~4.7 h wall on 2 GPUs |
