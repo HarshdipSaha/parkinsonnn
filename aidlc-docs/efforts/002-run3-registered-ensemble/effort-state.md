@@ -20,6 +20,8 @@ started: 2026-09-05 evening
 
 9. 07:40 UTC: confirmed fix -> B0 fold 2/3: 0.279/0.294 log loss, AUROC 0.952/0.947 (vs run-2 best checkpoints ~0.27-0.41 with optimistic selection).
 
+10. 08:00-08:40 UTC: B0 seeds 0/1 folds 0.258-0.326 (AUROC 0.935-0.963). Added inference-time z-shift TTA (-1/0/+1 x flip) in InputSpec.variants (shared by trainer OOF, reoof_v3.py and main_v3), coronal-slab option, full-data mode (fold -1), stack --extra; queue 2 = coronal B0 x5 folds, full-data B0 x3 + 3D x2. Notebook synced (push_cells.py) without touching the running queue.
+
 ## Next
-- stack + pack (notebook cells 46-47) -> submission_v3.zip -> DrivenData smoke test -> real submission (slot 2 of 3)
+- queue 1 ends ~12:45 UTC -> auto report/stack/pack/e2e (preliminary) -> delete stale B0 f0/f1 s0 -> runner (2 jobs) -> queue 2 -> reoof (TTA) -> stack/pack -> e2e -> split -> download parts -> join -> DrivenData smoke -> real submission (slot 2 of 3)
 - record OOF/site/public numbers in RESULTS_LOG.md
