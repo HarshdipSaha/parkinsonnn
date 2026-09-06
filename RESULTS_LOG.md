@@ -159,3 +159,12 @@ Fallback without ConvNeXt (`data/submission_v4a_small.zip`, 25 ckpts, 587 MB): w
 Sept 6 22:35–23:05 UTC: two automated smoke-test uploads of the 844 MB zip closed the DrivenData dialog without transferring (possible size limit);
 the Playwright browser server then crashed and the Chrome extension was not connected → upload handed to the user (smoke first; 1 smoke test left on Sept 7).
 
+## Run-5 mechanisms measured locally (Sept 7 00:20 UTC)
+
+- Affine TTA (3 reproducible small affines × flip) on the striatal-crop 3D fold-0 checkpoint: 0.2257 → 0.2269 — no gain, off by default.
+- Typicality-aware temperature (Mahalanobis distance of the feat arm's 40 PCA scores; median d 0.79, p90 1.19): run-4a stack nested
+  0.2499 → 0.2479 at κ 0.5 / d0 1.19 — below the 0.003 gate, not selected (parameters can be forced later for a bracket variant).
+- Histogram standardisation: reference-region landmarks only; slope-1 above the top landmark. Effect on discrimination to be measured
+  by the run-5 `r3d_crophist` jobs. Site-invariant training (DANN 0.1 + group-DRO 0.1) smoke-tested on CPU; measured by `r3d_cropinv`
+  on random and site folds in run 5.
+

@@ -105,6 +105,17 @@ python kaggle/gen_submit.py H:\augsepthacks\parkinsonnn\data\submission_v4.zip "
 
 Then: smoke test → real submission (slot 3) → record public score → run 4b (`docs/superpowers/plans/2026-09-06-run4-toward-0.21.md`, Task 7): seeds + full-data models for the kept members; upload the new checkpoints to the checkpoint dataset first (from inside the folder: `cd data/<dir> && kaggle datasets version -p . -m "..." --dir-mode skip`).
 
+### Run 5 — ready to launch (Sept 7 00:20 UTC)
+
+Code, tests and the notebook are done (effort 004; plan `docs/superpowers/plans/2026-09-06-run5-site-invariance-plan.md`). Launch either way:
+
+- **Human path (no automation):** Kaggle → your notebook `dat-parkinsons-train` → File → Import Notebook → `kaggle/dat-parkinsons-train.ipynb` (or paste its cells), check inputs `dat-parkinsons-challenge-data`, `dat-parkinsons-cache-v4`, `dat-run3-checkpoints` (latest version — it must contain `template.npz` with `hist` landmarks and `feat_v4.npz`), GPU T4 x2, Internet on, Secrets `KAGGLE_USERNAME`/`KAGGLE_KEY`, then Save Version → Save & Run All. Queues 1–3 print "0 jobs to run"; queue 4 trains the run-5 jobs (≈ 3 h).
+- **Automation path:** with the Playwright MCP connected, run `.playwright-mcp/push_cells.js` in the editor tab, then Save Version → Save & Run All.
+
+Before launching make sure the stuck Version 3 is stopped (View Active Events → ⋯ → Stop Session) and `kaggle datasets status harshdipsaha/dat-run3-checkpoints` is `ready` after the Sept 7 upload (log `data/ckpt_upload_v5.log`).
+
+After the run: `python scripts/run4_assemble.py --src <dir with artifacts_v3> --extra-dir artifacts/featarm_v4 --smoke <smoke_dir> --zip data/submission_v5.zip` (add `--typ` to the fit_stack call inside if wanted), gates per the plan Task 7, smoke test, real submission when slot 1 returns (Sept 12 15:38 UTC).
+
 ## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 
 1. **Poll** with `.playwright-mcp/poll_runner.js` (25-minute wait) until the live runner ends with `all done in N min; failures: []` and cells 52/53 have output.

@@ -35,3 +35,9 @@
 
 | # | When (UTC) | Unit | Result |
 |---|---|---|---|
+| 1 | Sept 6 23:05–23:20 | Tasks 1–2: `features()`/`feat_dim` on both model families, `SiteHead` + gradient reversal, `--dann` (ramped over the first third) and `--dro` (group-DRO over pseudo-sites, sites < 25 scans merged) in the trainer; site ids looked up by uid | 45 tests green; 1-epoch CPU smoke on the crop-3D arm with both switches finite (val 0.47 / 0.86 after one epoch) |
+| 2 | 23:20–23:40 | Task 3: `hist` normalisation — landmarks (percentiles 1…99) of the **reference region** (not the brain: standardising the striatum would erase the label), piecewise-linear map, slope-1 above the top landmark so the striatal contrast keeps absolute units; landmarks stored in `template.npz`; train + inference + tests | identity on the template, monotonic; scan p95 striatal 5.30/4.38/4.56 → 4.73/3.37/3.78 with the reference region mapped exactly |
+| 3 | 23:40–23:50 | Task 4: reproducible affine TTA in `InputSpec.variants` (`--tta-affine`), re-OOF override | measured on crop-3D fold 0: 0.2257 → 0.2269 (K=3) → **not used** |
+| 4 | 23:50–00:10 | Task 5: typicality (Mahalanobis in the feat arm's PCA space, stats in `feat_v4.npz`), per-scan temperature in `combine`, `--typ` selection | run-4a stack nested 0.2499 → 0.2479 (κ 0.5, d0 = q0.9 = 1.19): below the 0.003 gate → **not selected** (kept available) |
+| 5 | 00:10–00:20 | Task 6: `JOBS4`, trimmed `ARMS` (10 arms), `EXTRAS`, queue-4 cell, landmark template + feat artefacts preferred from the checkpoint dataset, `--typ` in the stack cell; `kaggle/dat-parkinsons-train.ipynb` regenerated (63 cells); checkpoint-dataset snapshot (342 files) upload started | ready to launch — needs a browser (Playwright down) or the human path: import the ipynb, attach the 3 datasets, GPU T4 x2, Internet on, secrets, Save & Run All |
+
