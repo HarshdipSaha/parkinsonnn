@@ -181,3 +181,14 @@ def test_hist_standardise_noop_on_template_and_monotonic():
     assert abs(float(np.median(w[T.ref_mask])) - float(lm[4])) < 0.02                # reference-region median mapped onto the template's
     assert float(w[T.striatal_mask].max()) > float(w[T.ref_mask].max())              # striatal contrast preserved
 
+
+def test_affine_tta_variants_deterministic():
+    spec = InputSpec("3d", size=(32, 32, 24), tta_affine=3)
+    x = torch.rand(1, 1, 96, 96, 72)
+    v1 = [t.clone() for t in spec.variants(x)]; v2 = [t.clone() for t in spec.variants(x)]
+    assert len(v1) == 2 * (1 + 3) and all(torch.allclose(a, b) for a, b in zip(v1, v2))   # (identity + 3 affines) x flip, reproducible
+    assert not torch.allclose(v1[0], v1[2])                                                 # the affine box differs from the identity
+    d = spec.to_dict(); assert d["tta_affine"] == 3 and InputSpec(**d).tta_affine == 3
+    spec2 = InputSpec("2d", n_slabs=3, slab_mm=8.0, hw=32, z_center=36.0, tta_z=[-1, 0, 1], tta_affine=2)
+    assert len(list(spec2.variants(x))) == 2 * 3 * (1 + 2)
+

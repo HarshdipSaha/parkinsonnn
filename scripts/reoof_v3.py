@@ -26,6 +26,7 @@ if __name__ == "__main__":
     ap.add_argument("--art", default="artifacts_v3")
     ap.add_argument("--cache", default="cache_v4")
     ap.add_argument("--tta-z", type=int, nargs="+", default=[-1, 0, 1])
+    ap.add_argument("--tta-affine", type=int, default=None, help="override the spec's affine-TTA count (None = keep the checkpoint's)")
     ap.add_argument("--only", default="*")
     ap.add_argument("--batch-size", type=int, default=32)
     a = ap.parse_args()
@@ -39,6 +40,8 @@ if __name__ == "__main__":
         if not ck.exists():
             continue
         spec_d = dict(meta["spec"]); spec_d["tta_z"] = a.tta_z if spec_d["arm"] == "2d" else [0]
+        if a.tta_affine is not None:
+            spec_d["tta_affine"] = a.tta_affine
         spec = InputSpec(**spec_d)
         folds = pd.read_csv(Path(a.cache) / meta.get("folds_csv", "folds.csv"), dtype={"uid": str})
         va = folds[(folds["fold"] == meta["fold"]) & folds["uid"].isin(cache.index)]
@@ -51,4 +54,4 @@ if __name__ == "__main__":
         meta["val_logloss"], meta["val_auroc"], meta["spec"] = logloss_np(y, p), auroc_np(y, p), spec.to_dict()
         pd.DataFrame({"uid": uids, "y": y, "p": p}).to_csv(art / f"oof_{tag}.csv", index=False)
         Path(jp).write_text(json.dumps(meta))
-        print(f"{tag}: logloss {old_ll if old_ll is None else round(old_ll, 4)} -> {meta['val_logloss']:.4f}  auroc {meta['val_auroc']:.4f}  tta_z={spec.tta_z}", flush=True)
+        print(f"{tag}: logloss {old_ll if old_ll is None else round(old_ll, 4)} -> {meta['val_logloss']:.4f}  auroc {meta['val_auroc']:.4f}  tta_z={spec.tta_z} tta_affine={spec.tta_affine}", flush=True)

@@ -55,15 +55,16 @@ if __name__ == "__main__":
     ap.add_argument("--plane", default="axial", choices=["axial", "coronal"])
     ap.add_argument("--tta-z", type=int, nargs="+", default=[0], help="slab-centre offsets (voxels) averaged at test time, e.g. -1 0 1")
     ap.add_argument("--crop", type=int, default=None, help="central crop (voxels) of the slab image before resizing, e.g. 72")
+    ap.add_argument("--tta-affine", type=int, default=0, help="test-time: K reproducible small affine perturbations of the box (all arms)")
     a = ap.parse_args()
     if a.arm == "3d":
-        spec = InputSpec("3d", size=a.size, crop3d=a.crop3d, center3d=a.center3d)
+        spec = InputSpec("3d", size=a.size, crop3d=a.crop3d, center3d=a.center3d, tta_affine=a.tta_affine)
         model_kw = dict(widths=tuple(a.widths), stem_stride=a.stem_stride, n_scalars=a.n_scalars)
         base = f"r3d_crop{'x'.join(map(str, a.crop3d))}" if a.crop3d else f"r3d_{'x'.join(map(str, a.size))}"
         tag = a.tag or f"{base}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
     else:
         spec = InputSpec("2d", n_slabs=a.n_slabs, slab_mm=a.slab_mm, hw=a.hw, slab_mode=a.slab_mode, z_center=a.z_center,
-                         plane=a.plane, tta_z=a.tta_z, crop=a.crop)
+                         plane=a.plane, tta_z=a.tta_z, crop=a.crop, tta_affine=a.tta_affine)
         model_kw = dict(backbone=a.backbone, weights_path=a.weights, n_in=a.n_slabs, n_scalars=a.n_scalars)
         tag = a.tag or f"r2d_{a.backbone}{'_cor' if a.plane == 'coronal' else ''}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
     if a.folds_csv != "folds.csv" and not a.tag:            # explicit --tag is used verbatim (run 4a: '_site_site' double suffix)

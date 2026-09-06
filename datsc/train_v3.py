@@ -40,12 +40,13 @@ class InputSpec:
 
     def __init__(self, arm: str, size=(64, 64, 48), n_slabs: int = 3, slab_mm: float = 12.0, hw: int = 192,
                  slab_mode: str = "mean", z_center: float | None = None, plane: str = "axial", tta_z=(0,), crop=None,
-                 crop3d=None, center3d=None):
+                 crop3d=None, center3d=None, tta_affine: int = 0):
         self.arm, self.size, self.n_slabs, self.slab_mm, self.hw, self.slab_mode, self.z_center = \
             arm, tuple(size), n_slabs, slab_mm, hw, slab_mode, z_center
         self.plane, self.tta_z, self.crop = plane, tuple(tta_z), crop
         self.crop3d = tuple(int(v) for v in crop3d) if crop3d else None        # 3D: striatal crop before the resize
         self.center3d = tuple(float(v) for v in center3d) if center3d else None
+        self.tta_affine = int(tta_affine or 0)          # K reproducible small affine perturbations of the box at test time
 
     def __call__(self, x, dz: int = 0):
         if self.arm == "3d":
@@ -55,12 +56,28 @@ class InputSpec:
         zc = None if self.z_center is None else self.z_center + dz
         return to_slabs(x, self.n_slabs, self.slab_mm, self.hw, mode=self.slab_mode, z_center=zc, plane=self.plane, crop=self.crop)
 
+    def _affine_boxes(self, x):
+        """K reproducible small affine perturbations of the registered box (rotation <= 3 deg, scale <= 2 %, shift <= 1 voxel):
+        the same K boxes every call (fixed generator seed), so OOF and inference average identical variants."""
+        g = torch.Generator(device="cpu").manual_seed(1234)
+        for _ in range(self.tta_affine):
+            ang = torch.deg2rad((torch.rand(3, generator=g) * 2 - 1) * 3.0)
+            sc = 1 + (torch.rand(3, generator=g) * 2 - 1) * 0.02
+            sh = (torch.rand(3, generator=g) * 2 - 1) * 2.0 / torch.tensor(x.shape[2:], dtype=torch.float32)
+            cx, cy, cz = torch.cos(ang); sx, sy, sz = torch.sin(ang)
+            Rx = torch.tensor([[1, 0, 0], [0, cx, -sx], [0, sx, cx]]); Ry = torch.tensor([[cy, 0, sy], [0, 1, 0], [-sy, 0, cy]]); Rz = torch.tensor([[cz, -sz, 0], [sz, cz, 0], [0, 0, 1]])
+            theta = torch.zeros(x.shape[0], 3, 4); theta[:, :, :3] = (Rz @ Ry @ Rx) @ torch.diag(sc); theta[:, :, 3] = sh
+            grid = F.affine_grid(theta.to(x.device, x.dtype), list(x.shape), align_corners=False)
+            yield F.grid_sample(x, grid, mode="bilinear", padding_mode="zeros", align_corners=False)
+
     def variants(self, x):
-        """Yield every TTA input (shift x flip). Training uses only variant 0 (dz=0, no flip)."""
-        for dz in (self.tta_z if self.arm == "2d" else (0,)):
-            inp = self(x, dz)
-            yield inp
-            yield self.flip(inp)
+        """Yield every TTA input ((identity + affine boxes) x z-shift x flip). Training uses only variant 0."""
+        boxes = [x] + (list(self._affine_boxes(x)) if self.tta_affine else [])
+        for b in boxes:
+            for dz in (self.tta_z if self.arm == "2d" else (0,)):
+                inp = self(b, dz)
+                yield inp
+                yield self.flip(inp)
 
     def flip(self, inp):
         """Left-right mirror of a model input (label-preserving)."""
@@ -69,7 +86,8 @@ class InputSpec:
     def to_dict(self):
         return dict(arm=self.arm, size=list(self.size), n_slabs=self.n_slabs, slab_mm=self.slab_mm, hw=self.hw,
                     slab_mode=self.slab_mode, z_center=self.z_center, plane=self.plane, tta_z=list(self.tta_z), crop=self.crop,
-                    crop3d=(list(self.crop3d) if self.crop3d else None), center3d=(list(self.center3d) if self.center3d else None))
+                    crop3d=(list(self.crop3d) if self.crop3d else None), center3d=(list(self.center3d) if self.center3d else None),
+                    tta_affine=self.tta_affine)
 
 
 def _seed_all(seed):
