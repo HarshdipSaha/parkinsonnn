@@ -70,3 +70,5 @@ Hotspot folds 0.353/0.290/0.266/0.354/0.321 (mean 0.317); CoM control mean 0.302
 | Kaggle T4 timing (run 3) | 3D GroupNorm ResNet 64x64x48 (2.5M params): 21 s/epoch -> 18 min per 50-epoch fold; EfficientNet-B0 on 3 slabs @192 px: 8 s/epoch -> 5 min per 30-epoch fold |
 | queue (Sept 6 06:20 UTC, relaunched 06:45 after the EMA warm-start hotfix fc44f48) | 50 jobs: B0 5 folds x 3 seeds, 3D 5 x 3, B0 site-folds x 1, 3D site-folds x 1, V2-S 5 x 2 -> ~9.5 GPU-h, ~4.7 h wall on 2 GPUs |
 | first run-3 folds (EMA 0.99, 2.5D B0, seed 0) | fold 2: 0.2787 / AUROC 0.9519; fold 3: 0.2942 / 0.9472 (final-EMA, no best-epoch selection). With the 0.998 EMA window the same folds gave 0.58 / 0.55 at AUROC 0.87 / 0.92 -> the EMA window was the whole story |
+| run-3 2.5D B0 arm, 13 fresh folds (seeds 0-2) | 0.258-0.326 per fold, mean ~0.285, AUROC 0.935-0.963 |
+| run-3 3D GroupNorm ResNet, first folds (seed 0) | f0 0.274 / 0.945, f1 0.334 / 0.931, f2 0.292 / 0.945; ~21 min per fold. Queue ETA ~13:45 UTC, then stale re-run + queue 2 (coronal, full-data) + TTA re-OOF + stack |
