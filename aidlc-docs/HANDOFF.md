@@ -61,6 +61,13 @@ Interactive sessions die when the browser connection drops for long; a commit ("
 
 Monitoring: https://www.kaggle.com/code/harshdipsaha/dat-parkinsons-train/log?scriptVersionId=347676112 (Version #2; poll with `.playwright-mcp/poll_commit.js`, peek with `peek_commit.js`), or View Active Events → kebab → "Open Logs in Viewer". Expected duration ~5.5 h. When it finishes, the version's Output tab lists `submission_v3.zip`, `parts/`, `out/`; download the parts from there (no in-editor size cap on the version output page) or attach the version output as a dataset input to a new session.
 
+### Persistence rule (from now on)
+
+Never run more than ~2 h of training in one interactive session or one commit without persisting. Two mechanisms:
+
+1. **Chained commits (no credentials).** The cache-mount cell copies any `artifacts_v3/` or `out/` found under `/kaggle/input/` into the working `artifacts_v3/`, and both runners skip jobs whose `.pt` exists. So: commit N saves its outputs as a version → in the editor, Add Input → Your Work → that notebook version's output → commit N+1 resumes. Split `JOBS` into ≤ 2 h chunks per commit.
+2. **Per-job upload (needs secrets).** With `KAGGLE_USERNAME` / `KAGGLE_KEY` notebook secrets, the runner can push each finished checkpoint to a private dataset version immediately (not yet implemented; ask the user for the token first).
+
 ## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 
 1. **Poll** with `.playwright-mcp/poll_runner.js` (25-minute wait) until the live runner ends with `all done in N min; failures: []` and cells 52/53 have output.

@@ -65,6 +65,14 @@ shutil.copy(tpl, 'artifacts/template.npz'); shutil.copy(tpl, 'artifacts_v3/templ
 for pat in ('lr_v3.json', 'oof_lrarm.csv', 'oof_lrarm_site.csv', 'lrarm.json'):      # registered-ROI LR arm (fitted locally)
     for f in glob.glob(CACHE_DS + '/**/' + pat, recursive=True): shutil.copy(f, 'artifacts_v3/')
 print('cache_v4:', sorted(os.listdir('cache_v4'))); print('pretrained:', sorted(os.listdir('pretrained')))
+# RESUME: if a previous version's output (or any dataset) mounted under /kaggle/input carries artifacts_v3/, copy it back so the
+# runners skip finished jobs (chained commits = persistence without credentials)
+os.makedirs('artifacts_v3', exist_ok=True); n_res = 0
+for src_art in glob.glob('/kaggle/input/**/artifacts_v3', recursive=True) + glob.glob('/kaggle/input/**/out', recursive=True):
+    for f in glob.glob(src_art + '/*'):
+        if os.path.isfile(f) and (f.endswith('.pt') or f.endswith('.json') or f.endswith('.csv')) and not os.path.exists('artifacts_v3/' + os.path.basename(f)):
+            shutil.copy(f, 'artifacts_v3/'); n_res += 1
+print('resumed artefacts copied from /kaggle/input:', n_res)
 !ls -la cache_v4 | head -20"""})
 cells.append({"type": "code", "source": """# timing check: 2 epochs of each arm on fold 0 (expect ~20-40 s/epoch on a T4)
 !CUDA_VISIBLE_DEVICES=0 python scripts/train_v3.py --arm 3d --fold 0 --seed 99 --epochs 2 --out artifacts_timing --cache cache_v4 --size 64 64 48 --widths 24 48 96 192 2>&1 | grep -E "params|ep0|done"
