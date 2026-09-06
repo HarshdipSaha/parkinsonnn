@@ -1,0 +1,204 @@
+{
+ "pi": 0.5484581497797357,
+ "T": 1.0,
+ "T_random": 0.8147881992582522,
+ "T_site": null,
+ "lam": 0.02,
+ "clip": null,
+ "hedge": null,
+ "weights": {
+  "a3d_crop": 0.375,
+  "a2d_v2s": 0.25,
+  "a2d_cnx": 0.125,
+  "a2d_cor": 0.125,
+  "feat": 0.125
+ },
+ "arms": [
+  {
+   "name": "a3d_crop",
+   "arm": "3d",
+   "spec": {
+    "arm": "3d",
+    "size": [
+     48,
+     48,
+     32
+    ],
+    "n_slabs": 3,
+    "slab_mm": 12.0,
+    "hw": 192,
+    "slab_mode": "mean",
+    "z_center": null,
+    "plane": "axial",
+    "tta_z": [
+     0
+    ],
+    "crop": null,
+    "crop3d": [
+     48,
+     48,
+     32
+    ],
+    "center3d": [
+     47.5,
+     57.3,
+     33.5
+    ]
+   },
+   "model_kw": {
+    "widths": [
+     24,
+     48,
+     96,
+     192
+    ],
+    "stem_stride": 1,
+    "n_scalars": 0
+   },
+   "norm": "ref",
+   "checkpoints": [
+    "artifacts/r3d_crop48x48x32_f0_s0.pt",
+    "artifacts/r3d_crop48x48x32_f1_s0.pt",
+    "artifacts/r3d_crop48x48x32_f2_s0.pt",
+    "artifacts/r3d_crop48x48x32_f3_s0.pt",
+    "artifacts/r3d_crop48x48x32_f4_s0.pt"
+   ]
+  },
+  {
+   "name": "a2d_v2s",
+   "arm": "2d",
+   "spec": {
+    "arm": "2d",
+    "size": [
+     64,
+     64,
+     48
+    ],
+    "n_slabs": 3,
+    "slab_mm": 8.0,
+    "hw": 224,
+    "slab_mode": "mean",
+    "z_center": 33.5,
+    "plane": "axial",
+    "tta_z": [
+     -1,
+     0,
+     1
+    ]
+   },
+   "model_kw": {
+    "backbone": "efficientnet_v2_s",
+    "n_in": 3,
+    "n_scalars": 0
+   },
+   "norm": "ref",
+   "checkpoints": [
+    "artifacts/r2d_efficientnet_v2_s_f0_s0.pt",
+    "artifacts/r2d_efficientnet_v2_s_f0_s1.pt",
+    "artifacts/r2d_efficientnet_v2_s_f0_s2.pt",
+    "artifacts/r2d_efficientnet_v2_s_f1_s0.pt",
+    "artifacts/r2d_efficientnet_v2_s_f1_s1.pt",
+    "artifacts/r2d_efficientnet_v2_s_f1_s2.pt",
+    "artifacts/r2d_efficientnet_v2_s_f2_s0.pt",
+    "artifacts/r2d_efficientnet_v2_s_f2_s1.pt",
+    "artifacts/r2d_efficientnet_v2_s_f2_s2.pt",
+    "artifacts/r2d_efficientnet_v2_s_f3_s0.pt",
+    "artifacts/r2d_efficientnet_v2_s_f3_s2.pt",
+    "artifacts/r2d_efficientnet_v2_s_f4_s0.pt",
+    "artifacts/r2d_efficientnet_v2_s_f4_s1.pt",
+    "artifacts/r2d_efficientnet_v2_s_f4_s2.pt"
+   ]
+  },
+  {
+   "name": "a2d_cnx",
+   "arm": "2d",
+   "spec": {
+    "arm": "2d",
+    "size": [
+     64,
+     64,
+     48
+    ],
+    "n_slabs": 3,
+    "slab_mm": 8.0,
+    "hw": 224,
+    "slab_mode": "mean",
+    "z_center": 33.5,
+    "plane": "axial",
+    "tta_z": [
+     0
+    ],
+    "crop": null,
+    "crop3d": null,
+    "center3d": null
+   },
+   "model_kw": {
+    "backbone": "convnext_tiny",
+    "n_in": 3,
+    "n_scalars": 0
+   },
+   "norm": "ref",
+   "checkpoints": [
+    "artifacts/r2d_convnext_tiny_f0_s0.pt",
+    "artifacts/r2d_convnext_tiny_f1_s0.pt",
+    "artifacts/r2d_convnext_tiny_f2_s0.pt",
+    "artifacts/r2d_convnext_tiny_f3_s0.pt",
+    "artifacts/r2d_convnext_tiny_f4_s0.pt"
+   ]
+  },
+  {
+   "name": "a2d_cor",
+   "arm": "2d",
+   "spec": {
+    "arm": "2d",
+    "size": [
+     64,
+     64,
+     48
+    ],
+    "n_slabs": 3,
+    "slab_mm": 8.0,
+    "hw": 192,
+    "slab_mode": "mean",
+    "z_center": 57.3,
+    "plane": "coronal",
+    "tta_z": [
+     -1,
+     0,
+     1
+    ]
+   },
+   "model_kw": {
+    "backbone": "efficientnet_b0",
+    "n_in": 3,
+    "n_scalars": 0
+   },
+   "norm": "ref",
+   "checkpoints": [
+    "artifacts/r2d_efficientnet_b0_cor_f0_s0.pt",
+    "artifacts/r2d_efficientnet_b0_cor_f1_s0.pt",
+    "artifacts/r2d_efficientnet_b0_cor_f2_s0.pt",
+    "artifacts/r2d_efficientnet_b0_cor_f3_s0.pt",
+    "artifacts/r2d_efficientnet_b0_cor_f4_s0.pt"
+   ]
+  },
+  {
+   "name": "feat",
+   "arm": "feat",
+   "spec": {
+    "arm": "feat"
+   },
+   "model_kw": {
+    "n_comp": 40,
+    "C": 0.3
+   },
+   "norm": "ref",
+   "checkpoints": [
+    "artifacts/feat_v4.npz"
+   ]
+  }
+ ],
+ "oof_logloss": 0.24572167805980108,
+ "oof_auroc": 0.965483614675504,
+ "n": 1362
+}

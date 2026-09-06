@@ -138,3 +138,21 @@ Note: the equal-weight logit mean without the λ = 0.02 prior mix scores 0.2489,
 kept as a site-shift hedge, and λ = 0.01 is the bracket alternative for the last submissions.
 Local container-style check of `submission_v3_feat.zip`: all 28 nets + feat used, smoke-set log loss **0.2301** (run-3 zip: 0.2458), 124 s on CPU. Held as the fallback for slot 3; the run-4a stack is preferred if it gates in.
 
+## Run 4a — Kaggle Version 3 (Sept 6 15:45–~20:20 UTC training, 2×T4; scriptVersionId 347747288)
+
+65 new jobs on top of the 48 resumed run-3 checkpoints; 2 V2-S folds crashed with fp16 NaN (`r2d_efficientnet_v2_s_f3_s1`,
+`r2d_efficientnet_v2_s_cor_f3_s0`); the site-fold strong-aug runs got a doubled `_site_site` tag (fixed). The report cell then hung
+in the 9^11 weight-grid product (fixed: stars-and-bars enumeration). All artefacts were saved by the per-job uploader to the private
+checkpoint dataset (337 files) and stacked locally from there (training-time OOF, no TTA).
+
+Per-arm (Kaggle TTA re-OOF means): a3d_crop **0.2568** / 0.960 · b0_crop64 0.2654 / 0.958 · v2s (3 seeds) 0.2708 / 0.956 ·
+v2s_cor 0.2721 / 0.953 · cnx 0.2746 / 0.957 · b0 0.2752 / 0.953 · b0_saug 0.2887 / 0.954 (site folds 0.2927 vs plain 0.2818 →
+strong augmentation hurts; dropped) · tiny 0.3547 / 0.933 · 3d whole-brain 0.2996.
+
+**Stack (local, `scripts/run4_assemble.py`, grid 8, nested):** 12 arms → 5 kept: a3d_crop .375 / a2d_v2s .25 / a2d_cnx .125 /
+a2d_cor .125 / feat .125; T 1.0 (random-fold 0.815 floored); **nested 0.2491** (run 3 0.2603; run 3 + feat 0.2545); plain OOF
+0.2457 / AUROC 0.9655; equal-weight (no λ) 0.2418. Per-site nested: other 0.268 · 2.46|256|high 0.236 · 2.30|128|low 0.246 ·
+2.40|87|ultralow 0.173 · 2.46|256|low 0.312 · 3.90|128|high 0.214 · 2.46|256|ultralow 0.253 · 3.90|43 0.242 · 3.90|39 0.361.
+Zip `data/submission_v4a_local.zip`: 30 checkpoints, 844 MB; local container check: all arms N/N, smoke-set 0.2554, 317 s CPU.
+Submitted as slot 3 (smoke first). Manifest + OOF in `artifacts/run4a_stack/`.
+
