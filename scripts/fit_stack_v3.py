@@ -31,7 +31,8 @@ def arm_oof(art: Path, pattern: str):
     df = pd.concat([pd.read_csv(f, dtype={"uid": str}) for f in files])
     oof = df.groupby("uid").agg(y=("y", "first"), p=("p", "mean"))
     tags = [Path(f).name[4:-4] for f in files]
-    meta = json.loads((art / f"{tags[0]}.json").read_text())
+    mp = art / f"{tags[0]}.json"
+    meta = json.loads(mp.read_text()) if mp.exists() else None    # site-fold OOFs only need the predictions
     return oof, tags, meta
 
 
@@ -51,8 +52,8 @@ if __name__ == "__main__":
     for name, pattern in a.arm:
         oof, tags, meta = arm_oof(art, pattern)
         oofs[name] = oof
-        arms.append({"name": name, "arm": meta["spec"]["arm"], "spec": meta["spec"], "model_kw": meta["model_kw"],
-                     "norm": meta.get("norm", "p75"), "checkpoints": [f"artifacts/{t}.pt" for t in tags]})
+        arms.append({"name": name, "arm": meta["spec"]["arm"], "spec": meta["spec"], "model_kw": meta.get("model_kw", {}),
+                     "norm": meta.get("norm", "p75"), "checkpoints": meta.get("checkpoints") or [f"artifacts/{t}.pt" for t in tags]})
         print(f"{name:<10} ckpts={len(tags):2d} AUROC={roc_auc_score(oof.y, oof.p):.4f} logloss={logloss(oof.y.values, oof.p.values):.4f}")
     uids = sorted(set.intersection(*[set(o.index) for o in oofs.values()]))
     y = oofs[arms[0]["name"]].loc[uids, "y"].values.astype(float)

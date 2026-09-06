@@ -24,7 +24,7 @@ if __name__ == "__main__":
             z.write(p, f"datsc/{p.name}")
         z.write(art / "manifest.json", "artifacts/manifest.json")
         for extra in ("template.npz", "lr_v3.json"):
-            if (art / extra).exists():
+            if (art / extra).exists() and f"artifacts/{extra}" not in cks:
                 z.write(art / extra, f"artifacts/{extra}")
         for ck in cks:
             src = art / Path(ck).name

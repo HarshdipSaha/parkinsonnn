@@ -68,4 +68,10 @@ if __name__ == "__main__":
     if a.save:
         Path(a.out).mkdir(exist_ok=True)
         LRModel(C=a.C).fit(X, y).save(Path(a.out) / "lr_v3.json")
-        print(f"saved {Path(a.out)/'lr_v3.json'}")
+        pd.DataFrame({"uid": meta.uid, "y": y, "p": p}).to_csv(Path(a.out) / "oof_lrarm.csv", index=False)
+        if (cache / "folds_site.csv").exists():
+            pd.DataFrame({"uid": meta.uid, "y": y, "p": ps}).to_csv(Path(a.out) / "oof_lrarm_site.csv", index=False)
+        import json
+        (Path(a.out) / "lrarm.json").write_text(json.dumps({"tag": "lrarm", "spec": {"arm": "lr"}, "model_kw": {}, "norm": "ref",
+                                                            "checkpoints": ["artifacts/lr_v3.json"], "val_auroc": float(auc), "val_logloss": float(ll)}))
+        print(f"saved {Path(a.out)/'lr_v3.json'} + oof_lrarm.csv (+ _site) + lrarm.json")

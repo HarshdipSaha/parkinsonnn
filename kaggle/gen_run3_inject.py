@@ -28,7 +28,7 @@ JOBS = [
     # 2.5D EfficientNet-V2-S (heavier, diversity), 2 seeds
     {"name": "r2d_effv2s", "seeds": [0, 1], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_v2_s --weights pretrained/efficientnet_v2_s_in1k.pt --n-slabs 3 --slab-mm 8 --hw 224 --epochs 30 --batch-size 24 --lr 5e-4 --backbone-lr 1e-4 --mixup 0.2 --z-center {ZC}"},
 ]
-ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None)]
+ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("lr", "lrarm", "lrarm_site")]
 
 cells = []
 cells.append({"type": "markdown", "source": "# DaT Parkinson's Challenge — run 3 (whole-brain 2 mm cache, 3D ResNet + 2.5D ImageNet arms, stacked)\n"
@@ -62,6 +62,8 @@ for f in glob.glob(CACHE_DS + '/**/*.pt', recursive=True):
     if not os.path.exists('pretrained/' + os.path.basename(f)): shutil.copy(f, 'pretrained/')
 tpl = next(iter(glob.glob(CACHE_DS + '/**/template.npz', recursive=True)))
 shutil.copy(tpl, 'artifacts/template.npz'); shutil.copy(tpl, 'artifacts_v3/template.npz')
+for pat in ('lr_v3.json', 'oof_lrarm.csv', 'oof_lrarm_site.csv', 'lrarm.json'):      # registered-ROI LR arm (fitted locally)
+    for f in glob.glob(CACHE_DS + '/**/' + pat, recursive=True): shutil.copy(f, 'artifacts_v3/')
 print('cache_v4:', sorted(os.listdir('cache_v4'))); print('pretrained:', sorted(os.listdir('pretrained')))
 !ls -la cache_v4 | head -20"""})
 cells.append({"type": "code", "source": """# timing check: 2 epochs of each arm on fold 0 (expect ~20-40 s/epoch on a T4)

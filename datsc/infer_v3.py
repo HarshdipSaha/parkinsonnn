@@ -70,8 +70,25 @@ def preprocess_all(uids, nifti_dir: Path, n_workers: int, deadline_s: float, t0:
     return vols, sc, st, ok
 
 
+def run_lr_arm(arm_cfg: dict, root: Path, vols, st, ok):
+    """Registered-ROI striatal features -> logistic regression (arm type "lr"). Needs artifacts/template.npz."""
+    from .features_v3 import striatal_features
+    from .lrmodel import LRModel
+    tpl = load_template(root / "template.npz")
+    if tpl is None:
+        return None
+    m = LRModel.load(root / Path(arm_cfg["checkpoints"][0]).name)
+    idx = np.where(ok)[0]
+    X = np.stack([striatal_features(renormalise(vols[i], st[i], arm_cfg.get("norm", "ref")), tpl) for i in idx])
+    p = np.full(len(ok), np.nan); p[idx] = m.predict_proba(X)
+    print(f"arm {arm_cfg['name']}: LR on {len(idx)} volumes", flush=True)
+    return p
+
+
 def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: int = 16):
     """Average of all checkpoints of one arm over the ok volumes. Returns probs[N] (nan where not ok) or None."""
+    if arm_cfg["arm"] == "lr":
+        return run_lr_arm(arm_cfg, root, vols, st, ok)
     import torch
     from .models_v3 import build_model
     from .train_v3 import InputSpec
