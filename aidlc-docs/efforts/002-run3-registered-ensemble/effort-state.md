@@ -47,3 +47,10 @@ The stale 0.998-EMA checkpoints from the interactive session no longer exist (th
 2. When it succeeds: `kaggle kernels output harshdipsaha/dat-parkinsons-train -p data/kaggle_output` (whole output, no size cap) or the version's Output tab → `python scripts/join_parts.py <dir> <md5> --out submission_v3.zip` if only parts are present.
 3. DrivenData smoke test → real submission (slot 2 of 3) → record public log loss / AUROC / rank in `RESULTS_LOG.md`.
 4. Close this effort; open effort 003.
+
+## Update — Sept 6, 15:20 UTC
+
+- Kaggle Version #2 complete (56 jobs, 0 failures); stack OOF 0.2580 / AUROC 0.961. Container bug (training-time `weights_path` in the manifest) found by the e2e cell, fixed in `225d39d`, zip repaired locally (`scripts/repack_v3.py`) and verified (`scripts/local_e2e_v3.py`: all 43 checkpoints + LR used, smoke 0.2458).
+- DrivenData smoke test id-321261 = **0.2397**. Real submission uploaded from `data/submission_v3_fixed.zip` (slot 2/3). Score to be recorded in RESULTS_LOG.md.
+- Persistence: Task-Scheduler watcher (`scripts/watch_kaggle_output.py`, battery-safe) archives the version output to `data/kaggle_output/`.
+- Next: run 4 per the plan (Part B) — tiny slab-net arm, nested clip/hedge selection, more seeds/TTA; sync the fixed cells to the notebook (`kaggle/gen_run3_inject.py` regenerated; push with `kaggle/push_cells.py --no-run`) before the next commit.

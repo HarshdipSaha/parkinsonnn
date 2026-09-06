@@ -96,3 +96,6 @@ EMA-lag guard: final vs best-epoch within ±0.01 everywhere (window 0.99/0.995 f
 before the checkpoint state dict is applied. Only a3d + LR ran (smoke log loss 0.2996). Fix (commit below): inference drops
 `weights_path`, the manifest writer strips it, the e2e cell now asserts every arm used all its checkpoints. The Kaggle zip is
 repaired locally with `scripts/repack_v3.py` (fresh code, same artifacts) and re-verified with `scripts/local_e2e_v3.py`.
+
+**Submission (Sept 6):** local e2e on the repaired zip 0.2458 (CPU, 390 s / 20 vols); DrivenData smoke test **id-321261 = 0.2397**
+(run 2 smoke: 0.2567). Real submission uploaded ~15:20 UTC from `data/submission_v3_fixed.zip` (slot 2 of 3 in the 7-day window) — public score below when scored.
