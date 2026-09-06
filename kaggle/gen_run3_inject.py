@@ -24,7 +24,13 @@ JOBS = [
     {"name": "r3d_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2 --ema 0.995"},
     {"name": "r2d_effv2s", "seeds": [0, 1], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_v2_s --weights pretrained/efficientnet_v2_s_in1k.pt --n-slabs 3 --slab-mm 8 --hw 224 --epochs 30 --batch-size 24 --lr 5e-4 --backbone-lr 1e-4 --mixup 0.2 --ema 0.99 --z-center {ZC}"},
 ]
-ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("lr", "lrarm", "lrarm_site")]
+JOBS2 = [
+    {"name": "r2d_effb0_cor", "seeds": [0], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --ema 0.99 --plane coronal --z-center {YC}"},
+    {"name": "r2d_effb0_full", "seeds": [0, 1, 2], "folds": [-1], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --ema 0.99 --z-center {ZC}"},
+    {"name": "r3d_full", "seeds": [0, 1], "folds": [-1], "folds_csv": "folds.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2 --ema 0.995"},
+]
+ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("a2d_cor", "r2d_efficientnet_b0_cor_f?_s?", None), ("lr", "lrarm", "lrarm_site")]
+EXTRAS = [("a3d", "r3d_64x64x48_fall_s*"), ("a2d_b0", "r2d_efficientnet_b0_fall_s*")]
 
 cells = []
 cells.append({"type": "markdown", "source": "# DaT Parkinson's Challenge — run 3 (whole-brain 2 mm cache, 3D ResNet + 2.5D ImageNet arms, stacked)\n"
@@ -66,23 +72,24 @@ cells.append({"type": "code", "source": """# timing check: 2 epochs of each arm 
 !CUDA_VISIBLE_DEVICES=0 python scripts/train_v3.py --arm 3d --fold 0 --seed 99 --epochs 2 --out artifacts_timing --cache cache_v4 --size 64 64 48 --widths 24 48 96 192 2>&1 | grep -E "params|ep0|done"
 !CUDA_VISIBLE_DEVICES=1 python scripts/train_v3.py --arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --fold 0 --seed 99 --epochs 2 --out artifacts_timing --cache cache_v4 --batch-size 32 --z-center 33.5 2>&1 | grep -E "params|ep0|done"
 !rm -rf artifacts_timing"""})
-cells.append({"type": "code", "source": f"""# === RESUMABLE 2-GPU JOB RUNNER === (skips jobs whose checkpoint already exists in artifacts_v3/)
+def runner_cell(jobs, label):
+    return f"""# === RESUMABLE 2-GPU JOB RUNNER {label} === (skips jobs whose checkpoint already exists in artifacts_v3/)
 import subprocess, time, os, glob, json
-JOBS = {json.dumps(JOBS, indent=1)}
+JOBS = {json.dumps(jobs, indent=1)}
 import numpy as np
-ZC = float(np.load('artifacts/template.npz')['striatal_center'][2]); print('template striatal z (vox):', ZC)
+ZC = float(np.load('artifacts/template.npz')['striatal_center'][2]); YC = float(np.load('artifacts/template.npz')['striatal_center'][1]); print('template striatal z/y (vox):', ZC, YC)
 def expand(jobs):
     out = []
     for j in jobs:
         for s in j['seeds']:
             for f in j.get('folds', range(5)):
-                out.append((j['name'], f, s, j['args'].replace('{{ZC}}', f"{{ZC:.1f}}") + f" --folds-csv {{j['folds_csv']}}"))
+                out.append((j['name'], f, s, j['args'].replace('{{ZC}}', f"{{ZC:.1f}}").replace('{{YC}}', f"{{YC:.1f}}") + f" --folds-csv {{j['folds_csv']}}"))
     return out
 def tag_for(name, f, s, args):
     if '--arm 3d' in args:
         size = 'x'.join(args.split('--size')[1].split()[:3]); tag = f"r3d_{{size}}_f{{f if f >= 0 else 'all'}}_s{{s}}"
     else:
-        bb = args.split('--backbone')[1].split()[0]; tag = f"r2d_{{bb}}_f{{f if f >= 0 else 'all'}}_s{{s}}"
+        bb = args.split('--backbone')[1].split()[0]; tag = f"r2d_{{bb}}{{'_cor' if '--plane coronal' in args else ''}}_f{{f if f >= 0 else 'all'}}_s{{s}}"
     return tag + ('_site' if 'folds_site' in args else '')
 queue = [(n, f, s, a) for n, f, s, a in expand(JOBS) if not os.path.exists(f"artifacts_v3/{{tag_for(n,f,s,a)}}.pt")]
 print(f"{{len(queue)}} jobs to run, {{len(expand(JOBS)) - len(queue)}} already done")
@@ -102,13 +109,16 @@ while queue or running:
             last = subprocess.run(f"tail -n 1 log_{{tag}}.txt", shell=True, capture_output=True, text=True).stdout.strip()
             print(f"[gpu{{gpu}}] {{tag}} exit={{p.returncode}} at {{time.time()-t0:.0f}}s :: {{last[-120:]}}", flush=True)
     time.sleep(10)
-print(f"all done in {{(time.time()-t0)/60:.0f}} min; failures: {{[t for t,r in done if r]}}")"""})
+print(f"all done in {{(time.time()-t0)/60:.0f}} min; failures: {{[t for t,r in done if r]}}")"""
+cells.append({"type": "code", "source": runner_cell(JOBS, "")})
+cells.append({"type": "code", "source": runner_cell(JOBS2, "(queue 2)")})
+cells.append({"type": "code", "source": '# re-OOF every CV checkpoint with inference-time TTA (z-shift -1/0/+1 x flip) so the stack is fitted on what main.py produces\n!python scripts/reoof_v3.py --art artifacts_v3 --cache cache_v4 --tta-z -1 0 1 2>&1 | grep -v Warning'})
 cells.append({"type": "code", "source": f"""# report + stacking + pack
 import glob, json, pandas as pd
-rows = [{{'run': os.path.basename(f)[:-5], 'best_val': json.load(open(f))['best_val_logloss'], 'tta': json.load(open(f))['val_logloss_tta']}} for f in sorted(glob.glob('artifacts_v3/r*_f*_s*.json'))]
+rows = [{{'run': os.path.basename(f)[:-5], **{{k: json.load(open(f)).get(k) for k in ('best_val_logloss', 'val_logloss', 'val_auroc')}}}} for f in sorted(glob.glob('artifacts_v3/r*_f*_s*.json'))]
 df = pd.DataFrame(rows); print(df.to_string(index=False))
-df['arm'] = df.run.str.replace(r'_f\\d_s\\d', '', regex=True); print(df.groupby('arm')[['best_val', 'tta']].mean().round(4))
-!python scripts/fit_stack_v3.py --out artifacts_v3 {' '.join(f'--arm {n} "{p}"' for n, p, _ in ARMS)} {' '.join(f'--site-arm {n} "{q}"' for n, _, q in ARMS if q)} --lam 0.02 --t-floor 1.0
+df['arm'] = df.run.str.replace(r'_f(\d|all)_s\d', '', regex=True); print(df.groupby('arm')[['best_val_logloss', 'val_logloss', 'val_auroc']].mean().round(4))
+!python scripts/fit_stack_v3.py --out artifacts_v3 {' '.join(f'--arm {n} "{p}"' for n, p, _ in ARMS if glob.glob(f'artifacts_v3/oof_{p}.csv'))} {' '.join(f'--site-arm {n} "{q}"' for n, _, q in ARMS if q and glob.glob(f'artifacts_v3/oof_{q}.csv'))} {' '.join(f'--extra {n} "{g}"' for n, g in EXTRAS if glob.glob(f'artifacts_v3/{g}.pt'))} --lam 0.02 --t-floor 1.0
 !python scripts/pack_v3.py --artifacts artifacts_v3 --out submission_v3.zip
 !cp submission_v3.zip artifacts_v3/manifest.json artifacts_v3/oof_stack.csv out/ && cp artifacts_v3/*.json artifacts_v3/oof_*.csv cache_v4/folds*.csv cache_v4/sites.csv out/ 2>/dev/null; du -sh out submission_v3.zip"""})
 cells.append({"type": "code", "source": (ROOT / "kaggle" / "e2e_check_v3.py").read_text(encoding="utf-8")})
