@@ -53,7 +53,7 @@ Queue 1 contents: EfficientNet-B0 5 folds x 3 seeds (done), 3D ResNet 5 x 3 (run
 
 Files on the Kaggle machine: `artifacts_v3/<tag>.pt`, `<tag>.json`, `oof_<tag>.csv`; `log_<tag>.txt`; `cache_v4/` (symlinked memmap); `pretrained/`; `artifacts/template.npz`.
 
-**Nothing in `/kaggle/working` survives a session death.** Before any risky step use "Save Version" → "Quick Save" (keeps the current outputs as a version).
+**Nothing in `/kaggle/working` survives a session death, and a session whose kernel is unreachable cannot be salvaged either** (Quick Save needs a connected editor and fails with `ConcurrencyViolation` when two editor tabs are open). Do not rely on interactive sessions for runs longer than ~1 h: use a background commit (section 3a).
 
 ## 3a. The commit run (current path)
 
