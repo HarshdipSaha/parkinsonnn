@@ -77,17 +77,23 @@ def predict(model, loader, spec: InputSpec, device, tta_flip=True):
 
 
 class EMA:
-    def __init__(self, model, decay=0.999):
-        self.m = copy.deepcopy(model).eval(); self.decay = decay
+    """Exponential moving average of the weights with a step-adaptive decay min(decay, (1+t)/(10+t)), so the
+    random initialisation never dominates short runs (with a fixed 0.999 and ~1,000 steps, 36 % of the average
+    would still be the init -> under-confident logits)."""
+
+    def __init__(self, model, decay=0.998):
+        self.m = copy.deepcopy(model).eval(); self.decay = decay; self.t = 0
         for p in self.m.parameters():
             p.requires_grad_(False)
 
     @torch.no_grad()
     def update(self, model):
+        self.t += 1
+        d = min(self.decay, (1 + self.t) / (10 + self.t))
         msd = model.state_dict()
         for k, v in self.m.state_dict().items():
             if v.dtype.is_floating_point:
-                v.mul_(self.decay).add_(msd[k].detach(), alpha=1 - self.decay)
+                v.mul_(d).add_(msd[k].detach(), alpha=1 - d)
             else:
                 v.copy_(msd[k])
 
@@ -100,7 +106,7 @@ def _grad_scaler(amp: bool):
 
 def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_kw: dict, tag: str,
               epochs=60, batch_size=16, lr=5e-4, backbone_lr=None, weight_decay=1e-2, warmup_epochs=3,
-              mixup=0.0, ema_decay=0.999, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
+              mixup=0.0, ema_decay=0.998, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
               augment=True, save_fp16=True, select: str = "final") -> dict:
     cache_dir, out_dir = Path(cache_dir), Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu"); amp = device.startswith("cuda")
