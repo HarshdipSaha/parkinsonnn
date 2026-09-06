@@ -35,6 +35,8 @@ if __name__ == "__main__":
     ap.add_argument("--no-aug", action="store_true")
     ap.add_argument("--aug", default="base", choices=["base", "strong"], help="augmentation preset (datsc.augment.PRESETS)")
     ap.add_argument("--z-jitter", type=int, default=0, help="2D: random slab-centre shift in voxels during training")
+    ap.add_argument("--dann", type=float, default=0.0, help="site-adversarial (gradient-reversal) head weight; 0 = off")
+    ap.add_argument("--dro", type=float, default=0.0, help="group-DRO step size over pseudo-sites; 0 = off")
     ap.add_argument("--workers", type=int, default=2)
     # 3d
     ap.add_argument("--size", type=int, nargs=3, default=[96, 96, 72])
@@ -69,4 +71,4 @@ if __name__ == "__main__":
     train_run(a.cache, a.fold, a.seed, a.out, spec, model_kw, tag, epochs=a.epochs, batch_size=a.batch_size, lr=a.lr,
               backbone_lr=a.backbone_lr, weight_decay=a.weight_decay, warmup_epochs=a.warmup, mixup=a.mixup,
               ema_decay=a.ema or None, norm=a.norm, folds_csv=a.folds_csv, num_workers=a.workers, augment=not a.no_aug,
-              select=a.select, aug=a.aug, z_jitter=a.z_jitter)
+              select=a.select, aug=a.aug, z_jitter=a.z_jitter, dann=a.dann, dro=a.dro)

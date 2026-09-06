@@ -145,3 +145,22 @@ def test_feat_arm_features_and_model_roundtrip(tmp_path):
     m2 = FeatModel.load(tmp_path / "feat.npz")
     assert np.allclose(m.predict_proba(F, P), m2.predict_proba(F, P)) and m2.predict_proba(F, P).shape == (N,)
 
+
+def test_features_and_site_head():
+    from datsc.models_v3 import Net2D, ResNet3D, SiteHead
+    m3 = ResNet3D(widths=(8, 8, 16, 16)); x3 = torch.rand(2, 1, 32, 32, 24)
+    h = m3.features(x3); assert h.shape == (2, 16) and m3.feat_dim == 16 and m3(x3).shape == (2,)
+    m2 = Net2D(backbone="tiny", n_in=3); x2 = torch.rand(2, 3, 32, 32)
+    h2 = m2.features(x2); assert h2.shape == (2, m2.feat_dim) and m2(x2).shape == (2,)
+    sh = SiteHead(16, 5); out = sh(h, 0.5); assert out.shape == (2, 5)
+    out.sum().backward()                                                 # gradient reversal must be differentiable
+    assert all(p.grad is not None for p in m3.layers.parameters())
+
+
+def test_train_one_epoch_dann_dro(tiny_cache, tmp_path):
+    spec = InputSpec("3d", size=(32, 32, 24))
+    meta = train_run(tiny_cache, fold=0, seed=0, out_dir=tmp_path, spec=spec, model_kw=dict(widths=(8, 8, 16, 16)), tag="td",
+                     epochs=1, batch_size=4, ema_decay=0.9, num_workers=0, device="cpu", dann=0.1, dro=0.1)
+    assert meta["dann"] == 0.1 and meta["dro"] == 0.1 and meta["n_sites"] >= 1 and np.isfinite(meta["history"][0]["train_loss"])
+    sd = torch.load(tmp_path / "td.pt"); assert not any(k.startswith("site_head") for k in sd)
+

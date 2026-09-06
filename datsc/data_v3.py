@@ -50,6 +50,20 @@ class VolDataset(Dataset):
                 torch.tensor(self.labels[i]), self.uids[i])
 
 
+def load_site_ids(cache_dir, uids, min_n: int = 25):
+    """{uid: pseudo-site id} from <cache>/sites.csv; sites with fewer than `min_n` of the given uids merge into id 0 ("other").
+    Returns (mapping, n_sites); without a sites.csv every uid maps to 0 and n_sites == 1."""
+    p = Path(cache_dir) / "sites.csv"
+    uids = list(uids)
+    if not p.exists():
+        return {u: 0 for u in uids}, 1
+    s = pd.read_csv(p, dtype={"uid": str}).set_index("uid")["site"].reindex(uids).fillna("other")
+    counts = s.value_counts()
+    keep = sorted(k for k in counts.index if counts[k] >= min_n and k != "other")
+    ids = {k: i + 1 for i, k in enumerate(keep)}
+    return {u: int(ids.get(v, 0)) for u, v in s.items()}, len(ids) + 1
+
+
 def to_3d_input(x: torch.Tensor, size=(64, 64, 48)) -> torch.Tensor:
     """[B,1,96,96,72] -> [B,1,*size] (trilinear). size == VOL_SHAPE is a no-op."""
     if tuple(x.shape[2:]) == tuple(size):

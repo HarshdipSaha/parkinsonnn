@@ -21,8 +21,8 @@ from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader
 
 from .augment import train_augment
-from .data_v3 import VolDataset, VolumeCache, to_3d_input, to_slabs, to_3d_crop
-from .models_v3 import build_model, count_params
+from .data_v3 import load_site_ids, VolDataset, VolumeCache, to_3d_input, to_slabs, to_3d_crop
+from .models_v3 import SiteHead, build_model, count_params
 
 
 def logloss_np(y, p):
@@ -126,7 +126,8 @@ def _grad_scaler(amp: bool):
 def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_kw: dict, tag: str,
               epochs=60, batch_size=16, lr=5e-4, backbone_lr=None, weight_decay=1e-2, warmup_epochs=3,
               mixup=0.0, ema_decay=0.995, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
-              augment=True, save_fp16=True, select: str = "final", aug: str = "base", z_jitter: int = 0) -> dict:
+              augment=True, save_fp16=True, select: str = "final", aug: str = "base", z_jitter: int = 0,
+              dann: float = 0.0, dro: float = 0.0) -> dict:
     cache_dir, out_dir = Path(cache_dir), Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu"); amp = device.startswith("cuda")
     torch.backends.cudnn.benchmark = True
@@ -147,6 +148,12 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
         opt = torch.optim.AdamW([{"params": bb, "lr": backbone_lr}, {"params": rest, "lr": lr}], weight_decay=weight_decay)
     else:
         opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
+    # site-invariant training: pseudo-site ids of the training uids; DANN head (gradient reversal) and/or group-DRO weights
+    site_map, n_sites = load_site_ids(cache_dir, tr["uid"], min_n=25)
+    site_head = SiteHead(model.feat_dim, n_sites).to(device) if (dann > 0 and n_sites > 1) else None
+    if site_head is not None:
+        opt.add_param_group({"params": list(site_head.parameters()), "lr": lr, "weight_decay": weight_decay})
+    q_dro = torch.ones(n_sites, device=device) / n_sites
     steps_per_epoch = max(1, len(dl_tr)); total = epochs * steps_per_epoch; warm = max(1, warmup_epochs * steps_per_epoch)
 
     def lr_lambda(t):
@@ -160,11 +167,12 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
     best, best_state, hist, t0 = float("inf"), None, [], time.time()
     print(f"[{tag}] params={count_params(model)/1e6:.2f}M train={len(tr)} val={len(va)} norm={norm} spec={spec.to_dict()} "
           f"model_kw={ {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()} }", flush=True)
-    n_skipped = 0
+    n_skipped = 0; step = 0
     for ep in range(epochs):
         model.train(); tl, n = 0.0, 0
-        for x, s, y, _ in dl_tr:
+        for x, s, y, u in dl_tr:
             x, s, y = x.to(device, non_blocking=True), s.to(device), y.to(device)
+            site = torch.tensor([site_map.get(uid, 0) for uid in u], device=device)
             with torch.no_grad():
                 if augment:
                     x = train_augment(x, aug)
@@ -174,7 +182,25 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
                     lam = float(np.random.beta(mixup, mixup)); perm = torch.randperm(inp.shape[0], device=device)
                     inp = lam * inp + (1 - lam) * inp[perm]; s = lam * s + (1 - lam) * s[perm]; y = lam * y + (1 - lam) * y[perm]
             with torch.autocast(device_type="cuda", enabled=amp):
-                loss = F.binary_cross_entropy_with_logits(model(inp, s).float(), y)
+                if site_head is None and not (dro > 0 and n_sites > 1):
+                    loss = F.binary_cross_entropy_with_logits(model(inp, s).float(), y)
+                else:
+                    h = model.features(inp)
+                    logit = model.head(model.scalars(h, s)).squeeze(1).float()
+                    per = F.binary_cross_entropy_with_logits(logit, y, reduction="none")
+                    if dro > 0 and n_sites > 1:                       # group-DRO: exponentially up-weight the worst pseudo-sites
+                        Lg = torch.zeros(n_sites, device=device).index_add_(0, site, per)
+                        cnt = torch.zeros(n_sites, device=device).index_add_(0, site, torch.ones_like(per))
+                        Lg = Lg / cnt.clamp_min(1); present = (cnt > 0).float()
+                        with torch.no_grad():
+                            q_dro = q_dro * torch.exp(dro * Lg.detach() * present); q_dro = q_dro / q_dro.sum()
+                        loss = (q_dro * Lg * present).sum() / (q_dro * present).sum().clamp_min(1e-6)
+                    else:
+                        loss = per.mean()
+                    if site_head is not None:                          # DANN: reversed-gradient site classification, ramped over the first third
+                        lam_dann = dann * min(1.0, step / max(1, total // 3))
+                        loss = loss + F.cross_entropy(site_head(h.float(), lam_dann), site)
+            step += 1
             if not torch.isfinite(loss):                      # diverged batch (fp16 overflow): skip it instead of poisoning the weights
                 n_skipped += 1; opt.zero_grad(set_to_none=True); continue
             opt.zero_grad(set_to_none=True)
@@ -222,7 +248,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             "val_logloss": (logloss_np(yv, p) if len(yv) else None), "val_auroc": (auroc_np(yv, p) if len(yv) else None),
             "spec": spec.to_dict(), "model_kw": {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()},
             "norm": norm, "folds_csv": folds_csv, "mixup": mixup, "ema_decay": ema_decay, "lr": lr, "backbone_lr": backbone_lr,
-            "aug": aug, "z_jitter": z_jitter, "skipped_batches": n_skipped,
+            "aug": aug, "z_jitter": z_jitter, "skipped_batches": n_skipped, "dann": dann, "dro": dro, "n_sites": n_sites,
             "weight_decay": weight_decay, "history": hist, "params": count_params(model), "sec": time.time() - t0}
     (out_dir / f"{tag}.json").write_text(json.dumps(meta))
     if full:

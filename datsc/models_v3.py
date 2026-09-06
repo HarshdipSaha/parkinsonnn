@@ -55,11 +55,15 @@ class ResNet3D(nn.Module):
             layers.append(Block3D(cin, w, stride=1 if i == 0 else 2)); cin = w
         self.layers = nn.Sequential(*layers)
         self.scalars = ScalarHead(n_scalars)
+        self.feat_dim = cin
         self.head = nn.Sequential(nn.Linear(cin + n_scalars, 128), nn.SiLU(), nn.Dropout(dropout), nn.Linear(128, 1))
 
+    def features(self, x):
+        """Pooled features before the head (used by the DANN site head)."""
+        return F.adaptive_avg_pool3d(self.layers(self.stem(x)), 1).flatten(1)
+
     def forward(self, x, scalars=None):
-        h = F.adaptive_avg_pool3d(self.layers(self.stem(x)), 1).flatten(1)
-        return self.head(self.scalars(h, scalars)).squeeze(1)
+        return self.head(self.scalars(self.features(x), scalars)).squeeze(1)
 
 
 class TinyNet2D(nn.Module):
@@ -119,6 +123,7 @@ class Net2D(nn.Module):
                 self._adapt_stem(n_in)
         self.in_scale = in_scale
         self.scalars = ScalarHead(n_scalars)
+        self.feat_dim = dim
         self.head = nn.Sequential(nn.Dropout(dropout), nn.Linear(dim + n_scalars, 1))
 
     def _adapt_stem(self, n_in: int):
@@ -133,10 +138,38 @@ class Net2D(nn.Module):
                 if child is conv:
                     setattr(parent, name, new); return
 
-    def forward(self, img, scalars=None):
+    def features(self, img):
+        """Pooled backbone features before the head (used by the DANN site head)."""
         img = (img.clamp(0, self.in_scale) / self.in_scale - self.MEAN) / self.STD
-        h = self.backbone(img)
-        return self.head(self.scalars(h, scalars)).squeeze(1)
+        return self.backbone(img)
+
+    def forward(self, img, scalars=None):
+        return self.head(self.scalars(self.features(img), scalars)).squeeze(1)
+
+
+class GradReverse(torch.autograd.Function):
+    """Identity forward, reversed (and scaled) gradient backward: the DANN trick."""
+
+    @staticmethod
+    def forward(ctx, x, lam):
+        ctx.lam = float(lam)
+        return x.view_as(x)
+
+    @staticmethod
+    def backward(ctx, g):
+        return -ctx.lam * g, None
+
+
+class SiteHead(nn.Module):
+    """Pseudo-site classifier on pooled features behind a gradient-reversal layer. Trained jointly, never saved with the
+    model: the backbone is pushed toward features that do not identify the camera/protocol."""
+
+    def __init__(self, dim: int, n_sites: int, hidden: int = 64):
+        super().__init__()
+        self.net = nn.Sequential(nn.Linear(dim, hidden), nn.SiLU(), nn.Linear(hidden, n_sites))
+
+    def forward(self, h, lam: float = 1.0):
+        return self.net(GradReverse.apply(h, lam))
 
 
 def build_model(arm: str, n_scalars: int = 0, **kw) -> nn.Module:
