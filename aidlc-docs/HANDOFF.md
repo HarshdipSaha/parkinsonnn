@@ -77,7 +77,7 @@ Never run more than ~2 h of training in one interactive session or one commit wi
 
 Check: `type data\kaggle_output\watch.log` and `schtasks /Query /TN DaT-KaggleOutputWatch`. Re-register after a reboot or for a new version with `powershell -File kaggle/register_watcher.ps1` (delete `data/kaggle_output/DONE.json` first if a newer version's output is wanted).
 
-### Run 3 outcome and the container bug (Sept 6, 14:45 UTC)
+### Run 3 outcome and the container bug (Sept 6, 14:45 UTC) — **public 0.2817 / AUROC 0.9477 / rank 66** (id-321263). Next: effort 003, plan `docs/superpowers/plans/2026-09-06-run4-toward-0.21.md`
 
 Version #2 completed: 56 jobs, no failures, stack OOF **0.2580** (AUROC 0.961; weights a3d .1 / b0 .3 / v2s .3 / cor .3 / lr 0; T = 1.0). Full numbers in `RESULTS_LOG.md`. The end-to-end cell then showed every 2D checkpoint failing with `FileNotFoundError`: the manifest's `model_kw` still carried `weights_path=pretrained/…` from training and `build_model` tried to load it inside the container. Fixed in commit `225d39d` (inference ignores `weights_path`, manifest strips it, e2e asserts every arm used all checkpoints). The Kaggle zip was repaired locally without retraining:
 

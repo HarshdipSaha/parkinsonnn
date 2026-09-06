@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | in progress: background commit Version #2 running since 09:50 UTC (8 B0 folds done by 10:20 UTC, 0.258–0.294); ETA ~15:10 UTC for `submission_v3.zip` |
+| **State** | complete — public **0.2817** / AUROC 0.9477 / rank **66** (id-321263, Sept 6 15:50 UTC) |
 | **Started** | 2026-09-05 evening |
 | **Resume runbook** | [HANDOFF.md](../../HANDOFF.md), section 3 |
 | **Plan** | [2026-09-06-run3-finish-and-run4.md](../../../docs/superpowers/plans/2026-09-06-run3-finish-and-run4.md), Part A |
@@ -37,6 +37,13 @@
 | 12 | 09:00–09:50 | Interactive session died after the notebook websocket dropped (kernel status stuck at "connecting"; Kaggle then started a fresh session). 22 checkpoints lost. Switched to a background commit: queues trimmed (dropped 3D site-folds, V2-S seed 1, full-data 3D), tail cells made fail-safe, obsolete runner cell removed, `push_cells.py --no-run` sync, Version #2 "Save & Run All" started 09:50 UTC | commit running |
 | 13 | 10:00–10:25 | Persistence: cache-mount cell resumes from any mounted `artifacts_v3/`/`out/`; runner uploads `artifacts_v3/` to the private dataset `harshdipsaha/dat-run3-checkpoints` every 4 jobs (background thread, upgrades the kaggle client first). User supplied a Kaggle API token in `.env`; local CLI works after `pip install -U kaggle` (2.2.4); checkpoint dataset created via CLI; `KAGGLE_USERNAME`/`KAGGLE_KEY` added as notebook Secrets by clipboard paste (token never written to a file or transcript). Draft synced; the running commit predates these and will not upload | commit progress: B0 folds 0.258 / 0.268 / 0.283 / 0.294 / 0.292 / 0.281 / 0.262 / 0.289 |
 
+| 14 | 11:34 | Persistence on the laptop: `scripts/watch_kaggle_output.py` + Task-Scheduler job (every 5 min) downloads and verifies the version output when the run ends | at 14:34 found silently stopped: schtasks defaults to AC-power-only and the laptop was unplugged at 13:40 → task allowed on battery (`kaggle/register_watcher.ps1`) |
+| 15 | 14:41 | Commit Version #2 COMPLETE after 4 h 55 min: 56 jobs, failures [] | per-arm OOF: b0 0.2695 (15 ckpts), v2s 0.2740 (5), cor 0.2773 (5), 3d 0.2937 (15), lr 0.4015; stack 0.2580 / AUROC 0.9614; weights 3d .1 / b0 .3 / v2s .3 / cor .3 / lr 0; T 1.0 (random-fold 0.81, floored) |
+| 16 | 14:45 | e2e cell inside the commit: every 2D checkpoint `FileNotFoundError`; only 3D + LR ran (smoke 0.2996) | root cause: manifest `model_kw.weights_path=pretrained/…` (training-time ImageNet init) loaded by `build_model` inside the container. Fix `225d39d`: inference drops `weights_path`, manifest strips it, e2e asserts every arm used all checkpoints |
+| 17 | 14:47–14:55 | Zip pulled with the CLI (`--file-pattern`), repaired locally (`scripts/repack_v3.py`: fresh code, same artifacts), verified with `scripts/local_e2e_v3.py` | 43/43 checkpoints + LR used; smoke-set log loss 0.2458; 390 s on CPU |
+| 18 | 14:52–15:06 | DrivenData smoke test id-321261 (upload 419 MB ≈ 12 min; the old submit script's reload loop raised `beforeunload` dialogs — fixed in `f6b206d`) | **0.2397** (run 2 smoke: 0.2567) |
+| 19 | 15:11–15:50 | Real submission id-321263 (slot 2 of 3), uploaded on the user's "now submit" before the smoke result was visible | **public 0.2817, AUROC 0.9477, rank 66** (from 157). Nested OOF of the same combiner 0.2603 → the gap is test-distribution shift (OOF AUROC 0.961 → public 0.948), not combiner optimism |
+
 ### Resolved item
 
 The stale 0.998-EMA checkpoints from the interactive session no longer exist (that machine is gone); the commit trains every job fresh. Keep using `pkill -f "[s]cripts/train_v3.py"` for any future cleanup.
@@ -54,3 +61,13 @@ The stale 0.998-EMA checkpoints from the interactive session no longer exist (th
 - DrivenData smoke test id-321261 = **0.2397**. Real submission uploaded from `data/submission_v3_fixed.zip` (slot 2/3). Score to be recorded in RESULTS_LOG.md.
 - Persistence: Task-Scheduler watcher (`scripts/watch_kaggle_output.py`, battery-safe) archives the version output to `data/kaggle_output/`.
 - Next: run 4 per the plan (Part B) — tiny slab-net arm, nested clip/hedge selection, more seeds/TTA; sync the fixed cells to the notebook (`kaggle/gen_run3_inject.py` regenerated; push with `kaggle/push_cells.py --no-run`) before the next commit.
+
+## Closing analysis (Sept 6 15:50 UTC)
+
+- Leader: 0.2192 / AUROC 0.971. We are 0.2817 / 0.948. The public-test AUROC deficit (0.023) is the whole gap; calibration is already honest (nested 0.2603 ≈ plain 0.2580; clip/hedge give no nested gain).
+- Per-site nested log loss (cache_v4/sites.csv): best on the 2.40 mm 87-slice ultra-low site (0.19) and 2.46 mm high (0.25); worst on 2.46 mm 256³ low (0.315, n 134), the 3.90 mm thin-FOV sites (0.30) and "other" (0.276).
+- The site-fold B0 arm (0.2818) matches the public score (0.2817): treat the public test as a site shift and optimise for leave-site-out performance, not random folds.
+- Members: V2-S with one seed (0.2740) already matches three B0 seeds (0.2695) → more V2-S seeds are the cheapest reliable gain. The 3D whole-brain arm is the weakest (0.2937, weight 0.1). Coronal B0 earned weight 0.3 with 5 checkpoints → orthogonal views help.
+- Lessons: (1) run `scripts/local_e2e_v3.py` on every zip before uploading; (2) schtasks jobs need battery settings; (3) never reload the DrivenData page during an upload; (4) keep the Kaggle draft session off (GPU quota) and use commits only.
+
+Effort closed; continues as effort 003 (run 4).

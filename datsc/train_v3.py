@@ -21,7 +21,7 @@ from sklearn.metrics import roc_auc_score
 from torch.utils.data import DataLoader
 
 from .augment import train_augment
-from .data_v3 import VolDataset, VolumeCache, to_3d_input, to_slabs
+from .data_v3 import VolDataset, VolumeCache, to_3d_input, to_slabs, to_3d_crop
 from .models_v3 import build_model, count_params
 
 
@@ -39,13 +39,18 @@ class InputSpec:
     tta_z: slab-centre offsets in voxels for the 2D arm (e.g. [-1, 0, 1]); every variant is also L/R-flipped."""
 
     def __init__(self, arm: str, size=(64, 64, 48), n_slabs: int = 3, slab_mm: float = 12.0, hw: int = 192,
-                 slab_mode: str = "mean", z_center: float | None = None, plane: str = "axial", tta_z=(0,), crop=None):
+                 slab_mode: str = "mean", z_center: float | None = None, plane: str = "axial", tta_z=(0,), crop=None,
+                 crop3d=None, center3d=None):
         self.arm, self.size, self.n_slabs, self.slab_mm, self.hw, self.slab_mode, self.z_center = \
             arm, tuple(size), n_slabs, slab_mm, hw, slab_mode, z_center
         self.plane, self.tta_z, self.crop = plane, tuple(tta_z), crop
+        self.crop3d = tuple(int(v) for v in crop3d) if crop3d else None        # 3D: striatal crop before the resize
+        self.center3d = tuple(float(v) for v in center3d) if center3d else None
 
     def __call__(self, x, dz: int = 0):
         if self.arm == "3d":
+            if self.crop3d:
+                x = to_3d_crop(x, self.crop3d, self.center3d)
             return to_3d_input(x, self.size)
         zc = None if self.z_center is None else self.z_center + dz
         return to_slabs(x, self.n_slabs, self.slab_mm, self.hw, mode=self.slab_mode, z_center=zc, plane=self.plane, crop=self.crop)
@@ -63,7 +68,8 @@ class InputSpec:
 
     def to_dict(self):
         return dict(arm=self.arm, size=list(self.size), n_slabs=self.n_slabs, slab_mm=self.slab_mm, hw=self.hw,
-                    slab_mode=self.slab_mode, z_center=self.z_center, plane=self.plane, tta_z=list(self.tta_z), crop=self.crop)
+                    slab_mode=self.slab_mode, z_center=self.z_center, plane=self.plane, tta_z=list(self.tta_z), crop=self.crop,
+                    crop3d=(list(self.crop3d) if self.crop3d else None), center3d=(list(self.center3d) if self.center3d else None))
 
 
 def _seed_all(seed):
@@ -120,7 +126,7 @@ def _grad_scaler(amp: bool):
 def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_kw: dict, tag: str,
               epochs=60, batch_size=16, lr=5e-4, backbone_lr=None, weight_decay=1e-2, warmup_epochs=3,
               mixup=0.0, ema_decay=0.995, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
-              augment=True, save_fp16=True, select: str = "final") -> dict:
+              augment=True, save_fp16=True, select: str = "final", aug: str = "base", z_jitter: int = 0) -> dict:
     cache_dir, out_dir = Path(cache_dir), Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu"); amp = device.startswith("cuda")
     torch.backends.cudnn.benchmark = True
@@ -160,8 +166,9 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             x, s, y = x.to(device, non_blocking=True), s.to(device), y.to(device)
             with torch.no_grad():
                 if augment:
-                    x = train_augment(x)
-                inp = spec(x)
+                    x = train_augment(x, aug)
+                dz = int(np.random.randint(-z_jitter, z_jitter + 1)) if (z_jitter and spec.arm == "2d") else 0
+                inp = spec(x, dz)                                     # random slab-centre shift == the TTA offsets
                 if mixup > 0:
                     lam = float(np.random.beta(mixup, mixup)); perm = torch.randperm(inp.shape[0], device=device)
                     inp = lam * inp + (1 - lam) * inp[perm]; s = lam * s + (1 - lam) * s[perm]; y = lam * y + (1 - lam) * y[perm]
@@ -212,6 +219,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             "val_logloss": (logloss_np(yv, p) if len(yv) else None), "val_auroc": (auroc_np(yv, p) if len(yv) else None),
             "spec": spec.to_dict(), "model_kw": {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()},
             "norm": norm, "folds_csv": folds_csv, "mixup": mixup, "ema_decay": ema_decay, "lr": lr, "backbone_lr": backbone_lr,
+            "aug": aug, "z_jitter": z_jitter,
             "weight_decay": weight_decay, "history": hist, "params": count_params(model), "sec": time.time() - t0}
     (out_dir / f"{tag}.json").write_text(json.dumps(meta))
     if full:

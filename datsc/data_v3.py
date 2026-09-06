@@ -57,6 +57,17 @@ def to_3d_input(x: torch.Tensor, size=(64, 64, 48)) -> torch.Tensor:
     return F.interpolate(x, size=size, mode="trilinear", align_corners=False)
 
 
+def to_3d_crop(x: torch.Tensor, crop=(48, 48, 32), center=None) -> torch.Tensor:
+    """[B,1,X,Y,Z] -> [B,1,*crop]: axis-aligned crop centred on `center` (voxel coords; default box centre), clamped
+    to the box. In the registered frame pass the template striatal centre: full 2 mm resolution on the striatum."""
+    B, _, X, Y, Z = x.shape
+    c = [(X - 1) / 2, (Y - 1) / 2, (Z - 1) / 2] if center is None else list(center)
+    sl = []
+    for n, k, cc in zip((X, Y, Z), crop, c):
+        a = int(round(cc - k / 2 + 0.5)); a = max(0, min(a, n - k)); sl.append(slice(a, a + k))
+    return x[:, :, sl[0], sl[1], sl[2]]
+
+
 def to_slabs(x: torch.Tensor, n_slabs: int = 3, slab_mm: float = 12.0, hw: int = 192,
              spacing_mm: float = VOL_SPACING_MM, mode: str = "mean", z_center: float | None = None,
              plane: str = "axial", crop: int | None = None) -> torch.Tensor:

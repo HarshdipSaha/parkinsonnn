@@ -91,11 +91,20 @@ def random_flip(x, p: float = 0.5):
     return out
 
 
-def train_augment(x: torch.Tensor) -> torch.Tensor:
+PRESETS = {
+    # run-3 defaults (physically plausible multi-centre perturbations)
+    "base":   dict(blur_mm=4.0, noise=0.15, deg=10.0, scale=0.10, shift=3.0, quant_p=0.5, scale_jitter=0.2),
+    # deliberately unrealistic (Buddenkotte & Buchert 2024): pushes the net to ignore the camera's resolution/count statistics
+    "strong": dict(blur_mm=8.0, noise=0.30, deg=15.0, scale=0.15, shift=4.0, quant_p=0.6, scale_jitter=0.3),
+}
+
+
+def train_augment(x: torch.Tensor, strength: str = "base") -> torch.Tensor:
+    c = PRESETS[strength]
     x = random_flip(x)
-    x = random_affine(x)
-    x = random_blur(x)
-    x = random_scale_jitter(x)
-    x = random_quantize(x)
-    x = random_noise(x)
+    x = random_affine(x, c["deg"], c["scale"], c["shift"])
+    x = random_blur(x, c["blur_mm"])
+    x = random_scale_jitter(x, c["scale_jitter"])
+    x = random_quantize(x, p=c["quant_p"])
+    x = random_noise(x, c["noise"])
     return x

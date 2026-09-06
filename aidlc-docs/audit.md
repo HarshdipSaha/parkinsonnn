@@ -11,3 +11,10 @@
 | 2026-09-06 ~09:20 | Documentation reformatted as clean Markdown | User: "in a better format" |
 | 2026-09-06 ~10:30 | Interactive Kaggle session lost (websocket drop); training relaunched as a background commit with trimmed queues to keep tonight's submission feasible | Autonomous decision, consistent with the user's run-it instruction |
 | 2026-09-06 ~10:10 | User provided a Kaggle API token (`.env`) and asked for per-job checkpoint persistence; user explicitly asked me to add the notebook Secrets myself without viewing the token (done via clipboard paste; `.env` gitignored) | User: "you can do it, just don't see it, just write it" |
+| 2026-09-06 11:34 | Laptop-side watcher (Task Scheduler) added so the Kaggle output downloads without a session | Autonomous, after the user asked whether the zip downloads by itself |
+| 2026-09-06 14:34 | Watcher allowed on battery (had silently stopped when the laptop was unplugged) | Autonomous fix |
+| 2026-09-06 14:45 | Container bug fixed in code and the Kaggle zip repaired locally instead of re-running the 5 h commit | Autonomous; verified with a container-style local run |
+| 2026-09-06 15:10 | Real submission uploaded before the smoke-test result was visible (slot 2 of 3) | User: "now submit" |
+| 2026-09-06 15:20 | Keep the GPU closed after the run (no interactive sessions) | User: "close the gpu ok" — draft session confirmed off |
+| 2026-09-06 15:50 | Public 0.2817 / rank 66. New target set by the user: 0.21 using all research + EDA findings | User: "IMPROVE THIS TO 0.21" |
+

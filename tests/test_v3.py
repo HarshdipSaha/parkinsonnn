@@ -94,3 +94,31 @@ def test_train_one_epoch(tiny_cache, tmp_path, arm):
     assert len(j["history"]) == 2 and j["spec"]["arm"] == arm
     sd = torch.load(tmp_path / f"t_{arm}.pt")
     assert all(v.dtype != torch.float32 for v in sd.values() if v.is_floating_point())   # saved fp16
+
+
+def test_augment_presets_shape_and_strength():
+    from datsc.augment import PRESETS, train_augment
+    x = torch.rand(2, 1, 96, 96, 72)
+    torch.manual_seed(0); a = train_augment(x, "base")
+    torch.manual_seed(0); b = train_augment(x, "strong")
+    assert a.shape == x.shape == b.shape
+    assert PRESETS["strong"]["blur_mm"] > PRESETS["base"]["blur_mm"] and PRESETS["strong"]["noise"] > PRESETS["base"]["noise"]
+    assert torch.isfinite(a).all() and torch.isfinite(b).all() and (a >= 0).all()
+
+
+def test_3d_crop_centred_on_striatum():
+    x = torch.zeros(1, 1, 96, 96, 72); x[0, 0, 47, 57, 33] = 1.0          # a voxel at the template striatal centre
+    spec = InputSpec("3d", size=(48, 48, 32), crop3d=(48, 48, 32), center3d=(47.5, 57.3, 33.5))
+    inp = spec(x)
+    assert tuple(inp.shape) == (1, 1, 48, 48, 32) and float(inp.sum()) == 1.0
+    assert tuple(torch.nonzero(inp)[0, 2:].tolist()) == (23, 23, 15)          # crop spans x 24..71, y 34..81, z 18..49 (centre 47.5/57.5/33.5)
+    d = spec.to_dict(); assert d["crop3d"] == [48, 48, 32] and InputSpec(**d).crop3d == (48, 48, 32)
+    assert spec.flip(inp).shape == inp.shape
+
+
+def test_train_one_epoch_with_z_jitter_and_strong_aug(tiny_cache, tmp_path):
+    spec = InputSpec("2d", n_slabs=3, slab_mm=12, hw=32, z_center=36.0, tta_z=[-1, 0, 1])
+    meta = train_run(tiny_cache, fold=0, seed=0, out_dir=tmp_path, spec=spec, model_kw=dict(backbone="tiny", n_in=3), tag="tj",
+                     epochs=1, batch_size=4, ema_decay=0.9, num_workers=0, device="cpu", z_jitter=1, aug="strong")
+    assert (tmp_path / "tj.pt").exists() and meta["z_jitter"] == 1 and meta["aug"] == "strong"
+

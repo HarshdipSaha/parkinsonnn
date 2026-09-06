@@ -99,3 +99,10 @@ repaired locally with `scripts/repack_v3.py` (fresh code, same artifacts) and re
 
 **Submission (Sept 6):** local e2e on the repaired zip 0.2458 (CPU, 390 s / 20 vols); DrivenData smoke test **id-321261 = 0.2397**
 (run 2 smoke: 0.2567). Real submission uploaded ~15:20 UTC from `data/submission_v3_fixed.zip` (slot 2 of 3 in the 7-day window) — public score below when scored.
+
+**Public score (id-321263, Sept 6 15:50 UTC): log loss 0.2817, AUROC 0.9477, rank 66 / 450** (run 2: 0.3391 / 0.925 / 157; leader 0.2192 / 0.971).
+Nested OOF of the shipped combiner 0.2603 → the 0.02 gap is test shift, not combiner optimism (OOF AUROC 0.961 → public 0.948). The
+leave-pseudo-site-out B0 arm (0.2818) matches the public score almost exactly. Per-site nested (n, log loss): other 360 0.276 ·
+2.46|256|high 265 0.247 · 2.30|128|low 207 0.274 · 2.40|128x87|ultralow 142 0.192 · 2.46|256|low 134 0.315 · 3.90|128|high 70 0.224 ·
+2.46|256|ultralow 61 0.252 · 3.90 thin-FOV 0.30. Clip/hedge: no nested gain.
+

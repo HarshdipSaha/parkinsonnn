@@ -33,11 +33,15 @@ if __name__ == "__main__":
     ap.add_argument("--norm", default="ref", choices=["ref", "p75", "median", "zscore", "p99"])
     ap.add_argument("--n-scalars", type=int, default=0)
     ap.add_argument("--no-aug", action="store_true")
+    ap.add_argument("--aug", default="base", choices=["base", "strong"], help="augmentation preset (datsc.augment.PRESETS)")
+    ap.add_argument("--z-jitter", type=int, default=0, help="2D: random slab-centre shift in voxels during training")
     ap.add_argument("--workers", type=int, default=2)
     # 3d
     ap.add_argument("--size", type=int, nargs=3, default=[96, 96, 72])
     ap.add_argument("--widths", type=int, nargs=4, default=[24, 48, 96, 192])
     ap.add_argument("--stem-stride", type=int, default=1)
+    ap.add_argument("--crop3d", type=int, nargs=3, default=None, help="3D: crop (voxels) around --center3d before the resize")
+    ap.add_argument("--center3d", type=float, nargs=3, default=None, help="3D: crop centre (voxels; template striatal_center x y z)")
     # 2d
     ap.add_argument("--backbone", default="efficientnet_b0")
     ap.add_argument("--weights", default=None)
@@ -51,9 +55,10 @@ if __name__ == "__main__":
     ap.add_argument("--crop", type=int, default=None, help="central crop (voxels) of the slab image before resizing, e.g. 72")
     a = ap.parse_args()
     if a.arm == "3d":
-        spec = InputSpec("3d", size=a.size)
+        spec = InputSpec("3d", size=a.size, crop3d=a.crop3d, center3d=a.center3d)
         model_kw = dict(widths=tuple(a.widths), stem_stride=a.stem_stride, n_scalars=a.n_scalars)
-        tag = a.tag or f"r3d_{'x'.join(map(str, a.size))}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
+        base = f"r3d_crop{'x'.join(map(str, a.crop3d))}" if a.crop3d else f"r3d_{'x'.join(map(str, a.size))}"
+        tag = a.tag or f"{base}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
     else:
         spec = InputSpec("2d", n_slabs=a.n_slabs, slab_mm=a.slab_mm, hw=a.hw, slab_mode=a.slab_mode, z_center=a.z_center,
                          plane=a.plane, tta_z=a.tta_z, crop=a.crop)
@@ -64,4 +69,4 @@ if __name__ == "__main__":
     train_run(a.cache, a.fold, a.seed, a.out, spec, model_kw, tag, epochs=a.epochs, batch_size=a.batch_size, lr=a.lr,
               backbone_lr=a.backbone_lr, weight_decay=a.weight_decay, warmup_epochs=a.warmup, mixup=a.mixup,
               ema_decay=a.ema or None, norm=a.norm, folds_csv=a.folds_csv, num_workers=a.workers, augment=not a.no_aug,
-              select=a.select)
+              select=a.select, aug=a.aug, z_jitter=a.z_jitter)
