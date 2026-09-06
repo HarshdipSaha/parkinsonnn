@@ -71,6 +71,12 @@ Never run more than ~2 h of training in one interactive session or one commit wi
 
 **Kaggle CLI (local).** Credentials from `.env` (gitignored) are mirrored in `~/.kaggle/kaggle.json`; the fine-grained token only works with client >= 2.2 (`pip install -U kaggle`). Useful commands: `kaggle kernels status harshdipsaha/dat-parkinsons-train` (commit status), `kaggle kernels output harshdipsaha/dat-parkinsons-train -p data/kaggle_output` (download the latest version's output files, no size cap), `kaggle datasets version -p <dir> -m "<note>"` (push a dataset version).
 
+### Automatic download of the commit output (no session needed)
+
+`scripts/watch_kaggle_output.py` polls `kaggle kernels status harshdipsaha/dat-parkinsons-train`; when the status is no longer RUNNING/QUEUED it pages through the latest version's output via the Kaggle API into `data/kaggle_output/`, joins `submission_v3.zip.part*` if only parts exist, verifies the zip (md5, `testzip`, `main.py` present) and writes `data/kaggle_output/DONE.json` plus `watch.log`. It is registered as the Windows Task Scheduler job `DaT-KaggleOutputWatch` (every 5 min, `kaggle/register_watcher.ps1`, registered Sept 6 11:34 UTC) and deletes the task once the download is verified. The zip therefore lands on the laptop with no Claude session open. **What stays manual:** the DrivenData smoke test and real submission (`kaggle/gen_submit.py` + `.playwright-mcp/dd_submit.js`, or the website), and recording the score in `RESULTS_LOG.md`.
+
+Check: `type data\kaggle_output\watch.log` and `schtasks /Query /TN DaT-KaggleOutputWatch`. Re-register after a reboot or for a new version with `powershell -File kaggle/register_watcher.ps1` (delete `data/kaggle_output/DONE.json` first if a newer version's output is wanted).
+
 ## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 
 1. **Poll** with `.playwright-mcp/poll_runner.js` (25-minute wait) until the live runner ends with `all done in N min; failures: []` and cells 52/53 have output.
