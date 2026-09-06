@@ -16,7 +16,7 @@ js = """async (page) => {
   const frame = page.frames().find(f => f.url().includes('jupyterlab'));
   const idx = await frame.evaluate(({updates, cleanup}) => {
     const nb = window.jupyterapp.shell.currentWidget.content; const model = nb.model; const sm = model.sharedModel;
-    const prefixOf = (s) => s.split('\n')[0];
+    const NL = String.fromCharCode(10); const prefixOf = (s) => s.split(NL)[0];
     const out = {writefile: [], runner: -1, cleanup: -1};
     for (const src of updates) {
       const pre = prefixOf(src);
@@ -28,7 +28,7 @@ js = """async (page) => {
       }
     }
     let ci = -1; for (let i = 0; i < model.cells.length; i++) if (model.cells.get(i).sharedModel.getSource().startsWith('# cleanup:')) ci = i;
-    const csrc = '# cleanup: ' + new Date().toISOString() + '\n!' + cleanup + '\n!ls artifacts_v3 | wc -l; nvidia-smi --query-gpu=memory.used --format=csv,noheader';
+    const csrc = '# cleanup: ' + new Date().toISOString() + NL + '!' + cleanup + NL + '!ls artifacts_v3 | wc -l; nvidia-smi --query-gpu=memory.used --format=csv,noheader';
     if (ci < 0) { sm.insertCell(out.runner, {cell_type: 'code', source: csrc}); ci = out.runner; out.runner += 1; } else { model.cells.get(ci).sharedModel.setSource(csrc); }
     out.cleanup = ci;
     return out;
