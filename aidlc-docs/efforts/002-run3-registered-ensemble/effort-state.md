@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | in progress: queue 1 training on Kaggle (relaunched 06:50 UTC Sept 6 after the EMA fix; ETA ~12:45 UTC) |
+| **State** | in progress: interactive session died ~09:00 UTC (websocket drop; all checkpoints lost); re-launched as background commit Version #2 at ~10:30 UTC with trimmed queues (ETA ~16:00 UTC) |
 | **Started** | 2026-09-05 evening |
 | **Resume runbook** | [HANDOFF.md](../../HANDOFF.md), section 3 |
 | **Plan** | [2026-09-06-run3-finish-and-run4.md](../../../docs/superpowers/plans/2026-09-06-run3-finish-and-run4.md), Part A |
@@ -34,6 +34,7 @@
 | 9 | 07:40 | Fix confirmed | B0 folds 2 / 3: 0.279 / 0.294 log loss, AUROC 0.952 / 0.947 |
 | 10 | 08:00–08:40 | B0 seeds 0–2 complete (0.258–0.326, AUROC 0.935–0.963). Added z-shift test-time augmentation (`InputSpec.variants`, shared by trainer, `reoof_v3.py`, `main_v3.py`), coronal-slab option, full-data mode (fold -1), stack `--extra`; queue 2 defined; notebook synced with `push_cells.py` without touching the live queue | |
 | 11 | 08:50 | 3D seed 0 complete | 0.274 / 0.334 / 0.292 / 0.316 / 0.242 (AUROC up to 0.972); ~21 min per fold |
+| 12 | 09:00–10:30 | Interactive session died after the notebook websocket dropped (kernel status stuck at "connecting"; Kaggle then started a fresh session). 22 checkpoints lost. Switched to a background commit: queues trimmed (dropped 3D site-folds, V2-S seed 1, full-data 3D), tail cells made fail-safe, obsolete runner cell removed, `push_cells.py --no-run` sync, Version #2 "Save & Run All" started | commit running |
 
 ### Open item before stacking
 

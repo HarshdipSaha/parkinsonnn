@@ -9,3 +9,4 @@
 | 2026-09-06 | AI-DLC initialised retroactively | User: "/ai-dlc initialise everything we did" |
 | 2026-09-06 ~09:00 | Full handoff so a fresh session can resume from the docs alone (`HANDOFF.md`, plan, effort 003). Honest rank-1 estimate given: 10–15 % by the deadline | User instruction |
 | 2026-09-06 ~09:20 | Documentation reformatted as clean Markdown | User: "in a better format" |
+| 2026-09-06 ~10:30 | Interactive Kaggle session lost (websocket drop); training relaunched as a background commit with trimmed queues to keep tonight's submission feasible | Autonomous decision, consistent with the user's run-it instruction |

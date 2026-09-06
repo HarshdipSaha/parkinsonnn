@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-06 09:10 UTC (14:40 IST) |
+| **Last updated** | 2026-09-06 10:35 UTC (16:05 IST) |
 | **Deadline** | 2026-09-16 23:59 UTC |
 | **Goal (user)** | Rank 1 on the DrivenData DaT Parkinson's Challenge (public log loss < 0.219) |
 | **Current public score** | 0.3391 log loss, AUROC 0.925, rank 152 (run 2, submission id-321156) |
-| **In flight** | Run 3 training on Kaggle (queue 1, ETA ~12:45 UTC) |
+| **In flight** | Run 3 as a **background commit** (Kaggle "Version #2, Save & Run All", started ~10:30 UTC, ETA ~16:00 UTC). The interactive session died at ~09:00 UTC after a websocket drop and took 3.5 GPU-h of checkpoints with it. |
 
 Reading order:
 
@@ -55,7 +55,13 @@ Files on the Kaggle machine: `artifacts_v3/<tag>.pt`, `<tag>.json`, `oof_<tag>.c
 
 **Nothing in `/kaggle/working` survives a session death.** Before any risky step use "Save Version" → "Quick Save" (keeps the current outputs as a version).
 
-## 3. Runbook to finish run 3
+## 3a. The commit run (current path)
+
+Interactive sessions die when the browser connection drops for long; a commit ("Save & Run All") runs the saved notebook top to bottom on a fresh machine with no browser, keeps its outputs as a version, and is what is running now. Cell order in the saved draft: 0 header, 1 env, 2–43 writefile, 44 selftest, 45 cache mount, 46 timing, 47 stale cleanup (no-op on a fresh machine), 48 runner queue 1 (B0 x3 seeds, 3D x3 seeds, B0 site-folds, V2-S x1 seed), 49 runner queue 2 (coronal B0, full-data B0 x3), 50 re-OOF with TTA, 51 report/stack/pack, 52 end-to-end check, 53 split into parts. Cells 50–53 are wrapped in try/except so the commit succeeds even if a tail step fails.
+
+Monitoring: notebook page → Versions → Version #2 → Logs (or the "Running" entry under View Active Events). Expected duration ~5.5 h. When it finishes, the version's Output tab lists `submission_v3.zip`, `parts/`, `out/`; download the parts from there (no in-editor size cap on the version output page) or attach the version output as a dataset input to a new session.
+
+## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 
 1. **Poll** with `.playwright-mcp/poll_runner.js` (25-minute wait) until the live runner ends with `all done in N min; failures: []` and cells 52/53 have output.
 2. **Record** the cell 52 output (per-run table, `weights=… T=… stack OOF logloss=…`) and cell 53 (`FORMAT OK`, smoke-set log loss, extrapolated minutes) in `RESULTS_LOG.md`.
