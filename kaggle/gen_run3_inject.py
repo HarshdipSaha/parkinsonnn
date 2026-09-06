@@ -236,3 +236,15 @@ upd = """async (page) => {
 """ % json.dumps(runner_src)
 (ROOT / ".playwright-mcp" / "update_runner.js").write_text(upd, encoding="utf-8")
 print(f"wrote {out} with {len(cells)} cells ({len(FILES)} package files)")
+
+# --- optional: export the same cell set as a Kaggle-importable notebook (File -> Import Notebook), no Playwright needed ---
+if __name__ == "__main__":
+    import sys
+    if "--ipynb" in sys.argv:
+        import nbformat
+        out = Path(sys.argv[sys.argv.index("--ipynb") + 1])
+        nb = nbformat.v4.new_notebook()
+        nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "language": "python"}
+        nb.cells = [nbformat.v4.new_markdown_cell(c["source"]) if c["type"] == "markdown" else nbformat.v4.new_code_cell(c["source"]) for c in cells]
+        nbformat.write(nb, str(out))
+        print(f"wrote {out} with {len(nb.cells)} cells (attach datasets: dat-parkinsons-challenge-data, dat-parkinsons-cache-v4, dat-run3-checkpoints; GPU T4 x2; Internet on; Secrets KAGGLE_USERNAME/KAGGLE_KEY)")
