@@ -42,7 +42,7 @@ The hotfix-2 cleanup used `pkill -f scripts/train_v3.py`, which killed its own s
 
 ## Next
 
-1. Queue 1 ends (~12:45 UTC) → automatic report / stack / pack / end-to-end check (preliminary zip).
-2. Cell 47 → run-all-below: cleanup → 2 stale jobs → queue 2 → re-OOF with TTA → stack / pack → e2e → split.
-3. Download parts → join → local checks → DrivenData smoke test → real submission (slot 2 of 3).
-4. Record OOF, per-site and public numbers in `RESULTS_LOG.md`; close this effort; open effort 003.
+1. Commit Version #2 (started 10:30 UTC, 40 queue-1 jobs + 8 queue-2 jobs + re-OOF + stack/pack + e2e + split; ETA ~16:00 UTC): poll its log.
+2. When it succeeds: notebook page → Version 2 → Output tab → download `parts/submission_v3.zip.partNN` (or the whole zip if the page allows) → `python scripts/join_parts.py <dir> <md5> --out submission_v3.zip`.
+3. DrivenData smoke test → real submission (slot 2 of 3) → record public log loss / AUROC / rank in `RESULTS_LOG.md`.
+4. Close this effort; open effort 003.

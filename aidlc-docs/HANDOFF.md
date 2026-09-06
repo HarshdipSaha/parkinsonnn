@@ -59,7 +59,7 @@ Files on the Kaggle machine: `artifacts_v3/<tag>.pt`, `<tag>.json`, `oof_<tag>.c
 
 Interactive sessions die when the browser connection drops for long; a commit ("Save & Run All") runs the saved notebook top to bottom on a fresh machine with no browser, keeps its outputs as a version, and is what is running now. Cell order in the saved draft: 0 header, 1 env, 2–43 writefile, 44 selftest, 45 cache mount, 46 timing, 47 stale cleanup (no-op on a fresh machine), 48 runner queue 1 (B0 x3 seeds, 3D x3 seeds, B0 site-folds, V2-S x1 seed), 49 runner queue 2 (coronal B0, full-data B0 x3), 50 re-OOF with TTA, 51 report/stack/pack, 52 end-to-end check, 53 split into parts. Cells 50–53 are wrapped in try/except so the commit succeeds even if a tail step fails.
 
-Monitoring: notebook page → Versions → Version #2 → Logs (or the "Running" entry under View Active Events). Expected duration ~5.5 h. When it finishes, the version's Output tab lists `submission_v3.zip`, `parts/`, `out/`; download the parts from there (no in-editor size cap on the version output page) or attach the version output as a dataset input to a new session.
+Monitoring: https://www.kaggle.com/code/harshdipsaha/dat-parkinsons-train/log?scriptVersionId=347676112 (Version #2; poll with `.playwright-mcp/poll_commit.js`, peek with `peek_commit.js`), or View Active Events → kebab → "Open Logs in Viewer". Expected duration ~5.5 h. When it finishes, the version's Output tab lists `submission_v3.zip`, `parts/`, `out/`; download the parts from there (no in-editor size cap on the version output page) or attach the version output as a dataset input to a new session.
 
 ## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 
