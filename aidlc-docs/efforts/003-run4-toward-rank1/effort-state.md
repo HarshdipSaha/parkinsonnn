@@ -5,7 +5,7 @@
 | **State** | in-progress (opened Sept 6 15:55 UTC) |
 | **Plan** | [2026-09-06-run4-toward-0.21.md](../../../docs/superpowers/plans/2026-09-06-run4-toward-0.21.md) (detailed, bite-sized tasks); background in [2026-09-06-run3-finish-and-run4.md](../../../docs/superpowers/plans/2026-09-06-run3-finish-and-run4.md) Part B and `docs/RESEARCH_SIMILAR_COMPETITIONS.md` |
 | **Baseline** | Run 3: public 0.2817 / AUROC 0.9477 / rank 66; OOF stack 0.2580 (nested 0.2603); leader 0.2192 / 0.971 |
-| **Budget** | Kaggle GPU: week reset Sat Sept 6 00:00 UTC; ≈ 8.5 h used today → ≈ 21 h left this week, 30 h next week. Real submissions: slot 3 free now; slot 1 back Sept 12 15:38 UTC; slot 2 back Sept 13 15:11 UTC. Deadline Sept 16 23:59 UTC |
+| **Budget** | Kaggle GPU: editor shows quota 12:42 of 30 h on Sept 6 16:00 UTC (≈ 12.7 h left this week; the weekly reset is not Saturday 00:00 UTC), 30 h next week. Real submissions: slot 3 free now; slot 1 back Sept 12 15:38 UTC; slot 2 back Sept 13 15:11 UTC. Deadline Sept 16 23:59 UTC |
 | **Depth** | standard |
 
 ## Requirements delta (vs baseline)
@@ -31,3 +31,12 @@
 ## Honest expectation
 
 Public 0.24–0.25 after 4a/4b (top 10–15). 0.21 requires the test AUROC to rise from 0.948 to ≈ 0.97: only the site-robustness items (strong augmentation, tiny slab net, striatal 3D crop) can deliver that, and whether they do is exactly what 4a measures. Probability of ≤ 0.22 by Sept 16: about 10–15 %.
+
+## Construction log
+
+| # | When (UTC) | Unit | Result |
+|---|---|---|---|
+| 1 | Sept 6 15:55–16:20 | 4a-1: `--aug strong` preset, `--z-jitter`, 3D striatal crop (`--crop3d/--center3d`), runner `tag` override + `{XC}`, JOBS3, ARMS (11 arms, grid 8), checkpoint-dataset resume + API-download fallback; 3 new tests | 42 tests green; `main_v3.py --selftest` OK; commits `be94b69`, follow-up |
+| 2 | 16:05–16:25 | Run-3 artefacts (48 ckpts + json + OOF, 475 MB) uploaded to the private dataset `harshdipsaha/dat-run3-checkpoints` (CLI must run from inside the folder on Windows); dataset attached to the notebook via Add Input (URL search; name search finds nothing for private datasets); cells synced (4 inserted, 13 updated); stale "stale-checkpoint cleanup" cell deleted | |
+| 3 | 16:27 | **Version 3 = run 4a** started as "Save & Run All (Commit)" on GPU T4 x2 (editor quota reading 12:42 / 30 h before launch). Expected ≈ 3.5 h → ~20:00 UTC. Watcher re-armed with `-Out data/kaggle_output_v4` | running |
+
