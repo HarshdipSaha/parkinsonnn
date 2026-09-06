@@ -105,7 +105,10 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
         if time.time() - t0 > LADDER_STOP_S:
             print("ladder: skipping remaining checkpoints"); break
         try:
-            model = build_model(arm_cfg["arm"], **arm_cfg.get("model_kw", {})).to(device)
+            # weights_path is a training-time convenience (ImageNet init); the checkpoint holds the whole model and the
+            # file does not exist inside the submission container (run 3 v2: every 2D arm failed with FileNotFoundError)
+            model_kw = {k: v for k, v in arm_cfg.get("model_kw", {}).items() if k != "weights_path"}
+            model = build_model(arm_cfg["arm"], **model_kw).to(device)
             sd = torch.load(str(root / Path(ck).name), map_location=device, weights_only=True)   # root == the artifacts dir
             model.load_state_dict(sd); model.eval()
             out = []
@@ -116,7 +119,7 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
                     out.append(torch.sigmoid(z).cpu().numpy())
             acc += np.concatenate(out); used += 1
         except Exception as e:  # noqa: BLE001
-            print(f"checkpoint failed ({Path(ck).name}): {type(e).__name__}", flush=True)
+            print(f"checkpoint failed ({Path(ck).name}): {type(e).__name__}: {str(e)[:160]}", flush=True)
     print(f"arm {arm_cfg['name']}: checkpoints used {used}/{len(arm_cfg['checkpoints'])} at {time.time()-t0:.0f}s", flush=True)
     if used == 0:
         return None

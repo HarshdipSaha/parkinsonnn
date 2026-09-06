@@ -74,3 +74,25 @@ Hotspot folds 0.353/0.290/0.266/0.354/0.321 (mean 0.317); CoM control mean 0.302
 | run-3 3D GroupNorm ResNet, first folds (seed 0) | f0 0.274 / 0.945, f1 0.334 / 0.931, f2 0.292 / 0.945; ~21 min per fold. Queue ETA ~13:45 UTC, then stale re-run + queue 2 (coronal, full-data) + TTA re-OOF + stack |
 | Sept 6 ~09:00 UTC | Interactive Kaggle session lost (websocket drop, kernel unreachable, Quick Save refused); 15 B0 + 7 3D checkpoints gone. Relaunched as background commit "Version #2" at 10:30 UTC with trimmed queues (B0 x3 seeds, 3D x3 seeds, B0 site-folds, V2-S x1, coronal B0 x1, full-data B0 x3); ETA ~16:00 UTC |
 | commit Version #2 (fresh machine, 09:50 UTC) B0 seed 0 + part of seed 1 | 0.258 / 0.268 / 0.283 / 0.294 / 0.292 (seed 0); 0.281 / 0.262 / 0.289 (seed 1 f0-f2); AUROC 0.946-0.962 — consistent with the lost interactive run |
+
+## Run 3 — Kaggle commit Version #2 (Sept 6, 09:46–~14:45 UTC, 2×T4, scriptVersionId 347676112)
+
+All 56 jobs finished, failures []. Per-arm OOF (final EMA weights, TTA z∈{-1,0,1} × flip for 2D):
+
+| arm | ckpts | AUROC | log loss |
+|---|---|---|---|
+| a2d_b0 (EfficientNet-B0 axial, 3 seeds) | 15 (+3 full-data) | 0.9556 | 0.2695 |
+| a2d_v2s (EfficientNet-V2-S axial) | 5 | 0.9549 | 0.2740 |
+| a2d_cor (B0 coronal) | 5 | 0.9512 | 0.2773 |
+| a3d (ResNet3D 64×64×48, 3 seeds) | 15 | 0.9476 | 0.2937 |
+| lr (registered-ROI features) | 1 | 0.9024 | 0.4015 |
+| **stack** (weights a3d .1 / b0 .3 / v2s .3 / cor .3 / lr 0; T=1.0 floor, random-fold T 0.81; λ=0.02) | 44 | **0.9614** | **0.2580** (equal-weight 0.2598) |
+
+Site-fold B0 (seed 0): 0.2818 / AUROC 0.952 — close to random folds (0.2752), i.e. little site leakage in the registered frame.
+EMA-lag guard: final vs best-epoch within ±0.01 everywhere (window 0.99/0.995 fixed the run-2 collapse).
+
+**Bug found by the end-to-end cell:** every 2D checkpoint failed with `FileNotFoundError` inside the container — the manifest's
+`model_kw` carried the training-time `weights_path=pretrained/efficientnet_b0_in1k.pt`, which `build_model` tries to load
+before the checkpoint state dict is applied. Only a3d + LR ran (smoke log loss 0.2996). Fix (commit below): inference drops
+`weights_path`, the manifest writer strips it, the e2e cell now asserts every arm used all its checkpoints. The Kaggle zip is
+repaired locally with `scripts/repack_v3.py` (fresh code, same artifacts) and re-verified with `scripts/local_e2e_v3.py`.

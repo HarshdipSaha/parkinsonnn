@@ -59,7 +59,7 @@ if __name__ == "__main__":
     for name, pattern in a.arm:
         oof, tags, meta = arm_oof(art, pattern)
         oofs[name] = oof
-        arms.append({"name": name, "arm": meta["spec"]["arm"], "spec": meta["spec"], "model_kw": meta.get("model_kw", {}),
+        arms.append({"name": name, "arm": meta["spec"]["arm"], "spec": meta["spec"], "model_kw": {k: v for k, v in meta.get("model_kw", {}).items() if k != "weights_path"},
                      "norm": meta.get("norm", "p75"), "checkpoints": meta.get("checkpoints") or [f"artifacts/{t}.pt" for t in tags]})
         print(f"{name:<10} ckpts={len(tags):2d} AUROC={roc_auc_score(oof.y, oof.p):.4f} logloss={logloss(oof.y.values, oof.p.values):.4f}")
     for name, pat in a.extra:

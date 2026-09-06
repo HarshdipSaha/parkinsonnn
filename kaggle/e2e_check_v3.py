@@ -23,6 +23,10 @@ niftis = sorted(p for p in SRC.rglob("*") if p.name.endswith((".nii", ".nii.gz")
 fmt = pd.read_csv(smoke_fmt, dtype={"uid": str})
 ROOT_S = build_data_root("/kaggle/working/sim_data_smoke", niftis, fmt)
 SIM, wall, out = run_main("submission_v3.zip", ROOT_S, "smoke_v3")
+import re
+used = re.findall(r"arm (\S+): checkpoints used (\d+)/(\d+)", out)
+assert used and all(int(u) == int(m) for _, u, m in used), f"ARM CHECKPOINTS NOT ALL USED: {used}"
+print("all arms used every checkpoint:", [(a, u) for a, u, _ in used])
 sub = pd.read_csv(SIM / "submission.csv", dtype={"uid": str})
 assert list(sub.columns) == ["uid", "is_pathologic"] and list(sub.uid) == list(fmt.uid) and sub.is_pathologic.between(0, 1).all()
 lab = pd.read_csv(next(SRC.rglob("test_labels.csv")), dtype={"uid": str}).set_index("uid").loc[sub.uid]
