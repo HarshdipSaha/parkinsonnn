@@ -90,6 +90,21 @@ Local result: all arms 43/43 checkpoints + LR, smoke log loss 0.2458 (run 2: 0.2
 
 DrivenData upload gotcha: a 419 MB zip uploads for 10–20 min; the old `dd_submit.js` reloaded the page every 6 s, which raised `beforeunload` dialogs (accepting one aborts the upload). `kaggle/gen_submit.py` now waits for the upload dialog to close and auto-dismisses dialogs.
 
+### Run 4a in flight (Sept 6 15:45 UTC → ~19:15 UTC) and how to finish it
+
+Kaggle **Version 3** ("Save & Run All") trains the site-robust candidates of `JOBS3` in `kaggle/gen_run3_inject.py` (tiny slab net ×5 seeds with strong augmentation, V2-S seeds 1–2, strong-aug B0 on random + site folds, 224-px crop-64 B0, ConvNeXt-Tiny, coronal V2-S, striatal-crop 3D 48×48×32) on top of the 48 run-3 checkpoints resumed from the private dataset `harshdipsaha/dat-run3-checkpoints` (attached as an input; the cache cell also has an API-download fallback). The laptop watcher (`DaT-KaggleOutputWatch`, `-Out data/kaggle_output_v4`) downloads the version output when it ends.
+
+The feature-engineered arm `feat` (`scripts/feat_arm_v4.py`, artefacts in `artifacts/featarm_v4/`) is fitted locally and is **not** in the Kaggle run; it is added at assembly time. Finish with:
+
+```
+python scripts/watch_kaggle_output.py --out data/kaggle_output_v4          # if DONE.json is not there yet
+python scripts/run4_assemble.py --src data/kaggle_output_v4 --extra-dir artifacts/featarm_v4 --smoke <smoke_dir> --zip data/submission_v4.zip
+python kaggle/gen_submit.py H:\augsepthacks\parkinsonnn\data\submission_v4.zip "run4a ..." smoke      # then .playwright-mcp/dd_submit.js
+```
+(`<smoke_dir>` = the extracted `data/smoke_test_data_*.tar.gz`: `niftis/`, `submission_format.csv`, `test_labels.csv`.) `run4_assemble.py` runs the nested stack over every arm with OOF files (grid 8), drops zero-weight arms, packs every referenced checkpoint and runs the container-style local check; it prints the nested estimate and per-site table — record them in `RESULTS_LOG.md`. Gate rule (R7/R10): keep a new member only if its weight ≥ 0.05 or the nested loss improves ≥ 0.003; compare `r2d_effb0_saug_*_site` with run 3's site-fold 0.2818.
+
+Then: smoke test → real submission (slot 3) → record public score → run 4b (`docs/superpowers/plans/2026-09-06-run4-toward-0.21.md`, Task 7): seeds + full-data models for the kept members; upload the new checkpoints to the checkpoint dataset first (from inside the folder: `cd data/<dir> && kaggle datasets version -p . -m "..." --dir-mode skip`).
+
 ## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 
 1. **Poll** with `.playwright-mcp/poll_runner.js` (25-minute wait) until the live runner ends with `all done in N min; failures: []` and cells 52/53 have output.

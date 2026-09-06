@@ -106,7 +106,7 @@ leave-pseudo-site-out B0 arm (0.2818) matches the public score almost exactly. P
 2.46|256|high 265 0.247 · 2.30|128|low 207 0.274 · 2.40|128x87|ultralow 142 0.192 · 2.46|256|low 134 0.315 · 3.90|128|high 70 0.224 ·
 2.46|256|ultralow 61 0.252 · 3.90 thin-FOV 0.30. Clip/hedge: no nested gain.
 
-## Feature-engineered arm `feat` (Sept 6 16:55 UTC, local CPU)
+## Feature-engineered arm `feat` (Sept 6 15:57 UTC, local CPU)
 
 `datsc/features_v4.py` + `datsc/featmodel.py` + `scripts/feat_arm_v4.py`: 17 run-3 ROI features + 44 engineered descriptors
 (A→P uptake profile per striatum, threshold-volume ladder, hot-spot volume/shift, L/R asymmetries) + 40 PCA scores of the
