@@ -5,7 +5,7 @@ import json, sys
 from pathlib import Path
 zip_path, note, kind = sys.argv[1], sys.argv[2], sys.argv[3]
 assert kind in ("smoke", "normal")
-js = """async (page) => {
+js = r"""async (page) => {
   const ZIP = %s, NOTE = %s, KIND = %s;
   const ctx = page.context();
   let dd = ctx.pages().find(p => p.url().includes('drivendata.org'));
