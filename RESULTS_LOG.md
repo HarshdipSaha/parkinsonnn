@@ -136,4 +136,5 @@ Grid-8 nested stack over 6 arms → a3d and lr at weight 0 → re-fit on b0 / v2
 T 1.0 (random-fold 0.83, floored), OOF 0.2536, nested 0.2551, 29 checkpoints, 364 MB (`data/submission_v3_feat.zip`).
 Note: the equal-weight logit mean without the λ = 0.02 prior mix scores 0.2489, i.e. the prior mix costs ≈ 0.005 OOF; it is
 kept as a site-shift hedge, and λ = 0.01 is the bracket alternative for the last submissions.
+Local container-style check of `submission_v3_feat.zip`: all 28 nets + feat used, smoke-set log loss **0.2301** (run-3 zip: 0.2458), 124 s on CPU. Held as the fallback for slot 3; the run-4a stack is preferred if it gates in.
 
