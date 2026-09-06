@@ -137,9 +137,14 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
     f = f[f["uid"].isin(cache.index)]
     full = fold < 0                                        # fold -1: train on everything, no validation split
     tr, va = (f, f.iloc[:0]) if full else (f[f["fold"] != fold], f[f["fold"] == fold])
-    dl_tr = DataLoader(VolDataset(cache, tr["uid"], tr["is_pathologic"], norm), batch_size=batch_size, shuffle=True,
+    tpl = None
+    if norm == "hist":
+        from .register import load_template
+        tpl = load_template(next((p for p in (Path("artifacts/template.npz"), cache_dir / "template.npz", Path("artifacts_v3/template.npz")) if p.exists()), None))
+        assert tpl is not None and getattr(tpl, "hist", None) is not None, "norm=hist needs artifacts/template.npz with landmarks (scripts/template_landmarks.py)"
+    dl_tr = DataLoader(VolDataset(cache, tr["uid"], tr["is_pathologic"], norm, tpl), batch_size=batch_size, shuffle=True,
                        num_workers=num_workers, drop_last=True, pin_memory=amp, persistent_workers=num_workers > 0)
-    dl_va = None if full else DataLoader(VolDataset(cache, va["uid"], va["is_pathologic"], norm), batch_size=batch_size, shuffle=False,
+    dl_va = None if full else DataLoader(VolDataset(cache, va["uid"], va["is_pathologic"], norm, tpl), batch_size=batch_size, shuffle=False,
                                          num_workers=num_workers, persistent_workers=num_workers > 0)
     model = build_model(spec.arm, **model_kw).to(device)
     if spec.arm == "2d" and backbone_lr is not None:

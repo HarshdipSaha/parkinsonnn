@@ -164,3 +164,19 @@ def test_train_one_epoch_dann_dro(tiny_cache, tmp_path):
     assert meta["dann"] == 0.1 and meta["dro"] == 0.1 and meta["n_sites"] >= 1 and np.isfinite(meta["history"][0]["train_loss"])
     sd = torch.load(tmp_path / "td.pt"); assert not any(k.startswith("site_head") for k in sd)
 
+
+def test_hist_standardise_noop_on_template_and_monotonic():
+    from datsc.register import HIST_PCTS, Template, hist_landmarks, hist_standardise
+    tpl_path = Path(__file__).resolve().parent.parent / "artifacts" / "template.npz"
+    if not tpl_path.exists():
+        pytest.skip("template not built")
+    T = Template.load(tpl_path)
+    lm = hist_landmarks(T.box, T.brain_mask)
+    out = hist_standardise(T.box, T.brain_mask, lm, lm)
+    assert np.allclose(out[T.brain_mask], T.box[T.brain_mask], atol=1e-3)          # identity on the template
+    rng = np.random.default_rng(0); v = (T.box * 1.3 + rng.normal(0, 0.05, T.box.shape)).astype(np.float32)
+    w = hist_standardise(v, T.brain_mask, hist_landmarks(v, T.brain_mask), lm)
+    a, b = v[T.brain_mask].ravel(), w[T.brain_mask].ravel(); o = np.argsort(a)
+    assert np.all(np.diff(b[o]) >= -1e-4) and len(HIST_PCTS) == 9                    # monotonic
+    assert abs(float(np.median(w[T.brain_mask])) - float(lm[4])) < 0.02              # scan median mapped onto the template median
+

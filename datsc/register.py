@@ -101,23 +101,49 @@ def apply_transform(box: np.ndarray, kind: str, transform_params, fixed_params, 
     return _from_sitk(sitk.Resample(_to_sitk(box, spacing), ref, tx, interp, 0.0, sitk.sitkFloat32))
 
 
+HIST_PCTS = (1, 5, 10, 25, 50, 75, 90, 95, 99)
+
+
+def hist_landmarks(vol: np.ndarray, brain_mask: np.ndarray) -> np.ndarray:
+    """Brain-mask intensity percentiles used as landmarks for histogram standardisation."""
+    return np.percentile(np.asarray(vol, np.float32)[brain_mask], HIST_PCTS).astype(np.float32)
+
+
+def hist_standardise(vol: np.ndarray, brain_mask: np.ndarray, src: np.ndarray, dst: np.ndarray) -> np.ndarray:
+    """Piecewise-linear map of the scan's landmarks `src` onto the template's `dst` (Nyul-style), applied to every voxel;
+    linear extrapolation beyond the outer landmarks with the outer segment's slope. Monotonic by construction."""
+    src = np.maximum.accumulate(np.asarray(src, np.float64)); dst = np.asarray(dst, np.float64)
+    x = np.asarray(vol, np.float32).ravel()
+    out = np.interp(x, src, dst).astype(np.float32)
+    lo, hi = x < src[0], x > src[-1]
+    if src[1] > src[0]:
+        out[lo] = dst[0] + (x[lo] - src[0]) * (dst[1] - dst[0]) / (src[1] - src[0])
+    if src[-1] > src[-2]:
+        out[hi] = dst[-1] + (x[hi] - src[-1]) * (dst[-1] - dst[-2]) / (src[-1] - src[-2])
+    return out.reshape(vol.shape)
+
+
+
 class Template:
     """Study template + derived masks. Stored as artifacts/template.npz (label-blind mean of registered training boxes)."""
 
-    def __init__(self, box, brain_mask, striatal_mask, ref_mask, striatal_center, ncc_thresh: float, spacing: float = VOL_SPACING_MM):
+    def __init__(self, box, brain_mask, striatal_mask, ref_mask, striatal_center, ncc_thresh: float, spacing: float = VOL_SPACING_MM, hist=None):
         self.box = box.astype(np.float32); self.brain_mask = brain_mask.astype(bool)
+        self.hist = None if hist is None else np.asarray(hist, np.float32)     # histogram-standardisation landmarks (optional)
         self.striatal_mask = striatal_mask.astype(bool); self.ref_mask = ref_mask.astype(bool)
         self.striatal_center = np.asarray(striatal_center, float); self.ncc_thresh = float(ncc_thresh); self.spacing = spacing
         self.qc_mask = ndi.binary_erosion(self.brain_mask, iterations=2)
 
     def save(self, path):
+        extra = {} if self.hist is None else {"hist": self.hist}
         np.savez_compressed(path, box=self.box.astype(np.float16), brain_mask=self.brain_mask, striatal_mask=self.striatal_mask,
-                            ref_mask=self.ref_mask, striatal_center=self.striatal_center, ncc_thresh=self.ncc_thresh, spacing=self.spacing)
+                            ref_mask=self.ref_mask, striatal_center=self.striatal_center, ncc_thresh=self.ncc_thresh, spacing=self.spacing, **extra)
 
     @classmethod
     def load(cls, path):
         z = np.load(path)
-        return cls(z["box"], z["brain_mask"], z["striatal_mask"], z["ref_mask"], z["striatal_center"], float(z["ncc_thresh"]), float(z["spacing"]))
+        return cls(z["box"], z["brain_mask"], z["striatal_mask"], z["ref_mask"], z["striatal_center"], float(z["ncc_thresh"]), float(z["spacing"]),
+                   hist=(z["hist"] if "hist" in z.files else None))
 
 
 def derive_masks(template_box: np.ndarray, spacing: float = VOL_SPACING_MM, erode_mm: float = 8.0, dilate_mm: float = 20.0):

@@ -53,12 +53,18 @@ def prepare_volume(path, spacing_mm: float = VOL_SPACING_MM, shape=VOL_SHAPE, te
             "stats": np.concatenate([stats, reg_stats]).astype(np.float32), "reg_params": params}
 
 
-def renormalise(vol_p75: np.ndarray, stats: np.ndarray, mode: str = "p75") -> np.ndarray:
-    """Re-derive alternative intensity normalisations from the p75-scaled box + stored raw statistics."""
+def renormalise(vol_p75: np.ndarray, stats: np.ndarray, mode: str = "p75", template=None) -> np.ndarray:
+    """Re-derive alternative intensity normalisations from the p75-scaled box + stored raw statistics.
+    mode "hist": reference-normalised box mapped onto the template's brain-mask intensity landmarks (needs `template`
+    with `.brain_mask` and `.hist`, see datsc.register.hist_standardise)."""
     p75, p50, p99, mean, std = [float(stats[i]) for i in range(5)]
     x = vol_p75.astype(np.float32)
     if mode in ("p75", "ref"):           # "ref": the cache already stores reference-normalised registered boxes
         return x
+    if mode == "hist":
+        from .register import hist_landmarks, hist_standardise
+        assert template is not None and getattr(template, "hist", None) is not None, "hist mode needs a template with landmarks"
+        return hist_standardise(x, template.brain_mask, hist_landmarks(x, template.brain_mask), template.hist)
     if mode == "median":                 # background-reference (SBR-like) scaling
         return x * (p75 / max(p50, 1e-6))
     if mode == "zscore":                 # brain-mask z-score

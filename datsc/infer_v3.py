@@ -120,7 +120,8 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
     if len(idx) == 0:
         return None
     norm = arm_cfg.get("norm", "p75")
-    x_all = np.stack([renormalise(vols[i], st[i], norm) for i in idx]).astype(np.float32)[:, None]
+    tpl = load_template(root / "template.npz") if norm == "hist" else None
+    x_all = np.stack([renormalise(vols[i], st[i], norm, tpl) for i in idx]).astype(np.float32)[:, None]
     x_all = torch.from_numpy(x_all); s_all = torch.from_numpy(sc[idx])
     acc = np.zeros(len(idx)); used = 0
     for ck in arm_cfg["checkpoints"]:

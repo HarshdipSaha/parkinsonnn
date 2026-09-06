@@ -36,8 +36,8 @@ class VolumeCache:
 class VolDataset(Dataset):
     """Yields (vol fp32 [1,X,Y,Z] in the requested intensity normalisation, scalars fp32 [8], y, uid)."""
 
-    def __init__(self, cache: VolumeCache, uids, labels, norm: str = "p75"):
-        self.c, self.uids, self.norm = cache, list(uids), norm
+    def __init__(self, cache: VolumeCache, uids, labels, norm: str = "p75", template=None):
+        self.c, self.uids, self.norm, self.template = cache, list(uids), norm, template
         self.labels = np.asarray(labels, np.float32)
 
     def __len__(self):
@@ -45,7 +45,7 @@ class VolDataset(Dataset):
 
     def __getitem__(self, i):
         k = self.c.index[self.uids[i]]
-        v = renormalise(np.asarray(self.c.vols[k]), self.c.stats[k], self.norm)   # "ref" == as stored in a registered cache
+        v = renormalise(np.asarray(self.c.vols[k]), self.c.stats[k], self.norm, self.template)   # "ref" == as stored in a registered cache
         return (torch.from_numpy(np.ascontiguousarray(v))[None], torch.from_numpy(self.c.scalars[k].copy()),
                 torch.tensor(self.labels[i]), self.uids[i])
 

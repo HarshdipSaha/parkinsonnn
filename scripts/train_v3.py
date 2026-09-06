@@ -30,7 +30,7 @@ if __name__ == "__main__":
     ap.add_argument("--mixup", type=float, default=0.0)
     ap.add_argument("--ema", type=float, default=0.995)
     ap.add_argument("--select", default="final", choices=["final", "best"])
-    ap.add_argument("--norm", default="ref", choices=["ref", "p75", "median", "zscore", "p99"])
+    ap.add_argument("--norm", default="ref", choices=["ref", "p75", "median", "zscore", "p99", "hist"])
     ap.add_argument("--n-scalars", type=int, default=0)
     ap.add_argument("--no-aug", action="store_true")
     ap.add_argument("--aug", default="base", choices=["base", "strong"], help="augmentation preset (datsc.augment.PRESETS)")
