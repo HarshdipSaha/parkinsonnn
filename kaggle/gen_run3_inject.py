@@ -92,6 +92,20 @@ for src_art in glob.glob('/kaggle/input/**/artifacts_v3', recursive=True) + glob
         if os.path.isfile(f) and (f.endswith('.pt') or f.endswith('.json') or f.endswith('.csv')) and not os.path.exists('artifacts_v3/' + os.path.basename(f)):
             shutil.copy(f, 'artifacts_v3/'); n_res += 1
 print('resumed artefacts copied from /kaggle/input:', n_res)
+if n_res == 0:      # fallback: pull the private checkpoint dataset with the API (needs the KAGGLE_USERNAME/KAGGLE_KEY secrets + internet)
+    try:
+        from kaggle_secrets import UserSecretsClient
+        _u = UserSecretsClient(); os.environ['KAGGLE_USERNAME'] = _u.get_secret('KAGGLE_USERNAME'); os.environ['KAGGLE_KEY'] = _u.get_secret('KAGGLE_KEY')
+        import subprocess as _sp
+        _sp.run('pip -q install -U kaggle', shell=True, capture_output=True)
+        _r = _sp.run('kaggle datasets download harshdipsaha/dat-run3-checkpoints -p /kaggle/working/ckpt_ds --unzip --force', shell=True, capture_output=True, text=True)
+        print('checkpoint dataset download:', (_r.stdout + _r.stderr).strip()[-300:])
+        for f in glob.glob('/kaggle/working/ckpt_ds/**/*', recursive=True):
+            if os.path.isfile(f) and f.endswith(('.pt', '.json', '.csv')) and not os.path.exists('artifacts_v3/' + os.path.basename(f)):
+                shutil.copy(f, 'artifacts_v3/'); n_res += 1
+        print('resumed artefacts from the checkpoint dataset download:', n_res)
+    except Exception as _e:
+        print('checkpoint dataset download skipped:', type(_e).__name__, str(_e)[:200])
 !ls -la cache_v4 | head -20"""})
 cells.append({"type": "code", "source": """# timing check: 2 epochs of each arm on fold 0 (expect ~20-40 s/epoch on a T4)
 !CUDA_VISIBLE_DEVICES=0 python scripts/train_v3.py --arm 3d --fold 0 --seed 99 --epochs 2 --out artifacts_timing --cache cache_v4 --size 64 64 48 --widths 24 48 96 192 2>&1 | grep -E "params|ep0|done"
