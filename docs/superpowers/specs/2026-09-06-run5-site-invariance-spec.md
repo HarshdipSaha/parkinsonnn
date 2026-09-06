@@ -1,6 +1,6 @@
 # Spec: Run 5 — site-invariant training and typicality-aware calibration (effort 004)
 
-*Draft written Sept 6 2026 17:15 UTC while run 4a trains; to be finalised with the run-4a numbers after submission 3. Produced with the `to-spec` synthesis format (no issue tracker is configured for this repo; the spec lives here and the plan is `docs/superpowers/plans/2026-09-06-run5-site-invariance-plan.md`).*
+*Written Sept 6 2026 17:15 UTC while run 4a trained; results section filled Sept 6 22:30 UTC with the run-4a gates (the slot-3 public score is added when it lands). Produced with the `to-spec` synthesis format (no issue tracker is configured for this repo; the spec lives here and the plan is `docs/superpowers/plans/2026-09-06-run5-site-invariance-plan.md`).*
 
 ## Problem Statement
 
@@ -72,4 +72,6 @@ Plus one delivery mechanism: the notebook generator exports a ready `.ipynb` so 
 
 - Evidence so far: the feature-engineered arm moved the nested estimate 0.2603 → 0.2545 and displaced the whole-brain 3D arm; gradient boosting on the same features was worse than the linear PCA model, so the linear feature arm stays. The label-noise bound shows the 100 hardest scans carry 46 % of the loss; those are not a modelling target.
 - Budget: Kaggle GPU ≈ 12.7 h left this week (editor reading 12:42 / 30 h at 16:00 UTC Sept 6, 3.5 h of which run 4a uses), 30 h next week; real submissions: slot 3 tonight, then Sept 12 15:38 UTC, Sept 13 15:11 and ~20:30 UTC.
-- To be filled after run 4a: per-arm results, the site-fold strong-augmentation comparison (the augmentation default for run 5), and which backbones run 5 retrains.
+- **Run-4a results (gated stack, nested 0.2491 vs 0.2603 for run 3).** Kept: striatal-crop 3D (0.2568 / 0.960, weight .375, the best single member), V2-S 3 seeds (0.2708, .25), ConvNeXt-Tiny (0.2746, .125), coronal B0 (.125), feature arm (.125). Gated out: every B0 variant, whole-brain 3D, coronal V2-S, tiny slab net (0.355). **Strong "unrealistic" augmentation hurt on both random (0.2887 vs 0.2752) and site folds (0.2927 vs 0.2818)**, so run 5 keeps the base augmentation and tests site invariance through the training objective (DANN / group-DRO) and the input standardisation instead. The 224-px crop-64 B0 (0.2654) beat plain B0 but lost to the same idea in 3D; the 3D striatal crop is therefore the backbone run 5 invests in (seeds, full-data models, the site-invariant variant).
+- Run-5 GPU job list follows from this: striatal-crop 3D seeds 1–2, striatal-crop 3D with DANN + group-DRO on random and site folds, striatal-crop 3D with histogram standardisation, ConvNeXt seed 1 and coronal ConvNeXt, full-data models for the crop 3D and V2-S; the tri-planar member is last in priority and runs only if quota remains.
+- Operational lessons folded in: the weight grid must be enumerated as compositions (11 arms × grid 8 hung the report cell); explicit tags are used verbatim; fp16 divergence is guarded; arms with a crashed fold are dropped by coverage before stacking; every artefact is uploaded per job, which is what saved run 4a.
