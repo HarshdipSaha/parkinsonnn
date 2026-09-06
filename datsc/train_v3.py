@@ -86,10 +86,10 @@ def predict(model, loader, spec: InputSpec, device, tta_flip=True):
         x, s = x.to(device, non_blocking=True), s.to(device)
         with torch.autocast(device_type="cuda", enabled=device.startswith("cuda")):
             if tta_flip:
-                zs = [model(inp, s).float() for inp in spec.variants(x)]
+                zs = [torch.nan_to_num(model(inp, s).float(), nan=0.0, posinf=30.0, neginf=-30.0) for inp in spec.variants(x)]
                 z = torch.stack(zs).mean(0)
             else:
-                z = model(spec(x), s).float()
+                z = torch.nan_to_num(model(spec(x), s).float(), nan=0.0, posinf=30.0, neginf=-30.0)
         ps.append(torch.sigmoid(z).cpu().numpy()); uids += list(u)
     return np.concatenate(ps), uids
 
@@ -160,6 +160,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
     best, best_state, hist, t0 = float("inf"), None, [], time.time()
     print(f"[{tag}] params={count_params(model)/1e6:.2f}M train={len(tr)} val={len(va)} norm={norm} spec={spec.to_dict()} "
           f"model_kw={ {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()} }", flush=True)
+    n_skipped = 0
     for ep in range(epochs):
         model.train(); tl, n = 0.0, 0
         for x, s, y, _ in dl_tr:
@@ -174,6 +175,8 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
                     inp = lam * inp + (1 - lam) * inp[perm]; s = lam * s + (1 - lam) * s[perm]; y = lam * y + (1 - lam) * y[perm]
             with torch.autocast(device_type="cuda", enabled=amp):
                 loss = F.binary_cross_entropy_with_logits(model(inp, s).float(), y)
+            if not torch.isfinite(loss):                      # diverged batch (fp16 overflow): skip it instead of poisoning the weights
+                n_skipped += 1; opt.zero_grad(set_to_none=True); continue
             opt.zero_grad(set_to_none=True)
             scaler.scale(loss).backward(); scaler.unscale_(opt)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
@@ -219,7 +222,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             "val_logloss": (logloss_np(yv, p) if len(yv) else None), "val_auroc": (auroc_np(yv, p) if len(yv) else None),
             "spec": spec.to_dict(), "model_kw": {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()},
             "norm": norm, "folds_csv": folds_csv, "mixup": mixup, "ema_decay": ema_decay, "lr": lr, "backbone_lr": backbone_lr,
-            "aug": aug, "z_jitter": z_jitter,
+            "aug": aug, "z_jitter": z_jitter, "skipped_batches": n_skipped,
             "weight_decay": weight_decay, "history": hist, "params": count_params(model), "sec": time.time() - t0}
     (out_dir / f"{tag}.json").write_text(json.dumps(meta))
     if full:

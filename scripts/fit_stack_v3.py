@@ -36,6 +36,17 @@ def arm_oof(art: Path, pattern: str):
     return oof, tags, meta
 
 
+def compositions(total: int, parts: int):
+    """All non-negative integer vectors of length `parts` summing to `total` (stars and bars): C(total+parts-1, parts-1)
+    of them, e.g. 43,758 for grid 8 x 11 arms -- NOT the 9^11 product that run 4a's report cell got stuck on."""
+    if parts == 1:
+        yield (total,)
+        return
+    for first in range(total + 1):
+        for rest in compositions(total - first, parts - 1):
+            yield (first,) + rest
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="artifacts_v3")
@@ -67,13 +78,16 @@ if __name__ == "__main__":
         extra = sorted(Path(f).name[:-3] for f in glob.glob(str(art / f"{pat}.pt")))
         arm["checkpoints"] += [f"artifacts/{t}.pt" for t in extra]
         print(f"{name}: +{len(extra)} extra checkpoints ({pat})")
+    n_max = max(len(o) for o in oofs.values())
+    short = [x["name"] for x in arms if len(oofs[x["name"]]) < 0.98 * n_max]
+    if short:
+        print(f"dropping arms with incomplete OOF coverage (< 98% of {n_max} uids): {short}")
+        arms = [x for x in arms if x["name"] not in short]; oofs = {k: v for k, v in oofs.items() if k not in short}
     uids = sorted(set.intersection(*[set(o.index) for o in oofs.values()]))
     y = oofs[arms[0]["name"]].loc[uids, "y"].values.astype(float)
     Z = np.stack([logit(oofs[arm["name"]].loc[uids, "p"].values) for arm in arms])
     best = (float("inf"), None)
-    for comb in itertools.product(range(a.grid + 1), repeat=len(arms)):
-        if sum(comb) != a.grid:
-            continue
+    for comb in compositions(a.grid, len(arms)):
         w = np.array(comb, float) / a.grid
         ll = logloss(y, sigmoid((w[:, None] * Z).sum(0)))
         if ll < best[0]:
@@ -85,9 +99,7 @@ if __name__ == "__main__":
     # ---- nested estimate of the full combiner + clip/hedge selection (weights & T refitted on 4 folds, applied to the 5th) ----
     def fit_wt(Zs, ys):
         bw, bl = None, float("inf")
-        for comb in itertools.product(range(a.grid + 1), repeat=Zs.shape[0]):
-            if sum(comb) != a.grid:
-                continue
+        for comb in compositions(a.grid, Zs.shape[0]):
             ww = np.array(comb, float) / a.grid
             ll = logloss(ys, sigmoid((ww[:, None] * Zs).sum(0)))
             if ll < bl:

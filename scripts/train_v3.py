@@ -64,7 +64,7 @@ if __name__ == "__main__":
                          plane=a.plane, tta_z=a.tta_z, crop=a.crop)
         model_kw = dict(backbone=a.backbone, weights_path=a.weights, n_in=a.n_slabs, n_scalars=a.n_scalars)
         tag = a.tag or f"r2d_{a.backbone}{'_cor' if a.plane == 'coronal' else ''}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
-    if a.folds_csv != "folds.csv":
+    if a.folds_csv != "folds.csv" and not a.tag:            # explicit --tag is used verbatim (run 4a: '_site_site' double suffix)
         tag += "_" + Path(a.folds_csv).stem.replace("folds_", "")
     train_run(a.cache, a.fold, a.seed, a.out, spec, model_kw, tag, epochs=a.epochs, batch_size=a.batch_size, lr=a.lr,
               backbone_lr=a.backbone_lr, weight_decay=a.weight_decay, warmup_epochs=a.warmup, mixup=a.mixup,
