@@ -155,4 +155,7 @@ a2d_cor .125 / feat .125; T 1.0 (random-fold 0.815 floored); **nested 0.2491** (
 2.40|87|ultralow 0.173 · 2.46|256|low 0.312 · 3.90|128|high 0.214 · 2.46|256|ultralow 0.253 · 3.90|43 0.242 · 3.90|39 0.361.
 Zip `data/submission_v4a_local.zip`: 30 checkpoints, 844 MB; local container check: all arms N/N, smoke-set 0.2554, 317 s CPU.
 Submitted as slot 3 (smoke first). Manifest + OOF in `artifacts/run4a_stack/`.
+Fallback without ConvNeXt (`data/submission_v4a_small.zip`, 25 ckpts, 587 MB): weights a3d_crop .4 / v2s .3 / cor .2 / feat .1, nested 0.2504, OOF 0.2466.
+Sept 6 22:35–23:05 UTC: two automated smoke-test uploads of the 844 MB zip closed the DrivenData dialog without transferring (possible size limit);
+the Playwright browser server then crashed and the Chrome extension was not connected → upload handed to the user (smoke first; 1 smoke test left on Sept 7).
 
