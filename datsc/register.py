@@ -112,16 +112,16 @@ def hist_landmarks(vol: np.ndarray, brain_mask: np.ndarray) -> np.ndarray:
 
 def hist_standardise(vol: np.ndarray, brain_mask: np.ndarray, src: np.ndarray, dst: np.ndarray) -> np.ndarray:
     """Piecewise-linear map of the scan's landmarks `src` onto the template's `dst` (Nyul-style), applied to every voxel;
-    linear extrapolation beyond the outer landmarks with the outer segment's slope. Monotonic by construction."""
+    below the first landmark the first segment's slope is used, above the last landmark a pure shift (slope 1) so that the
+    striatum (which sits above every reference-region landmark) keeps its absolute contrast. Monotonic by construction."""
     src = np.maximum.accumulate(np.asarray(src, np.float64)); dst = np.asarray(dst, np.float64)
     x = np.asarray(vol, np.float32).ravel()
     out = np.interp(x, src, dst).astype(np.float32)
     lo, hi = x < src[0], x > src[-1]
     if src[1] > src[0]:
         out[lo] = dst[0] + (x[lo] - src[0]) * (dst[1] - dst[0]) / (src[1] - src[0])
-    if src[-1] > src[-2]:
-        out[hi] = dst[-1] + (x[hi] - src[-1]) * (dst[-1] - dst[-2]) / (src[-1] - src[-2])
-    return out.reshape(vol.shape)
+    out[hi] = dst[-1] + (x[hi] - src[-1])            # above the top landmark: shift only (slope 1) -> the striatal contrast
+    return out.reshape(vol.shape)                      # over the standardised background is kept in absolute units
 
 
 
