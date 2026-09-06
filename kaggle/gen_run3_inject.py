@@ -75,14 +75,14 @@ def expand(jobs):
     out = []
     for j in jobs:
         for s in j['seeds']:
-            for f in range(5):
+            for f in j.get('folds', range(5)):
                 out.append((j['name'], f, s, j['args'].replace('{{ZC}}', f"{{ZC:.1f}}") + f" --folds-csv {{j['folds_csv']}}"))
     return out
 def tag_for(name, f, s, args):
     if '--arm 3d' in args:
-        size = 'x'.join(args.split('--size')[1].split()[:3]); tag = f"r3d_{{size}}_f{{f}}_s{{s}}"
+        size = 'x'.join(args.split('--size')[1].split()[:3]); tag = f"r3d_{{size}}_f{{f if f >= 0 else 'all'}}_s{{s}}"
     else:
-        bb = args.split('--backbone')[1].split()[0]; tag = f"r2d_{{bb}}_f{{f}}_s{{s}}"
+        bb = args.split('--backbone')[1].split()[0]; tag = f"r2d_{{bb}}_f{{f if f >= 0 else 'all'}}_s{{s}}"
     return tag + ('_site' if 'folds_site' in args else '')
 queue = [(n, f, s, a) for n, f, s, a in expand(JOBS) if not os.path.exists(f"artifacts_v3/{{tag_for(n,f,s,a)}}.pt")]
 print(f"{{len(queue)}} jobs to run, {{len(expand(JOBS)) - len(queue)}} already done")

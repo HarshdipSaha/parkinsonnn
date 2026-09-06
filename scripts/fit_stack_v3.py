@@ -42,6 +42,8 @@ if __name__ == "__main__":
     ap.add_argument("--arm", nargs=2, action="append", metavar=("NAME", "PATTERN"), required=True)
     ap.add_argument("--site-arm", nargs=2, action="append", metavar=("NAME", "PATTERN"), default=[],
                     help="leave-pseudo-site-out OOF pattern per arm; when every arm has one, T is fitted on the site pool")
+    ap.add_argument("--extra", nargs=2, action="append", metavar=("NAME", "GLOB"), default=[],
+                    help="extra checkpoint tags (e.g. full-data models 'r2d_efficientnet_b0_fall_s*') appended to an arm")
     ap.add_argument("--lam", type=float, default=0.02)
     ap.add_argument("--pi", type=float, default=DEFAULT_PRIOR)
     ap.add_argument("--t-floor", type=float, default=1.0)
@@ -55,6 +57,11 @@ if __name__ == "__main__":
         arms.append({"name": name, "arm": meta["spec"]["arm"], "spec": meta["spec"], "model_kw": meta.get("model_kw", {}),
                      "norm": meta.get("norm", "p75"), "checkpoints": meta.get("checkpoints") or [f"artifacts/{t}.pt" for t in tags]})
         print(f"{name:<10} ckpts={len(tags):2d} AUROC={roc_auc_score(oof.y, oof.p):.4f} logloss={logloss(oof.y.values, oof.p.values):.4f}")
+    for name, pat in a.extra:
+        arm = next(x for x in arms if x["name"] == name)
+        extra = sorted(Path(f).name[:-3] for f in glob.glob(str(art / f"{pat}.pt")))
+        arm["checkpoints"] += [f"artifacts/{t}.pt" for t in extra]
+        print(f"{name}: +{len(extra)} extra checkpoints ({pat})")
     uids = sorted(set.intersection(*[set(o.index) for o in oofs.values()]))
     y = oofs[arms[0]["name"]].loc[uids, "y"].values.astype(float)
     Z = np.stack([logit(oofs[arm["name"]].loc[uids, "p"].values) for arm in arms])

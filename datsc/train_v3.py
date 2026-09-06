@@ -116,11 +116,12 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
     cache = VolumeCache(cache_dir)
     f = pd.read_csv(cache_dir / folds_csv, dtype={"uid": str})
     f = f[f["uid"].isin(cache.index)]
-    tr, va = f[f["fold"] != fold], f[f["fold"] == fold]
+    full = fold < 0                                        # fold -1: train on everything, no validation split
+    tr, va = (f, f.iloc[:0]) if full else (f[f["fold"] != fold], f[f["fold"] == fold])
     dl_tr = DataLoader(VolDataset(cache, tr["uid"], tr["is_pathologic"], norm), batch_size=batch_size, shuffle=True,
                        num_workers=num_workers, drop_last=True, pin_memory=amp, persistent_workers=num_workers > 0)
-    dl_va = DataLoader(VolDataset(cache, va["uid"], va["is_pathologic"], norm), batch_size=batch_size, shuffle=False,
-                       num_workers=num_workers, persistent_workers=num_workers > 0)
+    dl_va = None if full else DataLoader(VolDataset(cache, va["uid"], va["is_pathologic"], norm), batch_size=batch_size, shuffle=False,
+                                         num_workers=num_workers, persistent_workers=num_workers > 0)
     model = build_model(spec.arm, **model_kw).to(device)
     if spec.arm == "2d" and backbone_lr is not None:
         bb = [p for n, p in model.named_parameters() if n.startswith("backbone.")]
@@ -162,6 +163,10 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
                 ema.update(model)
             tl += float(loss.detach()) * len(y); n += len(y)
         eval_model = ema.m if ema is not None else model
+        if full:
+            hist.append({"epoch": ep, "train_loss": tl / max(n, 1), "sec": time.time() - t0})
+            print(f"[{tag}] ep{ep:02d} train={tl/max(n,1):.4f} ({time.time()-t0:.0f}s)", flush=True)
+            continue
         p, uids = predict(eval_model, dl_va, spec, device, tta_flip=False)
         yv = yv_lookup.loc[uids].values.astype(float)
         vl, va_auc = logloss_np(yv, p), auroc_np(yv, p)
@@ -182,17 +187,23 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
     if select == "best" and best_state is not None:
         eval_model.load_state_dict(best_state)
     state = {k: v.detach().cpu().clone() for k, v in eval_model.state_dict().items()}
-    p, uids = predict(eval_model, dl_va, spec, device, tta_flip=True)
-    yv = yv_lookup.loc[uids].values.astype(float)
-    pd.DataFrame({"uid": uids, "y": yv, "p": p}).to_csv(out_dir / f"oof_{tag}.csv", index=False)
+    if full:
+        p, yv = np.zeros(0), np.zeros(0)
+    else:
+        p, uids = predict(eval_model, dl_va, spec, device, tta_flip=True)
+        yv = yv_lookup.loc[uids].values.astype(float)
+        pd.DataFrame({"uid": uids, "y": yv, "p": p}).to_csv(out_dir / f"oof_{tag}.csv", index=False)
     if save_fp16:
         state = {k: (v.half() if v.dtype == torch.float32 else v) for k, v in state.items()}
     torch.save(state, out_dir / f"{tag}.pt")
     meta = {"tag": tag, "fold": fold, "seed": seed, "epochs": epochs, "select": select, "best_val_logloss": best,
-            "val_logloss": logloss_np(yv, p), "val_auroc": auroc_np(yv, p),
+            "val_logloss": (logloss_np(yv, p) if len(yv) else None), "val_auroc": (auroc_np(yv, p) if len(yv) else None),
             "spec": spec.to_dict(), "model_kw": {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()},
             "norm": norm, "folds_csv": folds_csv, "mixup": mixup, "ema_decay": ema_decay, "lr": lr, "backbone_lr": backbone_lr,
             "weight_decay": weight_decay, "history": hist, "params": count_params(model), "sec": time.time() - t0}
     (out_dir / f"{tag}.json").write_text(json.dumps(meta))
-    print(f"[{tag}] done final val_logloss={meta['val_logloss']:.4f} auroc={meta['val_auroc']:.4f} (best epoch {best:.4f}) in {time.time()-t0:.0f}s", flush=True)
+    if full:
+        print(f"[{tag}] done (full-data model, no validation) in {time.time()-t0:.0f}s", flush=True)
+    else:
+        print(f"[{tag}] done final val_logloss={meta['val_logloss']:.4f} auroc={meta['val_auroc']:.4f} (best epoch {best:.4f}) in {time.time()-t0:.0f}s", flush=True)
     return meta

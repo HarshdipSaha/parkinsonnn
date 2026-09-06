@@ -50,11 +50,11 @@ if __name__ == "__main__":
     if a.arm == "3d":
         spec = InputSpec("3d", size=a.size)
         model_kw = dict(widths=tuple(a.widths), stem_stride=a.stem_stride, n_scalars=a.n_scalars)
-        tag = a.tag or f"r3d_{'x'.join(map(str, a.size))}_f{a.fold}_s{a.seed}"
+        tag = a.tag or f"r3d_{'x'.join(map(str, a.size))}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
     else:
         spec = InputSpec("2d", n_slabs=a.n_slabs, slab_mm=a.slab_mm, hw=a.hw, slab_mode=a.slab_mode, z_center=a.z_center)
         model_kw = dict(backbone=a.backbone, weights_path=a.weights, n_in=a.n_slabs, n_scalars=a.n_scalars)
-        tag = a.tag or f"r2d_{a.backbone}_f{a.fold}_s{a.seed}"
+        tag = a.tag or f"r2d_{a.backbone}_f{a.fold if a.fold >= 0 else 'all'}_s{a.seed}"
     if a.folds_csv != "folds.csv":
         tag += "_" + Path(a.folds_csv).stem.replace("folds_", "")
     train_run(a.cache, a.fold, a.seed, a.out, spec, model_kw, tag, epochs=a.epochs, batch_size=a.batch_size, lr=a.lr,
