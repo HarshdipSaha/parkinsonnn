@@ -19,3 +19,4 @@ qc/
 cache_v3/
 pretrained/
 artifacts_v3/
+.env

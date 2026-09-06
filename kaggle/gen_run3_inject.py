@@ -14,6 +14,7 @@ FILES = [*sorted(ROOT.glob("datsc/*.py")), *sorted(ROOT.glob("scripts/*.py")), R
 FILES = [p for p in FILES if p.name != "__init__.py" or p.parent.name == "datsc"]
 
 CACHE_DS = "/kaggle/input/datasets/harshdipsaha/dat-parkinsons-cache-v4"
+CKPT_DS = "harshdipsaha/dat-run3-checkpoints"
 RAW_DS = "/kaggle/input/datasets/harshdipsaha/dat-parkinsons-challenge-data"
 
 # (tag_prefix, command args) -- one entry per (fold, seed) is expanded by the runner
@@ -79,8 +80,10 @@ cells.append({"type": "code", "source": """# timing check: 2 epochs of each arm 
 !CUDA_VISIBLE_DEVICES=1 python scripts/train_v3.py --arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --fold 0 --seed 99 --epochs 2 --out artifacts_timing --cache cache_v4 --batch-size 32 --z-center 33.5 2>&1 | grep -E "params|ep0|done"
 !rm -rf artifacts_timing"""})
 def runner_cell(jobs, label):
+    lab = label or 'queue 1'
     return f"""# === RESUMABLE 2-GPU JOB RUNNER {label} === (skips jobs whose checkpoint already exists in artifacts_v3/)
 import subprocess, time, os, glob, json
+LABEL = {lab!r}
 JOBS = {json.dumps(jobs, indent=1)}
 import numpy as np
 ZC = float(np.load('artifacts/template.npz')['striatal_center'][2]); YC = float(np.load('artifacts/template.npz')['striatal_center'][1]); print('template striatal z/y (vox):', ZC, YC)
@@ -97,6 +100,32 @@ def tag_for(name, f, s, args):
     else:
         bb = args.split('--backbone')[1].split()[0]; tag = f"r2d_{{bb}}{{'_cor' if '--plane coronal' in args else ''}}_f{{f if f >= 0 else 'all'}}_s{{s}}"
     return tag + ('_site' if 'folds_site' in args else '')
+# --- persistence: push artifacts_v3 to the private dataset {CKPT_DS} after every 4 finished jobs (needs Kaggle Secrets) ---
+import threading, shutil as _sh
+def _creds():
+    try:
+        from kaggle_secrets import UserSecretsClient
+        c = UserSecretsClient(); return c.get_secret('KAGGLE_USERNAME'), c.get_secret('KAGGLE_KEY')
+    except Exception as e:
+        return None, None
+_KU, _KK = _creds(); _UPLOAD_OK = bool(_KU and _KK)
+print('checkpoint upload:', 'enabled' if _UPLOAD_OK else 'disabled (no KAGGLE_USERNAME/KAGGLE_KEY secrets)')
+_up_lock = threading.Lock()
+def push_checkpoints(note):
+    if not _UPLOAD_OK or not _up_lock.acquire(blocking=False):
+        return
+    try:
+        d = '/kaggle/working/ckpt_upload'; os.makedirs(d, exist_ok=True)
+        for f in glob.glob('artifacts_v3/*'):
+            if os.path.isfile(f) and not os.path.exists(os.path.join(d, os.path.basename(f))): _sh.copy(f, d)
+        json.dump({{'title': 'dat-run3-checkpoints', 'id': '{CKPT_DS}', 'licenses': [{{'name': 'other'}}]}}, open(os.path.join(d, 'dataset-metadata.json'), 'w'))
+        env = {{**os.environ, 'KAGGLE_USERNAME': _KU, 'KAGGLE_KEY': _KK}}
+        r = subprocess.run(['kaggle', 'datasets', 'version', '-p', d, '-m', note, '-q', '--dir-mode', 'skip'], env=env, capture_output=True, text=True, timeout=1800)
+        print(f"[upload] {{note}}: rc={{r.returncode}} {{(r.stdout or r.stderr).strip()[-160:]}}", flush=True)
+    except Exception as e:
+        print('[upload] failed:', type(e).__name__, str(e)[:120], flush=True)
+    finally:
+        _up_lock.release()
 queue = [(n, f, s, a) for n, f, s, a in expand(JOBS) if not os.path.exists(f"artifacts_v3/{{tag_for(n,f,s,a)}}.pt")]
 print(f"{{len(queue)}} jobs to run, {{len(expand(JOBS)) - len(queue)}} already done")
 running = {{}}; t0 = time.time(); done = []
@@ -114,8 +143,11 @@ while queue or running:
             done.append((tag, p.returncode)); del running[gpu]
             last = subprocess.run(f"tail -n 1 log_{{tag}}.txt", shell=True, capture_output=True, text=True).stdout.strip()
             print(f"[gpu{{gpu}}] {{tag}} exit={{p.returncode}} at {{time.time()-t0:.0f}}s :: {{last[-120:]}}", flush=True)
+            if len(done) % 4 == 0:
+                threading.Thread(target=push_checkpoints, args=(f"{{LABEL}} {{len(done)}} jobs done",), daemon=True).start()
     time.sleep(10)
-print(f"all done in {{(time.time()-t0)/60:.0f}} min; failures: {{[t for t,r in done if r]}}")"""
+print(f"all done in {{(time.time()-t0)/60:.0f}} min; failures: {{[t for t,r in done if r]}}")
+push_checkpoints(f"{{LABEL}} final ({{len(done)}} jobs)")"""
 cells.append({"type": "code", "source": runner_cell(JOBS, "")})
 cells.append({"type": "code", "source": runner_cell(JOBS2, "(queue 2)")})
 cells.append({"type": "code", "source": '# re-OOF every CV checkpoint with inference-time TTA (z-shift -1/0/+1 x flip) so the stack is fitted on what main.py produces\n!python scripts/reoof_v3.py --art artifacts_v3 --cache cache_v4 --tta-z -1 0 1 2>&1 | grep -v Warning'})
