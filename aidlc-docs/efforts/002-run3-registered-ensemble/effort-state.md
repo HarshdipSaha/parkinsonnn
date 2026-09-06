@@ -15,6 +15,9 @@ started: 2026-09-05 evening
 5. tests: tests/test_v3.py, tests/test_infer_v3.py green; main_v3 --selftest OK with template
 6. Kaggle dataset dat-parkinsons-cache-v4 (2.08 GB) uploaded; notebook re-injected (48 cells); queue launched 06:20 UTC
 7. HOTFIX 06:45 UTC: first B0 folds under-confident (AUROC 0.87/0.92 but logloss 0.58/0.55) -> EMA warm-start bug (0.999^1020 = 36 % random init in the average); step-adaptive decay + 0.998 (commit fc44f48); affected checkpoints dropped, queue relaunched
+8. 07:15 UTC: EMA fix #1 changed nothing; diagnosis on OOF: p compressed to [0.3,0.75], T*=0.18-0.41, EMA val loss lags the raw model by ~15 epochs -> EMA WINDOW too long (0.998 = 15 of 30 epochs). Fix #2 (fc136d8): --ema 0.99 (2D) / 0.995 (3D), raw-model val metrics logged each epoch. Queue relaunched from folds 2/3.
+   TODO before stacking: the cleanup's `pkill -f` killed its own shell before `rm`, so r2d_efficientnet_b0_f0_s0 and _f1_s0 are still the stale 0.998-EMA checkpoints -> delete them and re-run the runner cell (it retrains only those 2), then re-run stack/pack/e2e. Use `pkill -f "[s]cripts/train_v3.py"` in future.
+
 ## Next
 - stack + pack (notebook cells 46-47) -> submission_v3.zip -> DrivenData smoke test -> real submission (slot 2 of 3)
 - record OOF/site/public numbers in RESULTS_LOG.md
