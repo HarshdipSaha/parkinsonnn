@@ -1,0 +1,1 @@
+{"tag": "featarm", "spec": {"arm": "feat"}, "model_kw": {"n_comp": 40, "C": 0.3}, "norm": "ref", "checkpoints": ["artifacts/feat_v4.npz"], "val_auroc": 0.9398330449167944, "val_logloss": 0.3120067739374114}

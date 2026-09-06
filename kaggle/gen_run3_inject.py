@@ -46,7 +46,7 @@ JOBS3 = [
 ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a3d_crop", "r3d_crop48x48x32_f?_s?", None),
         ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_b0_saug", "r2d_effb0_saug_f?_s?", "r2d_effb0_saug_f?_s?_site"),
         ("a2d_b0_crop", "r2d_effb0_crop64_f?_s?", None), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("a2d_v2s_cor", "r2d_efficientnet_v2_s_cor_f?_s?", None),
-        ("a2d_cnx", "r2d_convnext_tiny_f?_s?", None), ("a2d_cor", "r2d_efficientnet_b0_cor_f?_s?", None), ("a2d_tiny", "r2d_tiny_f?_s?", None), ("lr", "lrarm", "lrarm_site")]
+        ("a2d_cnx", "r2d_convnext_tiny_f?_s?", None), ("a2d_cor", "r2d_efficientnet_b0_cor_f?_s?", None), ("a2d_tiny", "r2d_tiny_f?_s?", None), ("feat", "featarm", "featarm_site"), ("lr", "lrarm", "lrarm_site")]
 EXTRAS = [("a3d", "r3d_64x64x48_fall_s*"), ("a2d_b0", "r2d_efficientnet_b0_fall_s*")]
 
 cells = []
@@ -81,7 +81,7 @@ for f in glob.glob(CACHE_DS + '/**/*.pt', recursive=True):
     if not os.path.exists('pretrained/' + os.path.basename(f)): shutil.copy(f, 'pretrained/')
 tpl = next(iter(glob.glob(CACHE_DS + '/**/template.npz', recursive=True)))
 shutil.copy(tpl, 'artifacts/template.npz'); shutil.copy(tpl, 'artifacts_v3/template.npz')
-for pat in ('lr_v3.json', 'oof_lrarm.csv', 'oof_lrarm_site.csv', 'lrarm.json'):      # registered-ROI LR arm (fitted locally)
+for pat in ('lr_v3.json', 'oof_lrarm.csv', 'oof_lrarm_site.csv', 'lrarm.json', 'feat_v4.npz', 'oof_featarm.csv', 'oof_featarm_site.csv', 'featarm.json'):      # registered-ROI LR arm (fitted locally)
     for f in glob.glob(CACHE_DS + '/**/' + pat, recursive=True): shutil.copy(f, 'artifacts_v3/')
 print('cache_v4:', sorted(os.listdir('cache_v4'))); print('pretrained:', sorted(os.listdir('pretrained')))
 # RESUME: if a previous version's output (or any dataset) mounted under /kaggle/input carries artifacts_v3/, copy it back so the
@@ -89,7 +89,7 @@ print('cache_v4:', sorted(os.listdir('cache_v4'))); print('pretrained:', sorted(
 os.makedirs('artifacts_v3', exist_ok=True); n_res = 0
 for src_art in glob.glob('/kaggle/input/**/artifacts_v3', recursive=True) + glob.glob('/kaggle/input/**/out', recursive=True) + glob.glob('/kaggle/input/datasets/harshdipsaha/dat-run3-checkpoints*'):
     for f in glob.glob(src_art + '/*'):
-        if os.path.isfile(f) and (f.endswith('.pt') or f.endswith('.json') or f.endswith('.csv')) and not os.path.exists('artifacts_v3/' + os.path.basename(f)):
+        if os.path.isfile(f) and f.endswith(('.pt', '.json', '.csv', '.npz')) and not os.path.exists('artifacts_v3/' + os.path.basename(f)):
             shutil.copy(f, 'artifacts_v3/'); n_res += 1
 print('resumed artefacts copied from /kaggle/input:', n_res)
 if n_res == 0:      # fallback: pull the private checkpoint dataset with the API (needs the KAGGLE_USERNAME/KAGGLE_KEY secrets + internet)
@@ -101,7 +101,7 @@ if n_res == 0:      # fallback: pull the private checkpoint dataset with the API
         _r = _sp.run('kaggle datasets download harshdipsaha/dat-run3-checkpoints -p /kaggle/working/ckpt_ds --unzip --force', shell=True, capture_output=True, text=True)
         print('checkpoint dataset download:', (_r.stdout + _r.stderr).strip()[-300:])
         for f in glob.glob('/kaggle/working/ckpt_ds/**/*', recursive=True):
-            if os.path.isfile(f) and f.endswith(('.pt', '.json', '.csv')) and not os.path.exists('artifacts_v3/' + os.path.basename(f)):
+            if os.path.isfile(f) and f.endswith(('.pt', '.json', '.csv', '.npz')) and not os.path.exists('artifacts_v3/' + os.path.basename(f)):
                 shutil.copy(f, 'artifacts_v3/'); n_res += 1
         print('resumed artefacts from the checkpoint dataset download:', n_res)
     except Exception as _e:

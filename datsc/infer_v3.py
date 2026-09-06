@@ -85,10 +85,32 @@ def run_lr_arm(arm_cfg: dict, root: Path, vols, st, ok):
     return p
 
 
+def run_feat_arm(arm_cfg: dict, root: Path, vols, st, ok):
+    """Feature-engineered arm (arm type "feat"): registered-space descriptors + striatal-patch PCA -> logistic, averaged
+    over both mirror orientations. Needs artifacts/template.npz and the npz model."""
+    from .featmodel import FeatModel
+    from .features_v4 import feat_vector, mirror, striatal_patch
+    tpl = load_template(root / "template.npz")
+    if tpl is None:
+        return None
+    m = FeatModel.load(root / Path(arm_cfg["checkpoints"][0]).name)
+    idx = np.where(ok)[0]
+    z = np.zeros(len(idx))
+    for j, i in enumerate(idx):
+        v = renormalise(vols[i], st[i], arm_cfg.get("norm", "ref")).astype(np.float32)
+        zz = [float(m.decision(feat_vector(vv, tpl)[None], striatal_patch(vv)[None])[0]) for vv in (v, mirror(v))]
+        z[j] = 0.5 * (zz[0] + zz[1])
+    p = np.full(len(ok), np.nan); p[idx] = 1.0 / (1.0 + np.exp(-z))
+    print(f"arm {arm_cfg['name']}: feat model on {len(idx)} volumes", flush=True)
+    return p
+
+
 def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: int = 16):
     """Average of all checkpoints of one arm over the ok volumes. Returns probs[N] (nan where not ok) or None."""
     if arm_cfg["arm"] == "lr":
         return run_lr_arm(arm_cfg, root, vols, st, ok)
+    if arm_cfg["arm"] == "feat":
+        return run_feat_arm(arm_cfg, root, vols, st, ok)
     import torch
     from .models_v3 import build_model
     from .train_v3 import InputSpec

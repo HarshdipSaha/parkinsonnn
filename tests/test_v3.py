@@ -122,3 +122,26 @@ def test_train_one_epoch_with_z_jitter_and_strong_aug(tiny_cache, tmp_path):
                      epochs=1, batch_size=4, ema_decay=0.9, num_workers=0, device="cpu", z_jitter=1, aug="strong")
     assert (tmp_path / "tj.pt").exists() and meta["z_jitter"] == 1 and meta["aug"] == "strong"
 
+
+def test_feat_arm_features_and_model_roundtrip(tmp_path):
+    from datsc.featmodel import FeatModel
+    from datsc.features_v4 import FEATURE_NAMES, N_PATCH, feat_vector, mirror, striatal_patch
+    from datsc.register import Template
+    tpl_path = Path(__file__).resolve().parent.parent / "artifacts" / "template.npz"
+    if not tpl_path.exists():
+        pytest.skip("template not built")
+    T = Template.load(tpl_path)
+    rng = np.random.default_rng(0)
+    vol = (1.0 + rng.random((96, 96, 72)).astype(np.float32) * 0.2)
+    vol[40:56, 50:66, 28:40] += 2.0                                       # a bright striatal blob
+    f = feat_vector(vol, T); p = striatal_patch(vol)
+    assert f.shape == (len(FEATURE_NAMES),) and np.isfinite(f).all() and p.shape == (N_PATCH,)
+    fm = feat_vector(mirror(vol), T)
+    assert np.allclose(f[-2:], fm[-2:], atol=1e-4)                        # asymmetry features are mirror-invariant
+    N = 40
+    F = np.stack([f + rng.normal(0, 0.05, f.shape) for _ in range(N)]); P = np.stack([p + rng.normal(0, 0.05, p.shape) for _ in range(N)])
+    y = (rng.random(N) > 0.5).astype(float); F[y == 1, 0] += 1.0
+    m = FeatModel(n_comp=5, C=0.1).fit(F, P, y); m.save(tmp_path / "feat.npz")
+    m2 = FeatModel.load(tmp_path / "feat.npz")
+    assert np.allclose(m.predict_proba(F, P), m2.predict_proba(F, P)) and m2.predict_proba(F, P).shape == (N,)
+

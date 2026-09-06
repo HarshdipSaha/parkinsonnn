@@ -106,3 +106,21 @@ leave-pseudo-site-out B0 arm (0.2818) matches the public score almost exactly. P
 2.46|256|high 265 0.247 · 2.30|128|low 207 0.274 · 2.40|128x87|ultralow 142 0.192 · 2.46|256|low 134 0.315 · 3.90|128|high 70 0.224 ·
 2.46|256|ultralow 61 0.252 · 3.90 thin-FOV 0.30. Clip/hedge: no nested gain.
 
+## Feature-engineered arm `feat` (Sept 6 16:55 UTC, local CPU)
+
+`datsc/features_v4.py` + `datsc/featmodel.py` + `scripts/feat_arm_v4.py`: 17 run-3 ROI features + 44 engineered descriptors
+(A→P uptake profile per striatum, threshold-volume ladder, hot-spot volume/shift, L/R asymmetries) + 40 PCA scores of the
+48×48×32 striatal box (block-averaged to 24×24×16) → L2 logistic (C 0.3), fitted on both mirror orientations, predictions
+averaged over both. Grid: n_comp 40 / C 0.3 best of {20,40,80}×{0.03,0.1,0.3}.
+
+| | AUROC | log loss |
+|---|---|---|
+| random folds | 0.9398 | 0.3120 |
+| site folds | 0.9277 | 0.3548 |
+| (run-3 LR arm) | 0.9024 | 0.4015 |
+
+Strongest single descriptors: anterior/posterior bins (AUROC 0.85–0.86) and the > 3.0 SBR volume fraction. Weak sites unchanged
+(2.46 mm ultra-low AUROC 0.76). **Stack effect** (run-3 arms + feat, nested): 0.2603 → **0.2545**; plain OOF 0.2580 → **0.2532**;
+weights a3d 0 / b0 .2 / v2s .3 / cor .3 / feat .2 / lr 0 (the whole-brain 3D arm is displaced). Artefacts: `artifacts/featarm_v4/`
+(`feat_v4.npz` 1.4 MB); inference arm type `feat` in `datsc/infer_v3.py` (numpy only).
+
