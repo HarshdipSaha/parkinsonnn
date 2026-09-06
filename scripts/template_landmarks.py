@@ -1,4 +1,4 @@
-"""Add histogram-standardisation landmarks (brain-mask percentiles of the study template) to template.npz.
+"""Add histogram-standardisation landmarks (reference-region percentiles of the study template) to template.npz.
 python scripts/template_landmarks.py [--template artifacts/template.npz] [--also artifacts_v3/template.npz data/ckpt_upload_run3/template.npz]
 """
 from __future__ import annotations
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     ap.add_argument("--also", nargs="*", default=["artifacts_v3/template.npz"])
     a = ap.parse_args()
     z = dict(np.load(a.template))
-    lm = hist_landmarks(z["box"], z["brain_mask"].astype(bool))
+    lm = hist_landmarks(z["box"], z["ref_mask"].astype(bool))     # reference region (brain minus striatum), never the striatum itself
     z["hist"] = lm
     np.savez(a.template, **z)
     print("landmarks", dict(zip(HIST_PCTS, np.round(lm, 4))))

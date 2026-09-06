@@ -105,7 +105,8 @@ HIST_PCTS = (1, 5, 10, 25, 50, 75, 90, 95, 99)
 
 
 def hist_landmarks(vol: np.ndarray, brain_mask: np.ndarray) -> np.ndarray:
-    """Brain-mask intensity percentiles used as landmarks for histogram standardisation."""
+    """Intensity percentiles inside `mask` used as landmarks for histogram standardisation. Use the reference region
+    (brain minus striatum): standardising the striatum itself would erase the label signal."""
     return np.percentile(np.asarray(vol, np.float32)[brain_mask], HIST_PCTS).astype(np.float32)
 
 

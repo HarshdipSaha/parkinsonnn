@@ -171,12 +171,13 @@ def test_hist_standardise_noop_on_template_and_monotonic():
     if not tpl_path.exists():
         pytest.skip("template not built")
     T = Template.load(tpl_path)
-    lm = hist_landmarks(T.box, T.brain_mask)
-    out = hist_standardise(T.box, T.brain_mask, lm, lm)
+    lm = hist_landmarks(T.box, T.ref_mask)
+    out = hist_standardise(T.box, T.ref_mask, lm, lm)
     assert np.allclose(out[T.brain_mask], T.box[T.brain_mask], atol=1e-3)          # identity on the template
     rng = np.random.default_rng(0); v = (T.box * 1.3 + rng.normal(0, 0.05, T.box.shape)).astype(np.float32)
-    w = hist_standardise(v, T.brain_mask, hist_landmarks(v, T.brain_mask), lm)
+    w = hist_standardise(v, T.ref_mask, hist_landmarks(v, T.ref_mask), lm)
     a, b = v[T.brain_mask].ravel(), w[T.brain_mask].ravel(); o = np.argsort(a)
     assert np.all(np.diff(b[o]) >= -1e-4) and len(HIST_PCTS) == 9                    # monotonic
-    assert abs(float(np.median(w[T.brain_mask])) - float(lm[4])) < 0.02              # scan median mapped onto the template median
+    assert abs(float(np.median(w[T.ref_mask])) - float(lm[4])) < 0.02                # reference-region median mapped onto the template's
+    assert float(w[T.striatal_mask].max()) > float(w[T.ref_mask].max())              # striatal contrast preserved
 

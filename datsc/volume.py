@@ -64,7 +64,7 @@ def renormalise(vol_p75: np.ndarray, stats: np.ndarray, mode: str = "p75", templ
     if mode == "hist":
         from .register import hist_landmarks, hist_standardise
         assert template is not None and getattr(template, "hist", None) is not None, "hist mode needs a template with landmarks"
-        return hist_standardise(x, template.brain_mask, hist_landmarks(x, template.brain_mask), template.hist)
+        return hist_standardise(x, template.ref_mask, hist_landmarks(x, template.ref_mask), template.hist)   # landmarks from the reference region only: the striatal contrast is preserved
     if mode == "median":                 # background-reference (SBR-like) scaling
         return x * (p75 / max(p50, 1e-6))
     if mode == "zscore":                 # brain-mask z-score
