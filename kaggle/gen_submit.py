@@ -24,6 +24,14 @@ js = r"""async (page) => {
   const sel = await dialog.getByRole('button', { name: KIND === 'smoke' ? 'Smoke test' : 'Normal submission' }).getAttribute('class');
   if (!/active/.test(sel || '')) return { error: 'kind not selected', sel };
   await dialog.getByRole('button', { name: 'Submit', exact: true }).click();
+  // a 400 MB zip uploads for 10-20 min; reloading during the upload raises a beforeunload dialog (and would abort it if
+  // accepted), so wait for the upload dialog to disappear on its own before touching the page
+  dd.on('dialog', async d => { try { await d.dismiss(); } catch (e) {} });
+  for (let k = 0; k < 240; k++) {
+    const t = await dd.locator('body').innerText().catch(() => '');
+    if (!/Upload in progress/.test(t) && !(await dd.locator('[role=dialog]').count())) break;
+    await dd.waitForTimeout(10000);
+  }
   await dd.waitForLoadState('load', { timeout: 300000 }).catch(() => {});
   await dd.waitForTimeout(4000);
   for (let k = 0; k < 20; k++) {

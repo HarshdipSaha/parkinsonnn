@@ -77,6 +77,19 @@ Never run more than ~2 h of training in one interactive session or one commit wi
 
 Check: `type data\kaggle_output\watch.log` and `schtasks /Query /TN DaT-KaggleOutputWatch`. Re-register after a reboot or for a new version with `powershell -File kaggle/register_watcher.ps1` (delete `data/kaggle_output/DONE.json` first if a newer version's output is wanted).
 
+### Run 3 outcome and the container bug (Sept 6, 14:45 UTC)
+
+Version #2 completed: 56 jobs, no failures, stack OOF **0.2580** (AUROC 0.961; weights a3d .1 / b0 .3 / v2s .3 / cor .3 / lr 0; T = 1.0). Full numbers in `RESULTS_LOG.md`. The end-to-end cell then showed every 2D checkpoint failing with `FileNotFoundError`: the manifest's `model_kw` still carried `weights_path=pretrained/…` from training and `build_model` tried to load it inside the container. Fixed in commit `225d39d` (inference ignores `weights_path`, manifest strips it, e2e asserts every arm used all checkpoints). The Kaggle zip was repaired locally without retraining:
+
+```
+kaggle kernels output harshdipsaha/dat-parkinsons-train -p data/kaggle_output_zip --force --page-size 200 --file-pattern '^submission_v3\.zip$'
+python scripts/repack_v3.py data/kaggle_output_zip/submission_v3.zip data/submission_v3_fixed.zip   # fresh code, same artifacts
+python scripts/local_e2e_v3.py data/submission_v3_fixed.zip <smoke_dir>   # container-style run on the 20 smoke volumes (CPU, ~7 min)
+```
+Local result: all arms 43/43 checkpoints + LR, smoke log loss 0.2458 (run 2: 0.2567), 390 s on CPU. `data/submission_v3_fixed.zip` is the file submitted to DrivenData. Lesson: run `scripts/local_e2e_v3.py` on every zip before uploading; the Kaggle e2e cell now fails loudly on partial checkpoint use.
+
+DrivenData upload gotcha: a 419 MB zip uploads for 10–20 min; the old `dd_submit.js` reloaded the page every 6 s, which raised `beforeunload` dialogs (accepting one aborts the upload). `kaggle/gen_submit.py` now waits for the upload dialog to close and auto-dismisses dialogs.
+
 ## 3b. Runbook to finish run 3 (interactive variant, kept for reference)
 
 1. **Poll** with `.playwright-mcp/poll_runner.js` (25-minute wait) until the live runner ends with `all done in N min; failures: []` and cells 52/53 have output.
