@@ -48,6 +48,18 @@
 
 Budget: Kaggle ~17 GPU-h left this week (resets Sat), 30 h next week. Every addition is gated on the **nested** OOF log loss of the stack (fit weights/T on 4 folds, score the 5th, rotate) improving by ≥ 0.005; report per-pseudo-site numbers each time.
 
+### Task B0: Dated schedule (added Sept 6 10:40 UTC)
+
+| When | What |
+|---|---|
+| Sat Sept 6 night | Commit Version #2 → download → smoke → real submission 2 |
+| Sun Sept 7 morning | B1 (below): nested estimate, per-site table, weak-site analysis (2.46 mm ultra-low, 43-slice), label-noise bound, EMA-lag guard in the report cell |
+| Sun Sept 7 afternoon–night | B2 diversity members + B3 3D upgrades as chained commits (per-job uploads on) |
+| Mon Sept 8 | B4 seeds + full-data; nested stack; pack; e2e |
+| Tue Sept 9 | Real submission 3 (slot 3) |
+| Fri Sept 12 15:38 UTC | Slot 1 returns → submission 4 (Sept 13) with B5 if gated in |
+| Sept 15–16 | Final submissions; last one as a prevalence/temperature bracket of the best weights |
+
 ### Task B1: Honest nested estimate + diagnostics (CPU, local, 1 h)
 
 **Files:** Create `scripts/nested_stack_v3.py`; Modify `scripts/fit_stack_v3.py` (import the shared combiner).
@@ -56,6 +68,9 @@ Budget: Kaggle ~17 GPU-h left this week (resets Sat), 30 h next week. Every addi
 - [ ] Step 2: Write `nested_stack_v3.py`: for k in folds: fit simplex weights + T on the other folds' OOF rows, apply to fold k; print mean nested logloss, and per-site (join `cache_v4/sites.csv`) logloss/AUROC/mean-p vs prevalence.
 - [ ] Step 3: Compare nested vs plain OOF; if the gap > 0.01, reduce combiner freedom (equal weights) for the next submission.
 - [ ] Step 4: Hard-fold analysis: fold 1 is worst for both arms — tabulate its site mix and the worst 30 scans (uid, site, p, y); view their slabs (`qc/slabs_v4.png` style) to check registration/QC.
+- [ ] Step 5: Weak pseudo-sites (2.46 mm ultra-low: 61 scans, 89 % abnormal, ROI-LR AUROC 0.77; 3.90 mm 43-slice: 35 scans, 0.79): per-site registration QC (`ncc_reg`, `reg_scale`), mean-p vs prevalence, slab QC images. Candidate fixes to gate: stronger quantisation/blur for ultra-low, oversampling of weak sites, reference-region check on thin FOVs.
+- [ ] Step 6: Label-noise bound: count scans where every seed of both arms is > 0.95 confident against the label; list uid/site; treat as the practical floor.
+- [ ] Step 7: EMA-lag guard: in the report cell, flag any checkpoint whose `val_logloss` exceeds the last `val_raw_logloss` by > 0.02 (from `history`).
 
 ### Task B2: Diversity members (GPU ~4 h)
 
