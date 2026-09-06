@@ -120,7 +120,7 @@ def failsafe(src):
     NL = chr(10)
     body = NL.join('    ' + l for l in src.split(NL))
     first = src.split(NL)[0]
-    return first + ' (fail-safe)' + NL + 'try:' + NL + body + NL + 'except Exception as _e:' + NL + "    import traceback; traceback.print_exc(); print('CELL FAILED (kept going):', _e)"
+    return first + NL + 'try:' + NL + body + NL + 'except Exception as _e:' + NL + "    import traceback; traceback.print_exc(); print('CELL FAILED (kept going):', _e)"
 for c in cells:
     if c['source'].startswith(('# report + stacking', '# === END-TO-END', '# === SPLIT', '# re-OOF')):
         c['source'] = failsafe(c['source'])
