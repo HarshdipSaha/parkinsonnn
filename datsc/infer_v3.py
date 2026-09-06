@@ -17,19 +17,23 @@ import pandas as pd
 
 from .calibrate import EPS, logit, sigmoid
 from .config import N_SCALARS, find_nifti_path
+from .register import N_REG_STATS, load_template
 from .volume import N_STATS, VOL_SHAPE, prepare_volume, renormalise
 
 PER_VOLUME_TIMEOUT_S = 120
 LADDER_STOP_S = 150 * 60           # stop starting new checkpoints after this (3-h limit)
+_TEMPLATE = None
 
 
-def _worker_init():
+def _worker_init(template_path=None):
+    global _TEMPLATE
     for k in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS", "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"):
         os.environ[k] = "1"
+    _TEMPLATE = load_template(template_path)
 
 
 def _prep(path):
-    r = prepare_volume(path)
+    r = prepare_volume(path, template=_TEMPLATE)
     return r["vol"], r["scalars"], r["stats"]
 
 
@@ -37,12 +41,13 @@ def write_submission(uids, probs, out_csv):
     pd.DataFrame({"uid": uids, "is_pathologic": np.clip(probs, EPS, 1 - EPS)}).to_csv(out_csv, index=False)
 
 
-def preprocess_all(uids, nifti_dir: Path, n_workers: int, deadline_s: float, t0: float):
+def preprocess_all(uids, nifti_dir: Path, n_workers: int, deadline_s: float, t0: float, template_path=None):
     N = len(uids)
+    n_st = N_STATS + (N_REG_STATS if template_path and Path(template_path).exists() else 0)
     vols = np.zeros((N,) + VOL_SHAPE, np.float16); sc = np.zeros((N, N_SCALARS), np.float32)
-    st = np.zeros((N, N_STATS), np.float32); ok = np.zeros(N, bool)
+    st = np.zeros((N, n_st), np.float32); ok = np.zeros(N, bool)
     paths = [find_nifti_path(nifti_dir, u) for u in uids]
-    ex = ProcessPoolExecutor(max_workers=n_workers, initializer=_worker_init)
+    ex = ProcessPoolExecutor(max_workers=n_workers, initializer=_worker_init, initargs=(str(template_path) if template_path else None,))
     futs = {ex.submit(_prep, p): i for i, p in enumerate(paths) if p is not None}
     for fut, i in futs.items():
         remaining = deadline_s - (time.time() - t0)
@@ -83,8 +88,8 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
         if time.time() - t0 > LADDER_STOP_S:
             print("ladder: skipping remaining checkpoints"); break
         try:
-            model = build_model(arm_cfg["arm"], n_scalars=N_SCALARS, **arm_cfg.get("model_kw", {})).to(device)
-            sd = torch.load(str(root / Path(ck).name), map_location=device)   # root == the artifacts dir
+            model = build_model(arm_cfg["arm"], **arm_cfg.get("model_kw", {})).to(device)
+            sd = torch.load(str(root / Path(ck).name), map_location=device, weights_only=True)   # root == the artifacts dir
             model.load_state_dict(sd); model.eval()
             out = []
             with torch.no_grad(), torch.autocast(device_type="cuda", enabled=device.startswith("cuda")):

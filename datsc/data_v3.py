@@ -45,7 +45,7 @@ class VolDataset(Dataset):
 
     def __getitem__(self, i):
         k = self.c.index[self.uids[i]]
-        v = renormalise(np.asarray(self.c.vols[k]), self.c.stats[k], self.norm)
+        v = renormalise(np.asarray(self.c.vols[k]), self.c.stats[k], self.norm)   # "ref" == as stored in a registered cache
         return (torch.from_numpy(np.ascontiguousarray(v))[None], torch.from_numpy(self.c.scalars[k].copy()),
                 torch.tensor(self.labels[i]), self.uids[i])
 
@@ -58,12 +58,14 @@ def to_3d_input(x: torch.Tensor, size=(64, 64, 48)) -> torch.Tensor:
 
 
 def to_slabs(x: torch.Tensor, n_slabs: int = 3, slab_mm: float = 12.0, hw: int = 192,
-             spacing_mm: float = VOL_SPACING_MM, mode: str = "mean") -> torch.Tensor:
-    """[B,1,X,Y,Z] -> [B,n_slabs,hw,hw]: consecutive axial slabs centred on the box centre.
-    Each channel is the mean (or max) over `slab_mm` of z. Spatial axes are (x, y) -> image (H=y, W=x)."""
+             spacing_mm: float = VOL_SPACING_MM, mode: str = "mean", z_center: float | None = None) -> torch.Tensor:
+    """[B,1,X,Y,Z] -> [B,n_slabs,hw,hw]: consecutive axial slabs centred on voxel z_center (default: box centre;
+    in the registered frame pass the template's striatal z). Each channel is the mean (or max) over `slab_mm` of z.
+    Spatial axes are (x, y) -> image (H=y, W=x)."""
     B, _, X, Y, Z = x.shape
     t = max(1, int(round(slab_mm / spacing_mm)))
-    z0 = Z // 2 - (n_slabs * t) // 2
+    zc = Z // 2 if z_center is None else int(round(z_center))
+    z0 = zc - (n_slabs * t) // 2
     chans = []
     for k in range(n_slabs):
         a, b = max(0, z0 + k * t), min(Z, z0 + (k + 1) * t)

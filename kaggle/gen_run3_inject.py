@@ -1,0 +1,134 @@
+"""Generate .playwright-mcp/inject_run3.js: wipes the notebook and injects the run-3 cell set.
+
+Cells: markdown header, env, %%writefile for every package file, selftest, cache/pretrained setup, timing,
+resumable 2-GPU job runner (job list in JOBS), stack+pack, end-to-end smoke check. Edit JOBS then re-run:
+    python kaggle/gen_run3_inject.py
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+FILES = [*sorted(ROOT.glob("datsc/*.py")), *sorted(ROOT.glob("scripts/*.py")), ROOT / "main_v3.py", ROOT / "tests_synth.py"]
+FILES = [p for p in FILES if p.name != "__init__.py" or p.parent.name == "datsc"]
+
+CACHE_DS = "/kaggle/input/datasets/harshdipsaha/dat-parkinsons-cache-v4"
+RAW_DS = "/kaggle/input/datasets/harshdipsaha/dat-parkinsons-challenge-data"
+
+# (tag_prefix, command args) -- one entry per (fold, seed) is expanded by the runner
+JOBS = [
+    # 3D GroupNorm ResNet on the registered box (3 mm-equivalent 64x64x48), 3 seeds
+    {"name": "r3d", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
+    # same arm on leave-pseudo-site-out folds (1 seed) -> temperature fitted under site shift
+    {"name": "r3d_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
+    # 2.5D ImageNet EfficientNet-B0 on 3 x 8 mm axial slabs through the template striatum, 3 seeds
+    {"name": "r2d_effb0", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --z-center {ZC}"},
+    {"name": "r2d_effb0_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --z-center {ZC}"},
+    # 2.5D EfficientNet-V2-S (heavier, diversity), 2 seeds
+    {"name": "r2d_effv2s", "seeds": [0, 1], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_v2_s --weights pretrained/efficientnet_v2_s_in1k.pt --n-slabs 3 --slab-mm 8 --hw 224 --epochs 30 --batch-size 24 --lr 5e-4 --backbone-lr 1e-4 --mixup 0.2 --z-center {ZC}"},
+]
+ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None)]
+
+cells = []
+cells.append({"type": "markdown", "source": "# DaT Parkinson's Challenge — run 3 (whole-brain 2 mm cache, 3D ResNet + 2.5D ImageNet arms, stacked)\n"
+              "Package files are written by the cells below (source of truth: private GitHub repo `parkinsonnn`, commit in RESULTS_LOG.md).\n"
+              "Inputs: raw competition dataset (private) + `dat-parkinsons-cache-v4` (2 mm whole-brain cache built locally from the same data, plus torchvision ImageNet weights).\n"
+              "Data-hygiene: no raw scan or crop is written to the notebook output; `out/` holds checkpoints, OOF csvs and the submission zip only."})
+cells.append({"type": "code", "source": f"""!mkdir -p datsc scripts artifacts_v3 out
+import os, torch, subprocess
+print('torch', torch.__version__, 'cuda', torch.cuda.is_available(), 'gpus', torch.cuda.device_count(), 'cpus', os.cpu_count())
+RAW = '{RAW_DS}'; CACHE_DS = '{CACHE_DS}'
+print('raw:', os.listdir(RAW) if os.path.isdir(RAW) else 'MISSING')
+print('cache ds:', os.listdir(CACHE_DS) if os.path.isdir(CACHE_DS) else 'MISSING (will build cache in-session)')
+!nvidia-smi --query-gpu=name,memory.total --format=csv"""})
+for p in FILES:
+    rel = p.relative_to(ROOT).as_posix()
+    cells.append({"type": "code", "source": f"%%writefile {rel}\n" + p.read_text(encoding="utf-8")})
+cells.append({"type": "code", "source": "!touch scripts/__init__.py\n!python main_v3.py --selftest"})
+cells.append({"type": "code", "source": f"""# cache_v4 (registered, reference-normalised 2 mm boxes) + template + ImageNet weights come from the uploaded dataset
+import os, shutil, glob
+src = os.path.dirname(next(iter(glob.glob(CACHE_DS + '/**/vols.npy', recursive=True)), ''))
+assert src, 'cache dataset not mounted -- attach dat-parkinsons-cache-v4'
+os.makedirs('cache_v4', exist_ok=True); os.makedirs('pretrained', exist_ok=True); os.makedirs('artifacts', exist_ok=True)
+for f in os.listdir(src):
+    dst = os.path.join('cache_v4', f)
+    if not os.path.exists(dst):
+        if f.endswith('.npy') and os.path.getsize(os.path.join(src, f)) > 50_000_000:
+            os.symlink(os.path.join(src, f), dst)     # big arrays stay on the read-only mount (memmap)
+        else:
+            shutil.copy(os.path.join(src, f), dst)
+for f in glob.glob(CACHE_DS + '/**/*.pt', recursive=True):
+    if not os.path.exists('pretrained/' + os.path.basename(f)): shutil.copy(f, 'pretrained/')
+tpl = next(iter(glob.glob(CACHE_DS + '/**/template.npz', recursive=True)))
+shutil.copy(tpl, 'artifacts/template.npz'); shutil.copy(tpl, 'artifacts_v3/template.npz')
+print('cache_v4:', sorted(os.listdir('cache_v4'))); print('pretrained:', sorted(os.listdir('pretrained')))
+!ls -la cache_v4 | head -20"""})
+cells.append({"type": "code", "source": """# timing check: 2 epochs of each arm on fold 0 (expect ~20-40 s/epoch on a T4)
+!CUDA_VISIBLE_DEVICES=0 python scripts/train_v3.py --arm 3d --fold 0 --seed 99 --epochs 2 --out artifacts_timing --cache cache_v4 --size 64 64 48 --widths 24 48 96 192 2>&1 | grep -E "params|ep0|done"
+!CUDA_VISIBLE_DEVICES=1 python scripts/train_v3.py --arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --fold 0 --seed 99 --epochs 2 --out artifacts_timing --cache cache_v4 --batch-size 32 --z-center 33.5 2>&1 | grep -E "params|ep0|done"
+!rm -rf artifacts_timing"""})
+cells.append({"type": "code", "source": f"""# === RESUMABLE 2-GPU JOB RUNNER === (skips jobs whose checkpoint already exists in artifacts_v3/)
+import subprocess, time, os, glob, json
+JOBS = {json.dumps(JOBS, indent=1)}
+import numpy as np
+ZC = float(np.load('artifacts/template.npz')['striatal_center'][2]); print('template striatal z (vox):', ZC)
+def expand(jobs):
+    out = []
+    for j in jobs:
+        for s in j['seeds']:
+            for f in range(5):
+                out.append((j['name'], f, s, j['args'].replace('{{ZC}}', f"{{ZC:.1f}}") + f" --folds-csv {{j['folds_csv']}}"))
+    return out
+def tag_for(name, f, s, args):
+    if '--arm 3d' in args:
+        size = 'x'.join(args.split('--size')[1].split()[:3]); tag = f"r3d_{{size}}_f{{f}}_s{{s}}"
+    else:
+        bb = args.split('--backbone')[1].split()[0]; tag = f"r2d_{{bb}}_f{{f}}_s{{s}}"
+    return tag + ('_site' if 'folds_site' in args else '')
+queue = [(n, f, s, a) for n, f, s, a in expand(JOBS) if not os.path.exists(f"artifacts_v3/{{tag_for(n,f,s,a)}}.pt")]
+print(f"{{len(queue)}} jobs to run, {{len(expand(JOBS)) - len(queue)}} already done")
+running = {{}}; t0 = time.time(); done = []
+while queue or running:
+    for gpu in (0, 1):
+        if gpu not in running and queue:
+            n, f, s, a = queue.pop(0); tag = tag_for(n, f, s, a)
+            log = open(f"log_{{tag}}.txt", "w")
+            cmd = f"python scripts/train_v3.py --fold {{f}} --seed {{s}} --out artifacts_v3 --cache cache_v4 {{a}}"
+            running[gpu] = (tag, subprocess.Popen(cmd, shell=True, stdout=log, stderr=subprocess.STDOUT, env={{**os.environ, 'CUDA_VISIBLE_DEVICES': str(gpu)}}))
+            print(f"[gpu{{gpu}}] start {{tag}} at {{time.time()-t0:.0f}}s", flush=True)
+    for gpu in list(running):
+        tag, p = running[gpu]
+        if p.poll() is not None:
+            done.append((tag, p.returncode)); del running[gpu]
+            last = subprocess.run(f"tail -n 1 log_{{tag}}.txt", shell=True, capture_output=True, text=True).stdout.strip()
+            print(f"[gpu{{gpu}}] {{tag}} exit={{p.returncode}} at {{time.time()-t0:.0f}}s :: {{last[-120:]}}", flush=True)
+    time.sleep(10)
+print(f"all done in {{(time.time()-t0)/60:.0f}} min; failures: {{[t for t,r in done if r]}}")"""})
+cells.append({"type": "code", "source": f"""# report + stacking + pack
+import glob, json, pandas as pd
+rows = [{{'run': os.path.basename(f)[:-5], 'best_val': json.load(open(f))['best_val_logloss'], 'tta': json.load(open(f))['val_logloss_tta']}} for f in sorted(glob.glob('artifacts_v3/r*_f*_s*.json'))]
+df = pd.DataFrame(rows); print(df.to_string(index=False))
+df['arm'] = df.run.str.replace(r'_f\\d_s\\d', '', regex=True); print(df.groupby('arm')[['best_val', 'tta']].mean().round(4))
+!python scripts/fit_stack_v3.py --out artifacts_v3 {' '.join(f'--arm {n} "{p}"' for n, p, _ in ARMS)} {' '.join(f'--site-arm {n} "{q}"' for n, _, q in ARMS if q)} --lam 0.02 --t-floor 1.0
+!python scripts/pack_v3.py --artifacts artifacts_v3 --out submission_v3.zip
+!cp submission_v3.zip artifacts_v3/manifest.json artifacts_v3/oof_stack.csv out/ && cp artifacts_v3/*.json artifacts_v3/oof_*.csv cache_v4/folds*.csv cache_v4/sites.csv out/ 2>/dev/null; du -sh out submission_v3.zip"""})
+cells.append({"type": "code", "source": (ROOT / "kaggle" / "e2e_check_v3.py").read_text(encoding="utf-8")})
+
+js = """async (page) => {
+  const cells = %s;
+  const frame = page.frames().find(f => f.url().includes('jupyterlab'));
+  return await frame.evaluate(({cells}) => {
+    const nb = window.jupyterapp.shell.currentWidget.content; const model = nb.model; const sm = model.sharedModel;
+    const n0 = model.cells.length;
+    sm.transact(() => {
+      if (n0 > 0) sm.deleteCellRange(0, n0);
+      cells.forEach((c, i) => sm.insertCell(i, {cell_type: c.type, source: c.source}));
+    });
+    return {removed: n0, inserted: model.cells.length};
+  }, {cells});
+}
+""" % json.dumps(cells)
+out = ROOT / ".playwright-mcp" / "inject_run3.js"
+out.write_text(js, encoding="utf-8")
+print(f"wrote {out} with {len(cells)} cells ({len(FILES)} package files)")

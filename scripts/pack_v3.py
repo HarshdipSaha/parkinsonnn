@@ -23,6 +23,9 @@ if __name__ == "__main__":
         for p in sorted((ROOT / "datsc").glob("*.py")):
             z.write(p, f"datsc/{p.name}")
         z.write(art / "manifest.json", "artifacts/manifest.json")
+        for extra in ("template.npz", "lr_v3.json"):
+            if (art / extra).exists():
+                z.write(art / extra, f"artifacts/{extra}")
         for ck in cks:
             src = art / Path(ck).name
             assert src.exists(), src

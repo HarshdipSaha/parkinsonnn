@@ -36,7 +36,10 @@ Per-checkpoint best validation log loss (40 epochs, batch 16, AMP, ~16 s/epoch):
 | id | type | zip | status | score |
 |---|---|---|---|---|
 | 321144 | smoke test | submission_prior.zip (prior only) | Completed | 0.6687 |
-| 321152 | smoke test | submission.zip (run 2) | queued 2026-09-05 15:33 UTC | pending |
+| 321152 | smoke test | submission.zip (run 2) | Completed (8 s, 15/15 checkpoints, exit 0) | 0.2567 |
+| 321156 | **real** (slot 1 of 3) | submission.zip (run 2) | submitted 2026-09-05 15:38 UTC | pending |
+
+Kaggle-side checks on the packed zip: end-to-end on the 20 smoke scans = 0.2567 (identical to DrivenData), 32 s wall on 4 CPUs; 150 training volumes in 204 s on 4 CPUs -> extrapolated ~12 min for 2,000 test volumes on the 24-vCPU/A100 box (limit 180 min).
 
 ### Takeaways for run 3
 

@@ -53,7 +53,7 @@ def quantize(x, k: int):
     return torch.round(x / m * (k - 1)) / (k - 1) * m
 
 
-def random_quantize(x, levels=(8, 16, 64, 256), p: float = 0.5):
+def random_quantize(x, levels=(4, 6, 8, 16, 64, 256), p: float = 0.5):
     out = x.clone()
     for i in range(x.shape[0]):
         if float(torch.rand(1)) < p:

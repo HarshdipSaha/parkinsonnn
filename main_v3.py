@@ -23,12 +23,15 @@ def selftest():
     import tempfile
     from tests_synth import make_synthetic_volume, write_nifti
     from datsc.volume import VOL_SHAPE, prepare_volume
+    from datsc.register import load_template
+    tpl = load_template(ARTIFACTS / "template.npz")
     with tempfile.TemporaryDirectory() as td:
         for i, kw in enumerate(({}, {"levels": 8, "shape": (128, 128, 25), "spacing": (3.9,) * 3},
                                 {"shape": (256, 256, 256), "spacing": (2.46,) * 3})):
             vol, sp = make_synthetic_volume(seed=i, **kw)
-            r = prepare_volume(write_nifti(Path(td) / f"s{i}.nii.gz", vol, sp))
+            r = prepare_volume(write_nifti(Path(td) / f"s{i}.nii.gz", vol, sp), template=tpl)
             assert r["vol"].shape == VOL_SHAPE and np.isfinite(r["scalars"]).all() and np.isfinite(r["stats"]).all()
+    print(f"selftest: template {'used' if tpl is not None else 'absent'}")
     if (ARTIFACTS / "manifest.json").exists():
         m = infer.load_manifest(ARTIFACTS / "manifest.json")
         for a in m["arms"]:
@@ -47,7 +50,10 @@ def main():
     print(f"stage0 prior written for {len(uids)} rows at {time.time()-T0:.0f}s", flush=True)
 
     n_workers = max(1, min(20, (os.cpu_count() or 4) - 2))
-    vols, sc, st, ok = infer.preprocess_all(uids, config.RUNTIME_NIFTI_DIR, n_workers, deadline_s=infer.LADDER_STOP_S, t0=T0)
+    tpl = ARTIFACTS / "template.npz"
+    print(f"template: {'yes' if tpl.exists() else 'NO (CoM frame)'}; workers {n_workers}", flush=True)
+    vols, sc, st, ok = infer.preprocess_all(uids, config.RUNTIME_NIFTI_DIR, n_workers, deadline_s=infer.LADDER_STOP_S, t0=T0,
+                                            template_path=tpl if tpl.exists() else None)
     arm_probs = {}
     for a in man["arms"]:
         if time.time() - T0 > infer.LADDER_STOP_S:

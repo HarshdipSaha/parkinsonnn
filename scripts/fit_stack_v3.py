@@ -39,6 +39,8 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="artifacts_v3")
     ap.add_argument("--arm", nargs=2, action="append", metavar=("NAME", "PATTERN"), required=True)
+    ap.add_argument("--site-arm", nargs=2, action="append", metavar=("NAME", "PATTERN"), default=[],
+                    help="leave-pseudo-site-out OOF pattern per arm; when every arm has one, T is fitted on the site pool")
     ap.add_argument("--lam", type=float, default=0.02)
     ap.add_argument("--pi", type=float, default=DEFAULT_PRIOR)
     ap.add_argument("--t-floor", type=float, default=1.0)
@@ -65,11 +67,23 @@ if __name__ == "__main__":
             best = (ll, w)
     w = best[1]
     z = (w[:, None] * Z).sum(0)
-    T = max(fit_temperature(z, y), a.t_floor)
+    T_rand = fit_temperature(z, y)
+    T_site = None
+    site = dict(a.site_arm)
+    if site and all(x["name"] in site for x in arms):
+        oofs_s = {n: arm_oof(art, site[n])[0] for n in site}
+        uids_s = sorted(set.intersection(*[set(o.index) for o in oofs_s.values()]))
+        y_s = oofs_s[arms[0]["name"]].loc[uids_s, "y"].values.astype(float)
+        Z_s = np.stack([logit(oofs_s[x["name"]].loc[uids_s, "p"].values) for x in arms])
+        z_s = (w[:, None] * Z_s).sum(0)
+        T_site = fit_temperature(z_s, y_s)
+        print(f"site-fold pool: n={len(y_s)} AUROC={roc_auc_score(y_s, sigmoid(z_s)):.4f} logloss(T=1)={logloss(y_s, sigmoid(z_s)):.4f} "
+              f"logloss(T_site)={logloss(y_s, sigmoid(z_s / T_site)):.4f} T_site={T_site:.3f} (random-fold T={T_rand:.3f})")
+    T = max(T_site if T_site is not None else T_rand, a.t_floor)
     p = sigmoid(z / T); final = (1 - a.lam) * p + a.lam * a.pi
-    print(f"weights={dict(zip([x['name'] for x in arms], np.round(w, 2)))}  T={T:.3f} (fit floor {a.t_floor})  lam={a.lam}  pi={a.pi:.3f}")
+    print(f"weights={dict(zip([x['name'] for x in arms], np.round(w, 2)))}  T={T:.3f} (random {T_rand:.3f}, site {T_site}, floor {a.t_floor})  lam={a.lam}  pi={a.pi:.3f}")
     print(f"stack OOF: AUROC={roc_auc_score(y, final):.4f} logloss={logloss(y, final):.4f}  (equal-weight logloss={logloss(y, sigmoid(Z.mean(0))):.4f})")
-    man = {"pi": a.pi, "T": float(T), "lam": a.lam, "weights": {x["name"]: float(wi) for x, wi in zip(arms, w)}, "arms": arms,
+    man = {"pi": a.pi, "T": float(T), "T_random": float(T_rand), "T_site": (float(T_site) if T_site is not None else None), "lam": a.lam, "weights": {x["name"]: float(wi) for x, wi in zip(arms, w)}, "arms": arms,
            "oof_logloss": logloss(y, final), "oof_auroc": float(roc_auc_score(y, final)), "n": int(len(y))}
     (art / "manifest.json").write_text(json.dumps(man, indent=1))
     pd.DataFrame({"uid": uids, "y": y, "p": final}).to_csv(art / "oof_stack.csv", index=False)

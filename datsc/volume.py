@@ -16,14 +16,17 @@ from .preprocess import brain_mask, compute_scalars, crop_at, normalize_p75
 VOL_SPACING_MM = 2.0
 VOL_SHAPE = (96, 96, 72)          # [x, y, z] voxels at 2 mm = 192 x 192 x 144 mm, centred on the head CoM
 STAT_NAMES = ("p75", "p50", "p99", "mean", "std", "mask_ml", "com_x", "com_y", "com_z",
-              "sp_x", "sp_y", "sp_z", "shape_x", "shape_y", "shape_z")
+              "sp_x", "sp_y", "sp_z", "shape_x", "shape_y", "shape_z", "n_levels_native")
 N_STATS = len(STAT_NAMES)
 
 
-def prepare_volume(path, spacing_mm: float = VOL_SPACING_MM, shape=VOL_SHAPE) -> dict:
-    """Returns dict(vol fp16 [X,Y,Z] normalised by p75, mask bool [X,Y,Z], scalars[N_SCALARS], stats[N_STATS])."""
+def prepare_volume(path, spacing_mm: float = VOL_SPACING_MM, shape=VOL_SHAPE, template=None) -> dict:
+    """Returns dict(vol fp16 [X,Y,Z], mask bool [X,Y,Z], scalars[N_SCALARS], stats[N_STATS (+N_REG_STATS)]).
+    Without a template: the CoM box in p75 units. With a datsc.register.Template: the box is registered to the
+    template (QC'd, CoM fallback) and expressed in reference-region units; registration stats are appended."""
     from .io import load_canonical, resample_iso
     raw, native_spacing, native_shape = load_canonical(path)
+    n_levels_native = int(np.unique(raw[raw > 0]).size) if raw.size and (raw > 0).any() else 1
     raw_iso = resample_iso(raw, native_spacing, spacing_mm)
     del raw
     mask = brain_mask(raw_iso, spacing_mm)
@@ -39,16 +42,22 @@ def prepare_volume(path, spacing_mm: float = VOL_SPACING_MM, shape=VOL_SHAPE) ->
         float(mask.sum()) * spacing_mm ** 3 / 1000.0, com[0], com[1], com[2],
         native_spacing[0], native_spacing[1], native_spacing[2], native_shape[0], native_shape[1], native_shape[2],
     ], dtype=np.float32)
-    vol = crop_at(norm, tuple(com), shape).astype(np.float16)
+    box = crop_at(norm, tuple(com), shape)
     mbox = crop_at(mask.astype(np.float32), tuple(com), shape) > 0.5
-    return {"vol": vol, "mask": mbox, "scalars": scalars.astype(np.float32), "stats": np.nan_to_num(stats)}
+    stats = np.concatenate([np.nan_to_num(stats), [n_levels_native]]).astype(np.float32)
+    if template is None:
+        return {"vol": box.astype(np.float16), "mask": mbox, "scalars": scalars.astype(np.float32), "stats": stats}
+    from .register import register_and_normalise
+    vol, reg_stats, params = register_and_normalise(box, template, spacing_mm)
+    return {"vol": vol.astype(np.float16), "mask": mbox, "scalars": scalars.astype(np.float32),
+            "stats": np.concatenate([stats, reg_stats]).astype(np.float32), "reg_params": params}
 
 
 def renormalise(vol_p75: np.ndarray, stats: np.ndarray, mode: str = "p75") -> np.ndarray:
     """Re-derive alternative intensity normalisations from the p75-scaled box + stored raw statistics."""
     p75, p50, p99, mean, std = [float(stats[i]) for i in range(5)]
     x = vol_p75.astype(np.float32)
-    if mode == "p75":
+    if mode in ("p75", "ref"):           # "ref": the cache already stores reference-normalised registered boxes
         return x
     if mode == "median":                 # background-reference (SBR-like) scaling
         return x * (p75 / max(p50, 1e-6))
