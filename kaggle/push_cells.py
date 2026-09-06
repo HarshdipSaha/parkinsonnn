@@ -4,8 +4,9 @@
 - %%writefile cells whose content changed (or that are new) are executed so the files on Kaggle match the repo
 python kaggle/push_cells.py
 """
-import json
+import json, sys
 from pathlib import Path
+NO_RUN = "--no-run" in sys.argv
 
 ROOT = Path(__file__).resolve().parent.parent
 ns = {"__file__": str(ROOT / "kaggle" / "gen_run3_inject.py"), "__name__": "gen"}
@@ -33,7 +34,7 @@ js = """async (page) => {
     }
     return { toRun, inserted, updated, unchanged, n: model.cells.length };
   }, cells);
-  for (const i of plan.toRun) {
+  for (const i of (%s ? [] : plan.toRun)) {
     await frame.evaluate((i) => { const nb = window.jupyterapp.shell.currentWidget.content; nb.activeCellIndex = i; nb.deselectAll(); nb.select(nb.widgets[i]); window.jupyterapp.commands.execute('notebook:run-cell'); }, i);
     await page.waitForTimeout(4000);
   }
@@ -45,6 +46,6 @@ js = """async (page) => {
   }, plan.toRun);
   return { ...plan, outs };
 }
-""" % json.dumps(cells)
+""" % (json.dumps(cells), "true" if NO_RUN else "false")
 (ROOT / ".playwright-mcp" / "push_cells.js").write_text(js, encoding="utf-8")
 print(f"push_cells.js: {len(cells)} cells")
