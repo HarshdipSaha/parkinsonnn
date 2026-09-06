@@ -124,3 +124,16 @@ Strongest single descriptors: anterior/posterior bins (AUROC 0.85–0.86) and th
 weights a3d 0 / b0 .2 / v2s .3 / cor .3 / feat .2 / lr 0 (the whole-brain 3D arm is displaced). Artefacts: `artifacts/featarm_v4/`
 (`feat_v4.npz` 1.4 MB); inference arm type `feat` in `datsc/infer_v3.py` (numpy only).
 
+### Label-noise bound and hardest scans (run-3 OOF, Sept 6 16:10 UTC)
+
+No scan is > 0.9 confidently wrong in *every* arm; the hardest scans are abnormal-labelled scans that every arm scores 0.03–0.15
+(likely early/atypical cases or label noise) — the 40 hardest carry 24 % of the stack loss, the 100 hardest 46 %. Not a
+modelling target; treat it as the floor of what OOF can reach.
+
+### Assembly dry run: run-3 arms + feat (`scripts/run4_assemble.py`, Sept 6 16:15 UTC)
+
+Grid-8 nested stack over 6 arms → a3d and lr at weight 0 → re-fit on b0 / v2s / cor / feat: weights .125 / .25 / .375 / .25,
+T 1.0 (random-fold 0.83, floored), OOF 0.2536, nested 0.2551, 29 checkpoints, 364 MB (`data/submission_v3_feat.zip`).
+Note: the equal-weight logit mean without the λ = 0.02 prior mix scores 0.2489, i.e. the prior mix costs ≈ 0.005 OOF; it is
+kept as a site-shift hedge, and λ = 0.01 is the bracket alternative for the last submissions.
+
