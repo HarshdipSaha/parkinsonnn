@@ -17,6 +17,7 @@ Binary classification of 3D DaT-SPECT NIfTI volumes (normal vs abnormal), scored
 | Explanation | [docs/concept-registered-frame.md](docs/concept-registered-frame.md): why the run-3 design is what it is |
 | Rules and runtime | [DAT_PARKINSONS_CHALLENGE.md](DAT_PARKINSONS_CHALLENGE.md) |
 | Research | [EDA_REPORT.md](EDA_REPORT.md), [LITERATURE_REVIEW.md](LITERATURE_REVIEW.md), `PIPELINE_REC_*.md`, [COUNCIL_VERDICT.md](COUNCIL_VERDICT.md), [docs/RUN3_BRAINSTORM.md](docs/RUN3_BRAINSTORM.md) |
+| Domain language | [CONTEXT.md](CONTEXT.md) (glossary), [docs/adr/](docs/adr/) (decision records) |
 | Plans and process | [docs/superpowers/plans/](docs/superpowers/plans/), [aidlc-docs/](aidlc-docs/README.md) |
 
 ## Layout
