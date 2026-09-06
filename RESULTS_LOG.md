@@ -73,3 +73,4 @@ Hotspot folds 0.353/0.290/0.266/0.354/0.321 (mean 0.317); CoM control mean 0.302
 | run-3 2.5D B0 arm, 13 fresh folds (seeds 0-2) | 0.258-0.326 per fold, mean ~0.285, AUROC 0.935-0.963 |
 | run-3 3D GroupNorm ResNet, first folds (seed 0) | f0 0.274 / 0.945, f1 0.334 / 0.931, f2 0.292 / 0.945; ~21 min per fold. Queue ETA ~13:45 UTC, then stale re-run + queue 2 (coronal, full-data) + TTA re-OOF + stack |
 | Sept 6 ~09:00 UTC | Interactive Kaggle session lost (websocket drop, kernel unreachable, Quick Save refused); 15 B0 + 7 3D checkpoints gone. Relaunched as background commit "Version #2" at 10:30 UTC with trimmed queues (B0 x3 seeds, 3D x3 seeds, B0 site-folds, V2-S x1, coronal B0 x1, full-data B0 x3); ETA ~16:00 UTC |
+| commit Version #2 (fresh machine, 09:50 UTC) B0 seed 0 + part of seed 1 | 0.258 / 0.268 / 0.283 / 0.294 / 0.292 (seed 0); 0.281 / 0.262 / 0.289 (seed 1 f0-f2); AUROC 0.946-0.962 — consistent with the lost interactive run |

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | in progress: interactive session died ~09:00 UTC (websocket drop; all checkpoints lost); re-launched as background commit Version #2 at ~10:30 UTC with trimmed queues (ETA ~16:00 UTC) |
+| **State** | in progress: background commit Version #2 running since 09:50 UTC (8 B0 folds done by 10:20 UTC, 0.258–0.294); ETA ~15:10 UTC for `submission_v3.zip` |
 | **Started** | 2026-09-05 evening |
 | **Resume runbook** | [HANDOFF.md](../../HANDOFF.md), section 3 |
 | **Plan** | [2026-09-06-run3-finish-and-run4.md](../../../docs/superpowers/plans/2026-09-06-run3-finish-and-run4.md), Part A |
@@ -34,15 +34,16 @@
 | 9 | 07:40 | Fix confirmed | B0 folds 2 / 3: 0.279 / 0.294 log loss, AUROC 0.952 / 0.947 |
 | 10 | 08:00–08:40 | B0 seeds 0–2 complete (0.258–0.326, AUROC 0.935–0.963). Added z-shift test-time augmentation (`InputSpec.variants`, shared by trainer, `reoof_v3.py`, `main_v3.py`), coronal-slab option, full-data mode (fold -1), stack `--extra`; queue 2 defined; notebook synced with `push_cells.py` without touching the live queue | |
 | 11 | 08:50 | 3D seed 0 complete | 0.274 / 0.334 / 0.292 / 0.316 / 0.242 (AUROC up to 0.972); ~21 min per fold |
-| 12 | 09:00–10:30 | Interactive session died after the notebook websocket dropped (kernel status stuck at "connecting"; Kaggle then started a fresh session). 22 checkpoints lost. Switched to a background commit: queues trimmed (dropped 3D site-folds, V2-S seed 1, full-data 3D), tail cells made fail-safe, obsolete runner cell removed, `push_cells.py --no-run` sync, Version #2 "Save & Run All" started | commit running |
+| 12 | 09:00–09:50 | Interactive session died after the notebook websocket dropped (kernel status stuck at "connecting"; Kaggle then started a fresh session). 22 checkpoints lost. Switched to a background commit: queues trimmed (dropped 3D site-folds, V2-S seed 1, full-data 3D), tail cells made fail-safe, obsolete runner cell removed, `push_cells.py --no-run` sync, Version #2 "Save & Run All" started 09:50 UTC | commit running |
+| 13 | 10:00–10:25 | Persistence: cache-mount cell resumes from any mounted `artifacts_v3/`/`out/`; runner uploads `artifacts_v3/` to the private dataset `harshdipsaha/dat-run3-checkpoints` every 4 jobs (background thread, upgrades the kaggle client first). User supplied a Kaggle API token in `.env`; local CLI works after `pip install -U kaggle` (2.2.4); checkpoint dataset created via CLI; `KAGGLE_USERNAME`/`KAGGLE_KEY` added as notebook Secrets by clipboard paste (token never written to a file or transcript). Draft synced; the running commit predates these and will not upload | commit progress: B0 folds 0.258 / 0.268 / 0.283 / 0.294 / 0.292 / 0.281 / 0.262 / 0.289 |
 
-### Open item before stacking
+### Resolved item
 
-The hotfix-2 cleanup used `pkill -f scripts/train_v3.py`, which killed its own shell before the `rm`, so `r2d_efficientnet_b0_f0_s0` and `_f1_s0` are still the stale 0.998-EMA checkpoints. Notebook cell 47 deletes them and cell 48 retrains only those two. Use `pkill -f "[s]cripts/train_v3.py"` in future.
+The stale 0.998-EMA checkpoints from the interactive session no longer exist (that machine is gone); the commit trains every job fresh. Keep using `pkill -f "[s]cripts/train_v3.py"` for any future cleanup.
 
 ## Next
 
-1. Commit Version #2 (started 10:30 UTC, 40 queue-1 jobs + 8 queue-2 jobs + re-OOF + stack/pack + e2e + split; ETA ~16:00 UTC): poll its log.
-2. When it succeeds: notebook page → Version 2 → Output tab → download `parts/submission_v3.zip.partNN` (or the whole zip if the page allows) → `python scripts/join_parts.py <dir> <md5> --out submission_v3.zip`.
+1. Commit Version #2 (started 09:50 UTC, 40 queue-1 jobs + 8 queue-2 jobs + re-OOF + stack/pack + e2e + split; ETA ~15:10 UTC): poll with `kaggle kernels status …` and `.playwright-mcp/poll_commit.js`.
+2. When it succeeds: `kaggle kernels output harshdipsaha/dat-parkinsons-train -p data/kaggle_output` (whole output, no size cap) or the version's Output tab → `python scripts/join_parts.py <dir> <md5> --out submission_v3.zip` if only parts are present.
 3. DrivenData smoke test → real submission (slot 2 of 3) → record public log loss / AUROC / rank in `RESULTS_LOG.md`.
 4. Close this effort; open effort 003.

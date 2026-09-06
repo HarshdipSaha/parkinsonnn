@@ -2,11 +2,11 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-06 10:35 UTC (16:05 IST) |
+| **Last updated** | 2026-09-06 10:25 UTC (15:55 IST) |
 | **Deadline** | 2026-09-16 23:59 UTC |
 | **Goal (user)** | Rank 1 on the DrivenData DaT Parkinson's Challenge (public log loss < 0.219) |
 | **Current public score** | 0.3391 log loss, AUROC 0.925, rank 152 (run 2, submission id-321156) |
-| **In flight** | Run 3 as a **background commit** (Kaggle "Version #2, Save & Run All", started ~10:30 UTC, ETA ~16:00 UTC). The interactive session died at ~09:00 UTC after a websocket drop and took 3.5 GPU-h of checkpoints with it. |
+| **In flight** | Run 3 as a **background commit** (Kaggle Version #2 "Save & Run All", started 09:50 UTC, ETA ~15:10 UTC for the zip; 8 B0 folds done by 10:20 UTC at 0.258–0.294). The interactive session died at ~09:00 UTC after a websocket drop and took 3.5 GPU-h of checkpoints with it. Check status with `kaggle kernels status harshdipsaha/dat-parkinsons-train`. |
 
 Reading order:
 
@@ -30,7 +30,7 @@ Reading order:
 | Browser automation | Playwright MCP tool `plugin:playwright:playwright/browser_run_code_unsafe`; scripts in `.playwright-mcp/` (gitignored); Chrome profile is logged in to Google, Kaggle and DrivenData |
 | Results and decisions | `RESULTS_LOG.md`, `docs/RUN3_BRAINSTORM.md`, `COUNCIL_VERDICT.md`, `aidlc-docs/audit.md` |
 
-## 2. Kaggle notebook cell map (as of 09:10 UTC)
+## 2. Kaggle notebook cell map (draft as of 10:25 UTC; the running commit executes a frozen copy saved at 09:50 UTC, without the resume/upload additions)
 
 | Cell | Content | State |
 |---|---|---|
@@ -40,18 +40,19 @@ Reading order:
 | 44 | `touch scripts/__init__.py` + `main_v3.py --selftest` | done |
 | 45 | Mount `cache_v4`, `pretrained/`, `artifacts/template.npz` from the dataset | done |
 | 46 | Timing check (2 epochs per arm) | done |
-| 47 | Stale-checkpoint cleanup (removes B0 folds 0/1 seed 0) | idle |
-| 48 | Runner copy, queue 1 (resumable, skips existing `.pt`) | idle |
-| 49 | Runner, queue 2 (coronal B0 x5 folds; full-data B0 x3; full-data 3D x2) | idle |
-| 50 | Re-OOF with test-time augmentation | idle |
-| **51** | **Live runner, queue 1** | **running** |
-| 52 | Report + stack + pack (`submission_v3.zip`) | queued |
-| 53 | End-to-end check in a container-like run | queued |
-| 54 | Split the zip into < 95 MB parts | idle |
+| 47 | Stale-checkpoint cleanup (no-op on a fresh machine) | |
+| 48 | Runner, queue 1: B0 5x3 seeds, 3D 5x3, B0 site-folds, V2-S 5x1; uploads checkpoints every 4 jobs when secrets exist | |
+| 49 | Runner, queue 2: coronal B0 x5, full-data B0 x3 | |
+| 50 | Re-OOF with test-time augmentation (fail-safe) | |
+| 51 | Report + stack + pack `submission_v3.zip` (fail-safe) | |
+| 52 | End-to-end check (fail-safe) | |
+| 53 | Split the zip into < 95 MB parts (fail-safe) | |
 
-Queue 1 contents: EfficientNet-B0 5 folds x 3 seeds (done), 3D ResNet 5 x 3 (running), B0 site-folds x 1, 3D site-folds x 1, EfficientNet-V2-S 5 x 2.
+Cell 45 (cache mount) also copies any `artifacts_v3/` or `out/` found under `/kaggle/input/` (a previous version's output or the checkpoint dataset) into the working `artifacts_v3/`, so a new commit resumes.
 
 Files on the Kaggle machine: `artifacts_v3/<tag>.pt`, `<tag>.json`, `oof_<tag>.csv`; `log_<tag>.txt`; `cache_v4/` (symlinked memmap); `pretrained/`; `artifacts/template.npz`.
+
+Draft-editor note: opening the notebook in a second browser while the automation tab holds the draft produces `ConcurrencyViolation … Sequence number must match Draft record`; it does not affect a running commit.
 
 **Nothing in `/kaggle/working` survives a session death, and a session whose kernel is unreachable cannot be salvaged either** (Quick Save needs a connected editor and fails with `ConcurrencyViolation` when two editor tabs are open). Do not rely on interactive sessions for runs longer than ~1 h: use a background commit (section 3a).
 
