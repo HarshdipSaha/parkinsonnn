@@ -20,3 +20,5 @@ cache_v3/
 pretrained/
 artifacts_v3/
 .env
+cache_v4/
+cache_anchor_diag.csv
