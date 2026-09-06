@@ -43,11 +43,29 @@ JOBS3 = [
     {"name": "r2d_effb0_saug_site", "seeds": [0], "folds_csv": "folds_site.csv", "tag": "r2d_effb0_saug_f{f}_s{s}_site", "args": B0 + " --aug strong --z-jitter 1"},
     {"name": "r2d_tiny", "seeds": [0, 1, 2, 3, 4], "folds_csv": "folds.csv", "args": "--arm 2d --backbone tiny --n-slabs 1 --slab-mm 12 --hw 72 --crop 72 --epochs 40 --batch-size 64 --lr 1e-3 --weight-decay 1e-2 --mixup 0.2 --aug strong --z-jitter 1 --ema 0.99 --z-center {ZC}"},
 ]
-ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a3d_crop", "r3d_crop48x48x32_f?_s?", None),
-        ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_b0_saug", "r2d_effb0_saug_f?_s?", "r2d_effb0_saug_f?_s?_site"),
-        ("a2d_b0_crop", "r2d_effb0_crop64_f?_s?", None), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("a2d_v2s_cor", "r2d_efficientnet_v2_s_cor_f?_s?", None),
-        ("a2d_cnx", "r2d_convnext_tiny_f?_s?", None), ("a2d_cor", "r2d_efficientnet_b0_cor_f?_s?", None), ("a2d_tiny", "r2d_tiny_f?_s?", None), ("feat", "featarm", "featarm_site"), ("lr", "lrarm", "lrarm_site")]
-EXTRAS = [("a3d", "r3d_64x64x48_fall_s*"), ("a2d_b0", "r2d_efficientnet_b0_fall_s*")]
+CROP3D = "--arm 3d --size 48 48 32 --crop3d 48 48 32 --center3d {XC} {YC} {ZC} --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2 --ema 0.995"
+CNX = "--arm 2d --backbone convnext_tiny --weights pretrained/convnext_tiny_in1k.pt --n-slabs 3 --slab-mm 8 --hw 224 --epochs 30 --batch-size 24 --lr 5e-4 --backbone-lr 1e-4 --mixup 0.2 --ema 0.99 --z-center {ZC}"
+# run 5 (Sept 7): invest in the run-4a winners (striatal-crop 3D 0.2568, V2-S, ConvNeXt, coronal B0, feat). Mechanisms are tested on the
+# best arm on random AND leave-site-out folds: site-invariant training (--dann gradient-reversal site head + --dro group-DRO) and
+# histogram standardisation (--norm hist, landmarks in template.npz). Strong augmentation is NOT used (run 4a: worse on both fold types).
+JOBS4 = [
+    {"name": "r3d_crop", "seeds": [1, 2], "folds_csv": "folds.csv", "tag": "r3d_crop48x48x32_f{f}_s{s}", "args": CROP3D},
+    {"name": "r3d_crop_inv", "seeds": [0], "folds_csv": "folds.csv", "tag": "r3d_cropinv_f{f}_s{s}", "args": CROP3D + " --dann 0.1 --dro 0.1"},
+    {"name": "r3d_crop_inv_site", "seeds": [0], "folds_csv": "folds_site.csv", "tag": "r3d_cropinv_f{f}_s{s}_site", "args": CROP3D + " --dann 0.1 --dro 0.1"},
+    {"name": "r3d_crop_site", "seeds": [0], "folds_csv": "folds_site.csv", "tag": "r3d_crop48x48x32_f{f}_s{s}_site", "args": CROP3D},
+    {"name": "r3d_crop_hist", "seeds": [0], "folds_csv": "folds.csv", "tag": "r3d_crophist_f{f}_s{s}", "args": CROP3D + " --norm hist"},
+    {"name": "r2d_cnx", "seeds": [1], "folds_csv": "folds.csv", "args": CNX},
+    {"name": "r2d_cnx_cor", "seeds": [0], "folds_csv": "folds.csv", "args": CNX + " --plane coronal --z-center {YC}"},
+    {"name": "r3d_crop_full", "seeds": [0, 1, 2], "folds": [-1], "folds_csv": "folds.csv", "tag": "r3d_crop48x48x32_fall_s{s}", "args": CROP3D},
+    {"name": "r2d_effv2s_full", "seeds": [0, 1, 2], "folds": [-1], "folds_csv": "folds.csv", "args": V2S},
+]
+# arms that are alive after the run-4a gate (+ the run-5 candidates); dead arms (B0 variants, whole-brain 3D, tiny, coronal V2-S)
+# are left out so the stack cell fits 10 arms x grid 8 (24k weight vectors per fit)
+ARMS = [("a3d_crop", "r3d_crop48x48x32_f?_s?", "r3d_crop48x48x32_f?_s?_site"), ("a3d_cropinv", "r3d_cropinv_f?_s?", "r3d_cropinv_f?_s?_site"),
+        ("a3d_crophist", "r3d_crophist_f?_s?", None), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("a2d_cnx", "r2d_convnext_tiny_f?_s?", None),
+        ("a2d_cnx_cor", "r2d_convnext_tiny_cor_f?_s?", None), ("a2d_cor", "r2d_efficientnet_b0_cor_f?_s?", None), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"),
+        ("feat", "featarm", "featarm_site"), ("lr", "lrarm", "lrarm_site")]
+EXTRAS = [("a3d_crop", "r3d_crop48x48x32_fall_s*"), ("a2d_v2s", "r2d_efficientnet_v2_s_fall_s*"), ("a2d_b0", "r2d_efficientnet_b0_fall_s*")]
 
 cells = []
 cells.append({"type": "markdown", "source": "# DaT Parkinson's Challenge — run 3 (whole-brain 2 mm cache, 3D ResNet + 2.5D ImageNet arms, stacked)\n"
@@ -66,7 +84,7 @@ for p in FILES:
     cells.append({"type": "code", "source": f"%%writefile {rel}\n" + p.read_text(encoding="utf-8")})
 cells.append({"type": "code", "source": "!touch scripts/__init__.py\n!python main_v3.py --selftest"})
 cells.append({"type": "code", "source": f"""# cache_v4 (registered, reference-normalised 2 mm boxes) + template + ImageNet weights come from the uploaded dataset
-import os, shutil, glob
+import os, shutil, glob, numpy as np
 src = os.path.dirname(next(iter(glob.glob(CACHE_DS + '/**/vols.npy', recursive=True)), ''))
 assert src, 'cache dataset not mounted -- attach dat-parkinsons-cache-v4'
 os.makedirs('cache_v4', exist_ok=True); os.makedirs('pretrained', exist_ok=True); os.makedirs('artifacts', exist_ok=True)
@@ -81,6 +99,8 @@ for f in glob.glob(CACHE_DS + '/**/*.pt', recursive=True):
     if not os.path.exists('pretrained/' + os.path.basename(f)): shutil.copy(f, 'pretrained/')
 tpl = next(iter(glob.glob(CACHE_DS + '/**/template.npz', recursive=True)))
 shutil.copy(tpl, 'artifacts/template.npz'); shutil.copy(tpl, 'artifacts_v3/template.npz')
+for f in glob.glob('/kaggle/input/datasets/harshdipsaha/dat-run3-checkpoints*/template.npz'):   # run 5: template with hist landmarks
+    shutil.copy(f, 'artifacts/template.npz'); shutil.copy(f, 'artifacts_v3/template.npz'); print('template from the checkpoint dataset (landmarks):', 'hist' in np.load(f).files)
 for pat in ('lr_v3.json', 'oof_lrarm.csv', 'oof_lrarm_site.csv', 'lrarm.json', 'feat_v4.npz', 'oof_featarm.csv', 'oof_featarm_site.csv', 'featarm.json'):      # registered-ROI LR arm (fitted locally)
     for f in glob.glob(CACHE_DS + '/**/' + pat, recursive=True): shutil.copy(f, 'artifacts_v3/')
 print('cache_v4:', sorted(os.listdir('cache_v4'))); print('pretrained:', sorted(os.listdir('pretrained')))
@@ -189,8 +209,9 @@ push_checkpoints(f"{{LABEL}} final ({{len(done)}} jobs)")"""
 cells.append({"type": "code", "source": runner_cell(JOBS, "")})
 cells.append({"type": "code", "source": runner_cell(JOBS2, "(queue 2)")})
 cells.append({"type": "code", "source": runner_cell(JOBS3, "(queue 3, run 4a)")})
+cells.append({"type": "code", "source": runner_cell(JOBS4, "(queue 4, run 5)")})
 cells.append({"type": "code", "source": '# re-OOF every CV checkpoint with inference-time TTA (z-shift -1/0/+1 x flip) so the stack is fitted on what main.py produces\n!python scripts/reoof_v3.py --art artifacts_v3 --cache cache_v4 --tta-z -1 0 1 2>&1 | grep -v Warning'})
-cells.append({"type": "code", "source": '# report + stacking + pack\nimport glob, json, os, subprocess, pandas as pd\nrows = [{\'run\': os.path.basename(f)[:-5], **{k: json.load(open(f)).get(k) for k in (\'best_val_logloss\', \'val_logloss\', \'val_auroc\')}} for f in sorted(glob.glob(\'artifacts_v3/r*_f*_s*.json\'))]\ndf = pd.DataFrame(rows); print(df.to_string(index=False))\ndf[\'arm\'] = df.run.str.replace(r\'_f(\\d|all)_s\\d\', \'\', regex=True); print(df.groupby(\'arm\')[[\'best_val_logloss\', \'val_logloss\', \'val_auroc\']].mean().round(4))\nlag = [(os.path.basename(f)[:-5], round(h[-1][\'val_logloss\'], 4), round(h[-1][\'val_raw_logloss\'], 4)) for f in sorted(glob.glob(\'artifacts_v3/r*_f*_s*.json\')) for h in [json.load(open(f)).get(\'history\', [])] if h and h[-1].get(\'val_raw_logloss\') is not None and h[-1][\'val_logloss\'] > h[-1][\'val_raw_logloss\'] + 0.02]\nprint(\'EMA-lag guard:\', \'OK\' if not lag else f\'WARNING {len(lag)} checkpoints lag the raw model by > 0.02: {lag[:5]}\')\nARMS = __ARMS__; EXTRAS = __EXTRAS__\ncmd = \'python scripts/fit_stack_v3.py --out artifacts_v3 \' + \' \'.join(f\'--arm {n} "{p}"\' for n, p, _ in ARMS if glob.glob(f\'artifacts_v3/oof_{p}.csv\'))\ncmd += \' \' + \' \'.join(f\'--site-arm {n} "{q}"\' for n, _, q in ARMS if q and glob.glob(f\'artifacts_v3/oof_{q}.csv\'))\ncmd += \' \' + \' \'.join(f\'--extra {n} "{g}"\' for n, g in EXTRAS if glob.glob(f\'artifacts_v3/{g}.pt\')) + \' --lam 0.02 --t-floor 1.0 --nested --grid 8 --cache cache_v4\'\nprint(cmd); r = subprocess.run(cmd, shell=True, capture_output=True, text=True); print(r.stdout[-4000:]); print(r.stderr[-800:])\n!python scripts/pack_v3.py --artifacts artifacts_v3 --out submission_v3.zip\n!cp submission_v3.zip artifacts_v3/manifest.json artifacts_v3/oof_stack.csv out/ && cp artifacts_v3/*.json artifacts_v3/oof_*.csv cache_v4/folds*.csv cache_v4/sites.csv out/ 2>/dev/null; du -sh out submission_v3.zip'.replace("__ARMS__", repr(ARMS)).replace("__EXTRAS__", repr(EXTRAS))})
+cells.append({"type": "code", "source": '# report + stacking + pack\nimport glob, json, os, subprocess, pandas as pd\nrows = [{\'run\': os.path.basename(f)[:-5], **{k: json.load(open(f)).get(k) for k in (\'best_val_logloss\', \'val_logloss\', \'val_auroc\')}} for f in sorted(glob.glob(\'artifacts_v3/r*_f*_s*.json\'))]\ndf = pd.DataFrame(rows); print(df.to_string(index=False))\ndf[\'arm\'] = df.run.str.replace(r\'_f(\\d|all)_s\\d\', \'\', regex=True); print(df.groupby(\'arm\')[[\'best_val_logloss\', \'val_logloss\', \'val_auroc\']].mean().round(4))\nlag = [(os.path.basename(f)[:-5], round(h[-1][\'val_logloss\'], 4), round(h[-1][\'val_raw_logloss\'], 4)) for f in sorted(glob.glob(\'artifacts_v3/r*_f*_s*.json\')) for h in [json.load(open(f)).get(\'history\', [])] if h and h[-1].get(\'val_raw_logloss\') is not None and h[-1][\'val_logloss\'] > h[-1][\'val_raw_logloss\'] + 0.02]\nprint(\'EMA-lag guard:\', \'OK\' if not lag else f\'WARNING {len(lag)} checkpoints lag the raw model by > 0.02: {lag[:5]}\')\nARMS = __ARMS__; EXTRAS = __EXTRAS__\ncmd = \'python scripts/fit_stack_v3.py --out artifacts_v3 \' + \' \'.join(f\'--arm {n} "{p}"\' for n, p, _ in ARMS if glob.glob(f\'artifacts_v3/oof_{p}.csv\'))\ncmd += \' \' + \' \'.join(f\'--site-arm {n} "{q}"\' for n, _, q in ARMS if q and glob.glob(f\'artifacts_v3/oof_{q}.csv\'))\ncmd += \' \' + \' \'.join(f\'--extra {n} "{g}"\' for n, g in EXTRAS if glob.glob(f\'artifacts_v3/{g}.pt\')) + \' --lam 0.02 --t-floor 1.0 --nested --typ --grid 8 --cache cache_v4\'\nprint(cmd); r = subprocess.run(cmd, shell=True, capture_output=True, text=True); print(r.stdout[-4000:]); print(r.stderr[-800:])\n!python scripts/pack_v3.py --artifacts artifacts_v3 --out submission_v3.zip\n!cp submission_v3.zip artifacts_v3/manifest.json artifacts_v3/oof_stack.csv out/ && cp artifacts_v3/*.json artifacts_v3/oof_*.csv cache_v4/folds*.csv cache_v4/sites.csv out/ 2>/dev/null; du -sh out submission_v3.zip'.replace("__ARMS__", repr(ARMS)).replace("__EXTRAS__", repr(EXTRAS))})
 cells.append({"type": "code", "source": (ROOT / "kaggle" / "e2e_check_v3.py").read_text(encoding="utf-8")})
 
 cells.append({"type": "code", "source": (ROOT / "kaggle" / "split_zip_cell.py").read_text(encoding="utf-8")})
