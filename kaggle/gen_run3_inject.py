@@ -18,14 +18,10 @@ RAW_DS = "/kaggle/input/datasets/harshdipsaha/dat-parkinsons-challenge-data"
 
 # (tag_prefix, command args) -- one entry per (fold, seed) is expanded by the runner
 JOBS = [
-    # 3D GroupNorm ResNet on the registered box (3 mm-equivalent 64x64x48), 3 seeds
-    {"name": "r3d", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
-    # same arm on leave-pseudo-site-out folds (1 seed) -> temperature fitted under site shift
-    {"name": "r3d_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
-    # 2.5D ImageNet EfficientNet-B0 on 3 x 8 mm axial slabs through the template striatum, 3 seeds
     {"name": "r2d_effb0", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --z-center {ZC}"},
+    {"name": "r3d", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
     {"name": "r2d_effb0_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 2d --backbone efficientnet_b0 --weights pretrained/efficientnet_b0_in1k.pt --n-slabs 3 --slab-mm 8 --hw 192 --epochs 30 --batch-size 32 --lr 5e-4 --backbone-lr 2e-4 --mixup 0.2 --z-center {ZC}"},
-    # 2.5D EfficientNet-V2-S (heavier, diversity), 2 seeds
+    {"name": "r3d_site", "seeds": [0], "folds_csv": "folds_site.csv", "args": "--arm 3d --size 64 64 48 --widths 24 48 96 192 --epochs 50 --batch-size 16 --lr 5e-4 --mixup 0.2"},
     {"name": "r2d_effv2s", "seeds": [0, 1], "folds_csv": "folds.csv", "args": "--arm 2d --backbone efficientnet_v2_s --weights pretrained/efficientnet_v2_s_in1k.pt --n-slabs 3 --slab-mm 8 --hw 224 --epochs 30 --batch-size 24 --lr 5e-4 --backbone-lr 1e-4 --mixup 0.2 --z-center {ZC}"},
 ]
 ARMS = [("a3d", "r3d_64x64x48_f?_s?", "r3d_64x64x48_f?_s?_site"), ("a2d_b0", "r2d_efficientnet_b0_f?_s?", "r2d_efficientnet_b0_f?_s?_site"), ("a2d_v2s", "r2d_efficientnet_v2_s_f?_s?", None), ("lr", "lrarm", "lrarm_site")]
@@ -133,4 +129,19 @@ js = """async (page) => {
 """ % json.dumps(cells)
 out = ROOT / ".playwright-mcp" / "inject_run3.js"
 out.write_text(js, encoding="utf-8")
+runner_src = next(c["source"] for c in cells if c["source"].startswith("# === RESUMABLE"))
+upd = """async (page) => {
+  const src = %s;
+  const frame = page.frames().find(f => f.url().includes('jupyterlab'));
+  return await frame.evaluate((src) => {
+    const model = window.jupyterapp.shell.currentWidget.content.model;
+    for (let i = 0; i < model.cells.length; i++) {
+      const c = model.cells.get(i);
+      if (c.sharedModel.getSource().startsWith('# === RESUMABLE')) { c.sharedModel.setSource(src); return {updated: i}; }
+    }
+    return {updated: -1};
+  }, src);
+}
+""" % json.dumps(runner_src)
+(ROOT / ".playwright-mcp" / "update_runner.js").write_text(upd, encoding="utf-8")
 print(f"wrote {out} with {len(cells)} cells ({len(FILES)} package files)")
