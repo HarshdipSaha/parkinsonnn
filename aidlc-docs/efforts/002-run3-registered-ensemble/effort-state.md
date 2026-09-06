@@ -1,5 +1,5 @@
 # Effort 002 — run 3: registered frame + 3D/2.5D/LR ensemble
-state: in-progress (Kaggle training queue launched 2026-09-06 06:20 UTC, 50 jobs, ~4.7 h)
+state: in-progress - queue 1 running on Kaggle (relaunched 06:50 UTC after the EMA fix; ETA ~12:45 UTC). Resume runbook: aidlc-docs/HANDOFF.md section 3; plan: docs/superpowers/plans/2026-09-06-run3-finish-and-run4.md Part A
 started: 2026-09-05 evening
 ## Requirements delta (vs baseline)
 - NEW: SimpleITK registration to a symmetric label-blind study template with NCC QC + CoM fallback (R4).
