@@ -88,7 +88,7 @@ python scripts/local_e2e_v3.py data/submission_v3_fixed.zip <smoke_dir>   # cont
 ```
 Local result: all arms 43/43 checkpoints + LR, smoke log loss 0.2458 (run 2: 0.2567), 390 s on CPU. `data/submission_v3_fixed.zip` is the file submitted to DrivenData. Lesson: run `scripts/local_e2e_v3.py` on every zip before uploading; the Kaggle e2e cell now fails loudly on partial checkpoint use.
 
-DrivenData upload gotcha: a 419 MB zip uploads for 10–20 min; the old `dd_submit.js` reloaded the page every 6 s, which raised `beforeunload` dialogs (accepting one aborts the upload). `kaggle/gen_submit.py` now waits for the upload dialog to close and auto-dismisses dialogs.
+DrivenData upload gotchas: **zips above ~420 MB crash the Playwright MCP server** (the 844 MB run-4a zip killed it three times; upload those by hand or trim checkpoints). A 419 MB zip uploads for 10–20 min; the old `dd_submit.js` reloaded the page every 6 s, which raised `beforeunload` dialogs (accepting one aborts the upload). `kaggle/gen_submit.py` now waits for the upload dialog to close and auto-dismisses dialogs.
 
 ### Run 4a in flight (Sept 6 15:45 UTC → ~19:15 UTC) and how to finish it
 

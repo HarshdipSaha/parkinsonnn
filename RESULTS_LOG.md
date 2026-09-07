@@ -167,4 +167,8 @@ the Playwright browser server then crashed and the Chrome extension was not conn
 - Histogram standardisation: reference-region landmarks only; slope-1 above the top landmark. Effect on discrimination to be measured
   by the run-5 `r3d_crophist` jobs. Site-invariant training (DANN 0.1 + group-DRO 0.1) smoke-tested on CPU; measured by `r3d_cropinv`
   on random and site folds in run 5.
+Sept 7 03:10 UTC: the failed uploads are a browser-bridge limit, not DrivenData — the Playwright MCP server dies whenever it touches
+the 844 MB file (419 MB worked in run 3). Sub-limit variant `data/submission_v4a_450.zip` (crop-3D 5 + V2-S seeds 0–1 (9) + coronal
+B0 5 + feat; 398 MB): weights .4/.3/.2/.1, nested 0.2509, OOF 0.2464 — the slot-3 candidate. Rule for future zips: keep them < 420 MB
+(fewer V2-S/ConvNeXt checkpoints) or upload by hand.
 
