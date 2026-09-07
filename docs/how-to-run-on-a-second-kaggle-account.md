@@ -18,9 +18,11 @@ Shared datasets keep their `harshdipsaha/...` slugs, so `kernel-metadata.json` n
 
 **B. Re-upload under the teammate's account** (if sharing is not wanted). From this repo on the teammate's machine with their token:
 ```
-# raw competition data: zip data/niftis + train_labels csv (or reuse data/niftis_*.zip), dataset-metadata.json with id <them>/dat-parkinsons-challenge-data
-# cache + assets: data/upload_v4/cache_v4.zip, assets_v4.zip, lr_v4.zip  -> id <them>/dat-parkinsons-cache-v4
-# checkpoints: data/ckpt_upload_v5/ (342 files; run the command from INSIDE the folder on Windows) -> id <them>/dat-run3-checkpoints
+# raw competition data: zip data/niftis + data/train_labels_*.csv into a folder with dataset-metadata.json (id <them>/dat-parkinsons-challenge-data)
+# cache + assets: a folder with cache_v4/*.npy + meta/folds/sites csv, pretrained/*.pt, artifacts/template.npz, artifacts_v3/lr_v3.json + oof_lrarm*.csv + lrarm.json
+#                 (staging zips were deleted on Sept 7 to free disk; rebuild them from those folders)         -> id <them>/dat-parkinsons-cache-v4
+# checkpoints: data/ckpt_ds_v4/artifacts_v3/ (the 337-file local copy) + artifacts/template.npz + artifacts/featarm_v4/*  -> id <them>/dat-run3-checkpoints
+#              (copy them into one flat folder with a dataset-metadata.json; run the command from INSIDE the folder on Windows)
 cd <folder> && kaggle datasets create -p . --dir-mode skip        # first time (private by default)
 cd <folder> && kaggle datasets version -p . -m "sync" --dir-mode skip   # later updates
 ```
