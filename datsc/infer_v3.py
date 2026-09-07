@@ -124,6 +124,9 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
         return run_lr_arm(arm_cfg, root, vols, st, ok)
     if arm_cfg["arm"] == "feat":
         return run_feat_arm(arm_cfg, root, vols, st, ok)
+    if arm_cfg["arm"] == "featc":                       # approach C: richer descriptors + kernel/MLP model
+        from .features_c import run_featc_arm
+        return run_featc_arm(arm_cfg, root, vols, st, ok)
     import torch
     from .models_v3 import build_model
     from .train_b import make_spec

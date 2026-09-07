@@ -1,0 +1,1 @@
+{"tag": "featcarm", "spec": {"arm": "featc"}, "model_kw": {"kind": "linear", "n_comp": 40, "C": 0.1}, "norm": "ref", "checkpoints": ["artifacts/featc_v5.npz"], "val_auroc": 0.9443649938507417, "val_logloss": 0.30112864385389837}

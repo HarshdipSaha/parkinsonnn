@@ -145,7 +145,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
               epochs=60, batch_size=16, lr=5e-4, backbone_lr=None, weight_decay=1e-2, warmup_epochs=3,
               mixup=0.0, ema_decay=0.995, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
               augment=True, save_fp16=True, select: str = "final", aug: str = "base", z_jitter: int = 0,
-              dann: float = 0.0, dro: float = 0.0) -> dict:
+              dann: float = 0.0, dro: float = 0.0, init_path=None) -> dict:
     cache_dir, out_dir = Path(cache_dir), Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu"); amp = device.startswith("cuda")
     torch.backends.cudnn.benchmark = True
@@ -165,6 +165,14 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
     dl_va = None if full else DataLoader(VolDataset(cache, va["uid"], va["is_pathologic"], norm, tpl), batch_size=batch_size, shuffle=False,
                                          num_workers=num_workers, persistent_workers=num_workers > 0)
     model = build_model(spec.arm, **model_kw).to(device)
+    init_loaded = 0
+    if init_path:                                          # warm start from a pretrained encoder (e.g. SSL, approach C): only backbone tensors
+        sd = torch.load(str(init_path), map_location="cpu", weights_only=False)
+        sd = sd.get("encoder", sd) if isinstance(sd, dict) else sd
+        own = model.state_dict()
+        keep = {k: v for k, v in sd.items() if k.startswith(("stem.", "layers.", "backbone.")) and k in own and own[k].shape == v.shape}
+        model.load_state_dict({**own, **keep}); init_loaded = len(keep)
+        print(f"[{tag}] init from {init_path}: {init_loaded} tensors loaded", flush=True)
     if spec.arm == "2d" and backbone_lr is not None:
         bb = [p for n, p in model.named_parameters() if n.startswith("backbone.")]
         rest = [p for n, p in model.named_parameters() if not n.startswith("backbone.")]
@@ -272,6 +280,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             "spec": spec.to_dict(), "model_kw": {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()},
             "norm": norm, "folds_csv": folds_csv, "mixup": mixup, "ema_decay": ema_decay, "lr": lr, "backbone_lr": backbone_lr,
             "aug": aug, "z_jitter": z_jitter, "skipped_batches": n_skipped, "dann": dann, "dro": dro, "n_sites": n_sites,
+            "init": (str(init_path) if init_path else None), "init_loaded": init_loaded,
             "weight_decay": weight_decay, "history": hist, "params": count_params(model), "sec": time.time() - t0}
     (out_dir / f"{tag}.json").write_text(json.dumps(meta))
     if full:
