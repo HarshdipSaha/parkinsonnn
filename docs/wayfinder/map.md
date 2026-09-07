@@ -16,7 +16,7 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 - Skills every session consults: `grilling` + `domain-modeling` for decisions, `research` for research tickets, `writing-plans` when a ticket graduates to a build, `verification-before-completion` before any claim of "verified".
 - **Execution is carried into this map** (override of "plan, don't do"): the user asked for the notebook + HOWTO as the end product, so T07/T09/T11 are build tickets, resolved by delivered, tested artefacts.
 - Where we stand (Sept 7 04:15 UTC): public 0.2667 / AUROC 0.9536 / rank 39 (run 4a, nested 0.2491); the **shift gap** (nested → public) has been 0.021 and 0.018; the leader is 0.2192 / 0.971. Reaching 0.215 needs roughly nested ≈ 0.20 with today's gap, or nested ≈ 0.22 with the gap closed — both a −0.03 to −0.05 step. Run 5 (site-invariant training, hist) is training; runs 6a/6b/6c are ready to launch; PPMI is applied for.
-- Honest odds recorded at charting: ≤ 0.22 public by the deadline ≈ 10–15 % (needs PPMI or an unusually strong site-gap closure); ≤ 0.24 (top 10) ≈ 40 %.
+- Honest odds recorded at charting: ≤ 0.22 public by the deadline ≈ 10–15 % (needs PPMI or an unusually strong site-gap closure); ≤ 0.24 (top 10) ≈ 40 %. **Revised Sept 7 05:05 UTC after T02 (no PPMI): ≤ 0.22 ≈ 5–8 %, ≤ 0.24 ≈ 35 %** — the route is now entirely internal: super-stack breadth, the hemisphere member, and whatever run 5 shows about the shift gap.
 - Rules that bound every ticket: no pseudo-labelling or transductive test use; per-sample inference within 3 h on 1×A100; public commercial-use weights only; external data only with legal right and disclosure.
 
 ## Charting round 1 (grilling; provisional answers adopted, the user overrides by editing the tickets)
@@ -24,7 +24,7 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 ❓ **Q1 — Destination**: public 0.21–0.22 by the deadline, private decides prizes (best private counts). ➡️ Adopt; bracket the last slot.
 ❓ **Q2 — Slot policy**: slot 1 → best gated super-stack (runs 3–6); slot 2 → run 7 (+ PPMI if landed); slot 3 → bracket (λ 0.01). ➡️ Adopt (T01, T10).
 ❓ **Q3 — Compute**: our account runs 5 then 7; the teammate's account runs 6a/6b/6c (6a not concurrently with 5). ➡️ Adopt (T06).
-❓ **Q4 — PPMI**: proceed assuming no PPMI; PPMI is a conditional branch that becomes live when access lands (T04 → T11). ➡️ Adopt.
+❓ **Q4 — PPMI**: proceed assuming no PPMI; PPMI is a conditional branch that becomes live when access lands (T04 → T11). ➡️ Adopted, then superseded by T02: PPMI is out of scope (DUA + organiser ruling).
 ❓ **Q5 — Ensemble breadth vs inference budget**: ≤ 10 arms, ≤ ~60 checkpoints, zip ≤ 850 MB, projected container time < 60 min. ➡️ Adopt provisionally (T08 decides with numbers).
 ❓ **Q6 — Hemisphere-level member**: build it (the asymmetry descriptors rank top; unilateral onset is the disease's structure). ➡️ Build (T07).
 ❓ **Q7 — Registration refinement** (template from all scans): only if run 5 / T03 point at registration-sensitive errors. ➡️ Fog, not a ticket.
@@ -36,6 +36,8 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 
 <!-- one line per closed ticket: gist + link -->
 
+- [PPMI DaT-SPECT: what we would get and what the DUA allows](tickets/T02-ppmi-dat-spect-what-we-would-get.md): PPMI cannot be used here — DUA bars Kaggle-style platforms and any scan-list sharing; organiser ruled PPMI-trained models prize-ineligible. External data leaves the route.
+
 ## Not yet specified
 
 - Registration refinement (study template from all 1,362 scans, 3 iterations) — only if run 5 / T03 show registration-sensitive errors.
@@ -46,6 +48,7 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 
 ## Out of scope
 
+- PPMI (or any DUA-bound dataset) as training data — [Obtain PPMI access](tickets/T04-obtain-ppmi-access-and-confirm-the.md) and [PPMI ingestion and pretraining notebook](tickets/T11-ppmi-ingestion-and-pretraining-notebook.md) closed after T02; research use after the deadline only.
 - Pseudo-labelling, transductive normalisation, prevalence estimation from test predictions (competition rules).
 - Non-commercial or non-public pretrained weights (DINOv3, RadImageNet).
 - Anything after Sept 16 except the disclosure/release obligations (T12).
