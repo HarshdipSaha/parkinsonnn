@@ -145,7 +145,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
               epochs=60, batch_size=16, lr=5e-4, backbone_lr=None, weight_decay=1e-2, warmup_epochs=3,
               mixup=0.0, ema_decay=0.995, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
               augment=True, save_fp16=True, select: str = "final", aug: str = "base", z_jitter: int = 0,
-              dann: float = 0.0, dro: float = 0.0, init_path=None) -> dict:
+              dann: float = 0.0, dro: float = 0.0, init_path=None, loss: str = "bce") -> dict:
     cache_dir, out_dir = Path(cache_dir), Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu"); amp = device.startswith("cuda")
     torch.backends.cudnn.benchmark = True
@@ -198,7 +198,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
     best, best_state, hist, t0 = float("inf"), None, [], time.time()
     print(f"[{tag}] params={count_params(model)/1e6:.2f}M train={len(tr)} val={len(va)} norm={norm} spec={spec.to_dict()} "
           f"model_kw={ {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()} }", flush=True)
-    n_skipped = 0; step = 0
+    n_skipped = 0; step = 0; loss_kind = loss
     for ep in range(epochs):
         model.train(); tl, n = 0.0, 0
         for x, s, y, u in dl_tr:
@@ -214,11 +214,14 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
                     inp = lam * inp + (1 - lam) * inp[perm]; s = lam * s + (1 - lam) * s[perm]; y = lam * y + (1 - lam) * y[perm]
             with torch.autocast(device_type="cuda", enabled=amp):
                 if site_head is None and not (dro > 0 and n_sites > 1):
-                    loss = F.binary_cross_entropy_with_logits(model(inp, s).float(), y)
+                    logit = model(inp, s).float()
+                    y_t = (0.9 * y + 0.1 * torch.sigmoid(logit).detach()) if loss_kind == "bootstrap" else y   # soft bootstrapping (Reed 2015): ambiguous labels pull less
+                    loss = F.binary_cross_entropy_with_logits(logit, y_t)
                 else:
                     h = model.features(inp)
                     logit = model.head(model.scalars(h, s)).squeeze(1).float()
-                    per = F.binary_cross_entropy_with_logits(logit, y, reduction="none")
+                    y_t = (0.9 * y + 0.1 * torch.sigmoid(logit).detach()) if loss_kind == "bootstrap" else y
+                    per = F.binary_cross_entropy_with_logits(logit, y_t, reduction="none")
                     if dro > 0 and n_sites > 1:                       # group-DRO: exponentially up-weight the worst pseudo-sites
                         Lg = torch.zeros(n_sites, device=device).index_add_(0, site, per)
                         cnt = torch.zeros(n_sites, device=device).index_add_(0, site, torch.ones_like(per))
@@ -279,7 +282,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             "val_logloss": (logloss_np(yv, p) if len(yv) else None), "val_auroc": (auroc_np(yv, p) if len(yv) else None),
             "spec": spec.to_dict(), "model_kw": {k: (str(v) if isinstance(v, Path) else v) for k, v in model_kw.items()},
             "norm": norm, "folds_csv": folds_csv, "mixup": mixup, "ema_decay": ema_decay, "lr": lr, "backbone_lr": backbone_lr,
-            "aug": aug, "z_jitter": z_jitter, "skipped_batches": n_skipped, "dann": dann, "dro": dro, "n_sites": n_sites,
+            "aug": aug, "z_jitter": z_jitter, "skipped_batches": n_skipped, "dann": dann, "dro": dro, "n_sites": n_sites, "loss": loss_kind,
             "init": (str(init_path) if init_path else None), "init_loaded": init_loaded,
             "weight_decay": weight_decay, "history": hist, "params": count_params(model), "sec": time.time() - t0}
     (out_dir / f"{tag}.json").write_text(json.dumps(meta))

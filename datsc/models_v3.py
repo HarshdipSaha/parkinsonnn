@@ -177,6 +177,9 @@ def build_model(arm: str, n_scalars: int = 0, **kw) -> nn.Module:
         if kw.get("arch") == "se":                       # run 6a: SE / stochastic-depth striatal-crop family (datsc.models_a)
             from .models_a import build_3d_a
             return build_3d_a(n_scalars=n_scalars, **kw)
+        if kw.get("arch") == "hemi":                     # run 7: hemisphere-level shared encoder (datsc.models_h)
+            from .models_h import build_3d_h
+            return build_3d_h(n_scalars=n_scalars, **kw)
         return ResNet3D(n_scalars=n_scalars, **{k: v for k, v in kw.items() if k in ("widths", "dropout", "stem_stride")})
     if arm == "2d":
         return Net2D(n_scalars=n_scalars, **{k: v for k, v in kw.items() if k in ("backbone", "weights_path", "n_in", "dropout", "in_scale")})
