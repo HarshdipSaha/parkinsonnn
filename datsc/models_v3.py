@@ -177,6 +177,9 @@ def build_model(arm: str, n_scalars: int = 0, **kw) -> nn.Module:
         return ResNet3D(n_scalars=n_scalars, **{k: v for k, v in kw.items() if k in ("widths", "dropout", "stem_stride")})
     if arm == "2d":
         return Net2D(n_scalars=n_scalars, **{k: v for k, v in kw.items() if k in ("backbone", "weights_path", "n_in", "dropout", "in_scale")})
+    if arm == "tri":                                        # run 6b: tri-planar late fusion (datsc.models_b)
+        from .models_b import TriPlanarNet
+        return TriPlanarNet(n_scalars=n_scalars, **{k: v for k, v in kw.items() if k in ("backbone", "weights_path", "n_in", "n_views", "fusion", "dropout", "in_scale", "hidden")})
     raise ValueError(arm)
 
 

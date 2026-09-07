@@ -34,15 +34,16 @@ if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     for jp in sorted(glob.glob(str(art / f"{a.only}.json"))):
         meta = json.loads(Path(jp).read_text())
-        if "spec" not in meta or meta.get("fold", -1) < 0 or meta["spec"].get("arm") not in ("2d", "3d"):
+        if "spec" not in meta or meta.get("fold", -1) < 0 or meta["spec"].get("arm") not in ("2d", "3d", "tri"):
             continue
         tag = meta["tag"]; ck = art / f"{tag}.pt"
         if not ck.exists():
             continue
-        spec_d = dict(meta["spec"]); spec_d["tta_z"] = a.tta_z if spec_d["arm"] == "2d" else [0]
+        spec_d = dict(meta["spec"]); spec_d["tta_z"] = a.tta_z if spec_d["arm"] in ("2d", "tri") else [0]
         if a.tta_affine is not None:
             spec_d["tta_affine"] = a.tta_affine
-        spec = InputSpec(**spec_d)
+        from datsc.train_b import make_spec
+        spec = make_spec(spec_d)
         folds = pd.read_csv(Path(a.cache) / meta.get("folds_csv", "folds.csv"), dtype={"uid": str})
         va = folds[(folds["fold"] == meta["fold"]) & folds["uid"].isin(cache.index)]
         dl = DataLoader(VolDataset(cache, va["uid"], va["is_pathologic"], meta.get("norm", "ref")), batch_size=a.batch_size, num_workers=2)

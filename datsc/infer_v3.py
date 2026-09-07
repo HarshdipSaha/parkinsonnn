@@ -126,9 +126,9 @@ def run_arm(arm_cfg: dict, root: Path, vols, sc, st, ok, t0: float, batch_size: 
         return run_feat_arm(arm_cfg, root, vols, st, ok)
     import torch
     from .models_v3 import build_model
-    from .train_v3 import InputSpec
+    from .train_b import make_spec
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    spec = InputSpec(**arm_cfg["spec"])
+    spec = make_spec(arm_cfg["spec"])                       # InputSpec for 2d/3d, InputSpecB for the tri-planar arm
     idx = np.where(ok)[0]
     if len(idx) == 0:
         return None
