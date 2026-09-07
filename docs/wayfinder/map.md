@@ -38,17 +38,18 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 
 - [PPMI DaT-SPECT: what we would get and what the DUA allows](tickets/T02-ppmi-dat-spect-what-we-would-get.md): PPMI cannot be used here — DUA bars Kaggle-style platforms and any scan-list sharing; organiser ruled PPMI-trained models prize-ineligible. External data leaves the route.
 - [Build run 7: hemisphere-level Siamese members and the super-stack notebook](tickets/T07-build-run-7-hemisphere-level-siamese-members.md): built and tested; one-command launch ready; member's 1-epoch smoke beats crop-3D (0.413 vs 0.471).
+- [Hemisphere-level and asymmetry-aware DaT classification; single-scan test-time adaptation; label-noise-robust losses](tickets/T03-hemisphere-level-and-asymmetry-aware-dat-classification-single-scan.md): hemisphere member = diversity gain, not a step change; only BN-statistics blending has single-scan TTA evidence; robust losses are out, nested-OOF soft targets are the one label-noise idea with log-loss evidence.
 
 ## Not yet specified
 
-- Registration refinement (study template from all 1,362 scans, 3 iterations) — only if run 5 / T03 show registration-sensitive errors.
-- Single-scan test-time adaptation for the 3D arms — depends on T03's findings.
-- Label-noise-robust objective beyond the run-7 trial — depends on T03 and the run-7 read-out.
+- BatchNorm-prior blending at inference for the 2D ImageNet arms (T03 rank 4): only if T14's intensity views do not already close part of the gap.
 - Knowledge distillation of the super-stack into one net if the inference budget (T08) turns out too tight.
 - A second-stage striatal localiser to fix the residual registration errors of thin-FOV scans — only if the per-site tables after run 5/6 still show the 3.90 mm sites as the tail.
 
 ## Out of scope
 
+- Registration refinement (map Q7): T03 found nothing that supports it; ruled out unless a per-site table after run 5/6 contradicts.
+- Robust losses (GCE/SCE/MAE, co-teaching), uniform label smoothing, hard-case removal, MEMO/Tent entropy minimisation, more geometric TTA (T03 do-not list).
 - PPMI (or any DUA-bound dataset) as training data — [Obtain PPMI access](tickets/T04-obtain-ppmi-access-and-confirm-the.md) and [PPMI ingestion and pretraining notebook](tickets/T11-ppmi-ingestion-and-pretraining-notebook.md) closed after T02; research use after the deadline only.
 - Pseudo-labelling, transductive normalisation, prevalence estimation from test predictions (competition rules).
 - Non-commercial or non-public pretrained weights (DINOv3, RadImageNet).

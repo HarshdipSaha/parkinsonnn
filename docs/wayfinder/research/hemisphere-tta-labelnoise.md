@@ -7,7 +7,7 @@ created: 2026-09-07 05:00 UTC
 
 # T03 — hemisphere heads, single-scan test-time adaptation, label-noise losses
 
-<!-- BOTTOM -->
+**Bottom line.** (1) No DaT-SPECT paper has a controlled hemisphere-head-vs-whole-volume comparison; the two worst-side-mirroring precedents (Nazari 2021/2022, 1,300 scans, 95.8–97.0 %; Zhou & Tagare 2021, PPMI 98.7 %) are uncontrolled, and bilateral Siamese analogues in other modalities gain +0.01–0.07 AUC — so `HemiNet3D` is a diversity member, not a step change, and its sum + |difference| + max-side head is the right shape given that the ipsilateral side is already ≈ 38 % down at onset and atypical / DLB loss is symmetric. (2) Single-scan test-time adaptation has verified gains only for source-anchored BatchNorm-statistics blending, episodic MEMO and diffusion projection, all on corruption benchmarks and never as log loss; MEMO sharpens confidence (ECE 5.0 → 12.0) and should be skipped; a BN-prior blend on the EfficientNet arms is the one cheap, rule-compliant trial; intensity views, not more geometry, are the untried TTA direction. (3) No label-noise-robust loss paper reports NLL; those losses are non-proper and sharpen toward one-hot, and selection methods discard the hard clean tail; the only family with log-loss evidence is soft targets that carry uncertainty (held-out CE 0.35 vs 0.57), so: keep cross-entropy + temperature, add nested-OOF soft targets as a gated variant, no label smoothing, no case removal.
 
 ## What the recommendations are measured against
 
@@ -16,7 +16,21 @@ created: 2026-09-07 05:00 UTC
 - **Already measured (RESULTS_LOG):** z-shift + mirror TTA flat (0.2257 → 0.2251), affine TTA negative (→ 0.2269), typicality temperature −0.002 (below the 0.003 gate), clip/hedge no nested gain. Label-noise floor: the 40 hardest scans carry 24 % of the stack loss, the 100 hardest 46 %; they are abnormal-labelled scans that every arm scores 0.03–0.15.
 - **Run 7 already carries** `datsc/models_h.py` (`HemiNet3D`: one encoder over the two mirrored striatal half-crops, `z = pair([f_L + f_R, |f_L − f_R|]) + max(side(f_L), side(f_R))`) and `--loss bootstrap` (soft bootstrapping, `0.9·y + 0.1·σ(z)`). This note grades those designs against the literature rather than re-proposing them.
 
-<!-- Q1 -->
+## Q1 — Hemisphere-level / asymmetry-aware classification of DaT-SPECT
+
+| Method | Evidence | Reported gain (setting) | Applicability to rule R2 and to run 7 |
+|---|---|---|---|
+| **Worst-side canonical mirroring** of the whole volume (mirror at the mid-sagittal plane so the lower-putamen-SBR hemisphere is always on one side) | Nazari 2021 Sci Rep; Nazari 2022 EJNMMI; Zhou & Tagare 2021 IEEE BIBM | 1,306 clinical scans: acc 97.0 % full image / 95.7 % striatum-only / 69.3 % striatum removed; 1,296 scans: 95.8 % (sens 92.8, spec 98.7), LRP relevance concentrated in the worse putamen; PPMI 573: 98.7–98.8 % vs 95.1–97.9 % in prior work, the flip credited as "a contributing factor" — **no ablation against random flipping, no external site** | Allowed (uses only the scan's own SBR). A deterministic replacement for flip-TTA on the 2.5D arms; `HemiNet3D` gets it for free (its logit is mirror-invariant by construction). |
+| **Shared-encoder Siamese over the two hemispheres with a difference vector** | Arco 2022 IWINAC (DaT, PPMI); Deangeli 2023 MICCAI (Deep NORAH, hippocampus); Al 2024 arXiv (paired nigral MRI, symmetry loss); Liu 2019 MRI (AD) | Arco: "differences between the dopaminergic regions of both hemispheres lead to a high performance" — numbers [unverified, PDF unreachable]; Deep NORAH ablation: Siamese-difference AUC 0.95 vs non-Siamese encoder 0.62, AD-ADNI 1.00 vs 0.55 for the raw volume difference; paired-side regressor with a symmetry prior: MAE −12 % | This *is* `HemiNet3D`. The \|f_L − f_R\| channel is the best-supported part; the f_L + f_R term is what keeps symmetric (atypical / DLB) loss detectable. |
+| **Per-hemisphere / per-region heads on one trunk** | Buddenkotte 2025 EJNMMI (3,500 scans; IID test 1,068, OOD test 475) | Four heads (L/R caudate, L/R putamen, 5 ordinal levels): region accuracy 76–80 %, binary normal/reduced 97.4 % IID / 96.2 % OOD; no whole-image-only comparison | Allowed; supports an auxiliary per-side SBR target for the hemisphere encoder at ≈ 0 extra cost (the registered-ROI SBRs already exist in the feature arm). |
+| **Min-over-sides ("lowest putamen") reading rule** | Wenzel 2019 EJNMMI; Taylor & Fenner 2017 EJNMMI Phys; Morbelli 2020 EANM/SNMMI guideline; Benamer 2000 / Catafau 2004 visual grades | SBR baselines take the minimum over hemispheres; lowest-putamen semi-quantification 0.95 (PPMI) / 0.87 (local) vs ML 0.97 / 0.92; grade-1 abnormal = "reduced putaminal activity in one hemisphere" | Justifies the `max(side_L, side_R)` term of the run-7 head and a min-side SBR feature: readers grade the worse side. |
+| **Asymmetry index as a feature** | Iwabuchi 2019 EJNMMI Res; Durand de Gevigney 2026 JIIM; Fedorova 2023 J Parkinsons Dis | AI alone AUC 0.80–0.83, SBR alone 0.91–0.98, combined 0.99; "putamen SBR and asymmetry" the key scalars of a 2026 image + scalar transformer (AUROC 0.974 PPMI, 0.986 / 0.926 on two local sets); putamen AI DLB 0.05 vs PD 0.16 | Asymmetry adds to magnitude but is weak alone and ≈ 0 in DLB / atypical cases: never an asymmetry-only score. |
+| **Random L/R flip augmentation, flip TTA** (side-equivariance) | Choi 2017 NeuroImage Clin; Budenkotte 2024 EJNMMI | AUC 0.988 PPMI / 0.997 external; 98.0 / 94.1 / 98.0 % on dev / other camera / PPMI — the field's default, never ablated against canonical mirroring | What we do now; for a mirror-symmetric model the two are equivalent in expectation. |
+| **Bilateral analogues outside DaT** | Chen 2020 ECCV (AASN, pelvic X-ray); Mohamed 2022 EMBC (mammography Siamese); Wang 2023 MICCAI (DisAsymNet); FV-Net 2024 | +1.2 AUC pt (96.52 → 97.71) and recall@1 % FP 70.8 → 77.9; bilateral 0.75 vs unilateral 0.70 (p = 0.006); INbreast 0.82 vs 0.67; 0.863 → 0.932 | Controlled classification gains are +0.01–0.07 AUC; large only for anomaly-style asymmetry scoring. Sets the expectation for `HemiNet3D`: a modest, diversity-type gain, not a step change. |
+
+**Clinical basis for a worst-side prior.** Motor symptoms are asymmetric from onset in most cases (Djaldetti 2006); the posterior putamen contralateral to the signs is affected first and "the putamen of the less affected hemisphere is also early involved" (Morbelli 2020); at hemi-PD onset striatal uptake is down ≈ 53 % contralateral and ≈ 38 % ipsilateral (Marek 1996), so the "good" side is not normal; 72 % of right-handers are left-putamen-predominant (Scherfler 2012) but 8–15 % of PD are "wrong-sided" (Kaasinen 2016); healthy controls carry a sex-dependent normal asymmetry (Varrone 2013); atypical parkinsonism and DLB are symmetric (Morbelli 2020; Fedorova 2023); 44 % of SWEDD are re-diagnosed non-PD (Marek 2014) while ≈ 8 % of visually normal SWEDD carry a CNN-detectable deficit (Choi 2017); readers lateralise 71 % of scans and call 26 % symmetric (Kuo 2014).
+
+**Verdict.** (i) No DaT paper shows a per-hemisphere head beating a whole-volume CNN in a controlled comparison; the canonicalisation precedents are uncontrolled and single-site, and the cross-modality controlled gains are +0.01–0.07 AUC. (ii) Unilateral onset does make a min-over-sides / max-abnormality term a sound inductive bias for early cases, provided a symmetric-magnitude term sits beside it — which is exactly the run-7 head. Canonical mirroring keeps the asymmetry magnitude and discards only the weak left-predominance prior; asymmetry-only scores would miss the symmetric atypical cases. Expect `HemiNet3D` to earn its place through different errors (stack diversity) rather than a lower single-member loss.
 
 ## Q2 — Single-scan, non-transductive test-time adaptation under scanner shift
 
@@ -48,11 +62,51 @@ created: 2026-09-07 05:00 UTC
 
 **Verdict.** (i) Evidence of better NLL/Brier exists for soft targets that carry uncertainty (Peterson, Collins), for temperature scaling (Guo; robust to ≤ 5 % label noise per Penso) and, for ECE, for mixup. (ii) GCE/SCE/MAE-type losses, hard bootstrapping, forward correction and small-loss selection are expected to *raise* log loss here: they are non-proper or remove the hard clean tail, and no paper reports NLL for any of them. (iii) For 1,400 scans, 5 % ambiguity, log loss and a temperature-scaled stack: keep CE, add nested-OOF soft relabelling as a gated variant, keep mixup for the 3D members, no global label smoothing, no case removal.
 
-<!-- RANKED -->
+## Ranked recommendation for run 7 (at most five; baseline nested 0.2491, public 0.2667)
+
+| Rank | Try | Evidence | Expected effect (nested log loss) | Cost (2×T4) | Gate / risk |
+|---|---|---|---|---|---|
+| 1 | **`HemiNet3D` as designed** (shared encoder over mirrored half-crops; pair head on f_L + f_R and \|f_L − f_R\| plus max-side head), 5 folds × 3 seeds on random and site folds, mixup 0.2–0.4; if cheap, an auxiliary per-side putamen/caudate SBR regression target from the registered ROIs | Q1 rows 2–4; Deep NORAH ablation; Buddenkotte 2025 per-side heads generalise OOD; Thulasidasan / Zhang 2022 mixup calibration | member 0.25–0.27 with different errors; stack −0.003 to −0.010; a small site-gap reduction is plausible (the encoder sees 2× hemispheres in one orientation) | ≈ 2 h (half-crop encoder) | nested gain ≥ 0.003 to enter; if its site-fold loss is worse than crop-3D's, it stays at low weight |
+| 2 | **Nested-OOF soft targets** y* = (1 − λ)·y + λ·p_OOF, λ 0.3–0.5, on the hemisphere and crop-3D members, *replacing* `--loss bootstrap` | Peterson 2019 (CE 0.35 vs 0.57); Collins 2022; Zhang & Sabuncu 2020; RSNA-2024 2nd place | −0.003 to −0.008, concentrated on the ambiguous stratum (the 100 hardest scans hold 46 % of the loss); no help on scans whose *test* label is itself wrong | 0 extra as the run-7 variant; ≈ 3 h to redo crop-3D | p_OOF must come from inner folds of each training partition (or accept a second-order optimistic bias and gate on site folds); TS on top absorbs any under-confidence |
+| 3 | **Intensity-view TTA chosen by nested log loss**: train one 2.5D arm with random normalisation mode / reference-scale jitter, average identity + `p75` + `hist` views at inference | Medeiros 2026 (intensity 90.1 vs geometric 88.1 vs mixed 85.4 %); Lyzhov 2020 (select by calibrated LL); Kimura 2021 (identity + diversity); Llera 2019 | 0 to −0.005 nested; aimed at the count-level / scaling part of the 0.018 public gap | ≈ 2 h + 40 min re-OOF | identity view always included; drop if nested worsens (as z-shift and affine did) |
+| 4 | **BatchNorm-prior blend at inference on B0 / V2-S**: running stats = N/(N+n)·source + n/(N+n)·scan, n = the scan's slabs × TTA copies, N 16–64; GroupNorm / LayerNorm arms untouched; un-adapted twin kept in the stack | Schneider 2020 (n = 1, N = 16: 76.7 → 71.4 mCE); Lim 2023; Khurana 2021; Gong 2022 | 0 to −0.003 nested; more plausible on the public gap (camera shift is corruption-like) | inference + re-OOF only (≈ 40 min) | rule-compliant (one scan, reset); test-only stats are forbidden and catastrophic (90 % error at B = 1); gate ≥ 0.003 or drop |
+| 5 | **Worst-side canonical mirroring for one 2.5D variant** (mirror on the feature arm's putamen SBR), replacing flip-TTA | Nazari 2021 / 2022; Zhou & Tagare 2021 | 0 to −0.005 as a diversity member | ≈ 2–3 h | lowest priority; uncontrolled evidence; only if GPU time remains |
+
+**Do not spend run 7 on:** GCE / SCE / MAE-style losses or uniform label smoothing (non-proper or worse NLL after TS), removing "noisy" cases (they are the hard clean tail), MEMO / Tent-style entropy minimisation (sharpens; collapses or is disallowed), more geometric TTA (near-duplicate views, BN mismatch). Registration refinement (map Q7) is not indicated by anything found here: no DaT paper attributes site errors to registration; the DaT site literature attributes them to resolution, scatter, reconstruction and count level.
 
 ## Sources
 
-<!-- SOURCES-Q1 -->
+**Q1 — hemisphere / asymmetry**
+- Nazari et al. 2022, EJNMMI, *Explainable AI to improve acceptance of CNNs for automatic classification of DaT-SPECT* — https://link.springer.com/article/10.1007/s00259-021-05569-9
+- Nazari et al. 2021, Sci Rep, *Data-driven identification of diagnostically useful extrastriatal signal in DaT-SPECT* (same canonical-mirror preprocessing) — https://www.nature.com/articles/s41598-021-02385-x
+- Zhou & Tagare 2021, IEEE BIBM, *Machine learning on DaTscan images: PD vs HC with worse side flipped right* — https://arxiv.org/abs/2112.13637
+- Arco et al. 2022, IWINAC (LNCS 13258), *Siamese network on hemispheric dopaminergic regions* — https://link.springer.com/chapter/10.1007/978-3-031-06242-1_16
+- Buddenkotte et al. 2025, EJNMMI, *Region-wise (L/R caudate, L/R putamen) ordinal DaT-SPECT assessment, 3,500 scans* — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC12095456/
+- Budenkotte et al. 2024, EJNMMI (see Q3 list) — https://pmc.ncbi.nlm.nih.gov/articles/PMC10957699/
+- Choi et al. 2017, NeuroImage: Clinical, *PD Net* — https://pmc.ncbi.nlm.nih.gov/articles/PMC5610036/
+- Wenzel et al. 2019, EJNMMI — https://link.springer.com/article/10.1007/s00259-019-04502-5
+- Taylor & Fenner 2017, EJNMMI Physics, *Comparison of machine learning and semi-quantification (lowest putamen)* — https://ejnmmiphys.springeropen.com/articles/10.1186/s40658-017-0196-1
+- Iwabuchi et al. 2019, EJNMMI Research, *SBR, shape and asymmetry-index SVM* — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6890908/
+- Durand de Gevigney et al. 2026, J Imaging Inform Med, *Transformer fusion of DaT images and scalar features* — https://pubmed.ncbi.nlm.nih.gov/41559510/
+- Al, Yun, Bae 2024, arXiv, *Paired left/right nigral MRI with a symmetry loss* — https://arxiv.org/abs/2404.11929
+- Ozawa et al. 2026, npj Parkinson's Disease, *SuStaIn subtypes of DaT-SPECT progression (left / right posterior putamen, bilateral caudate)* — https://www.nature.com/articles/s41531-026-01347-2
+- Kuo et al. 2014, J Nucl Med Technol, *Laterality concordance of software vs visual reads* — https://tech.snmjournals.org/content/42/2/105
+- Djaldetti, Ziv, Melamed 2006, Lancet Neurology, *The mystery of motor asymmetry in Parkinson's disease* — https://www.thelancet.com/journals/laneur/article/PIIS1474-4422(06)70549-X/abstract
+- Marek et al. 1996, Neurology, *β-CIT SPECT in hemi-Parkinson's disease* — https://www.neurology.org/doi/10.1212/WNL.46.1.231
+- Booij et al. 1997, JNNP, *[123I]FP-CIT SPECT in early PD* — https://pubmed.ncbi.nlm.nih.gov/9048712/
+- Scherfler et al. 2012, Brain, *Left hemispheric predominance of nigrostriatal dysfunction* — https://academic.oup.com/brain/article/135/11/3348/272188
+- Kaasinen 2016, Ann Clin Transl Neurol, *Ipsilateral deficits of dopaminergic neurotransmission in PD* — https://onlinelibrary.wiley.com/doi/10.1002/acn3.268
+- Morbelli et al. 2020, EJNMMI, *EANM practice guideline / SNMMI procedure standard for dopaminergic imaging in parkinsonian syndromes 1.0* — https://pmc.ncbi.nlm.nih.gov/articles/PMC7300075/
+- Varrone et al. 2013, EJNMMI, *ENC-DAT healthy-control database* — https://link.springer.com/article/10.1007/s00259-012-2276-8
+- Benamer et al. 2000, Mov Disord, *Accurate differentiation of parkinsonism and essential tremor using visual assessment of [123I]FP-CIT SPECT* — https://pubmed.ncbi.nlm.nih.gov/10830416/
+- Booth et al. 2015, AJNR, *The role of functional dopamine-transporter SPECT imaging* (quotes the Catafau & Tolosa 2004 visual types) — https://pmc.ncbi.nlm.nih.gov/articles/PMC7965655/
+- Fedorova et al. 2023, J Parkinsons Dis, *Dopamine transporter asymmetry in DLB vs PD* — https://pmc.ncbi.nlm.nih.gov/articles/PMC10357144/
+- Marek et al. 2014, Neurology, *Longitudinal follow-up of SWEDD subjects in the PRECEPT study* — https://pubmed.ncbi.nlm.nih.gov/24759846/
+- Chen et al. 2020, ECCV, *Anatomy-aware Siamese network (AASN) for pelvic X-ray* — https://arxiv.org/abs/2007.01464
+- Mohamed, Fakhry, Basha 2022, IEEE EMBC, *Bilateral Siamese mammography CNN* — https://pubmed.ncbi.nlm.nih.gov/36086431/
+- Deangeli et al. 2023, MICCAI, *Deep NORAH: Siamese hippocampal asymmetry anomaly detection* — https://arxiv.org/abs/2306.15811
+- Wang et al. 2023, MICCAI, *DisAsymNet: asymmetry disentanglement for mammography* — https://arxiv.org/abs/2307.02935
+- FV-Net 2024, Tomography, *Cross-mammogram attention with bilateral contrastive learning* — https://www.ncbi.nlm.nih.gov/pmc/articles/PMC11209576/
 
 **Q2 — single-scan TTA**
 - Schneider et al. 2020, NeurIPS, *Improving robustness against common corruptions by covariate shift adaptation* — https://arxiv.org/abs/2006.16971
