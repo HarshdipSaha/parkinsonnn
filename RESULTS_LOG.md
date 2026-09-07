@@ -177,3 +177,7 @@ test (id-321297) from the 03:14 retry was cancelled to free the code-job slot fo
 **Submission 3 (slot 3): id-321298, uploaded Sept 7 03:38 UTC** — `submission_v4a_local.zip` (844 MB, 30 checkpoints: crop-3D .375 / V2-S .25 /
 ConvNeXt .125 / coronal B0 .125 / feat .125; nested 0.2491). Smoke tests of the same zip: id-321293 = 0.2176, id-321297 = 0.2263. Public score below when scored.
 
+**Public score (id-321298, Sept 7 03:45 UTC): log loss 0.2667, AUROC 0.9536, rank 39 / ~450** (run 3: 0.2817 / 0.9477 / 66). Nested 0.2491 →
+gap 0.018 (run 3: 0.021). Smoke-vs-public ladder: run 2 0.2567 → 0.3391; run 3 0.2397 → 0.2817; run 4a 0.2176/0.2263 → 0.2667 — the
+20-scan smoke set tracks the public ordering and is a cheap out-of-distribution check (never fit on it). All 3 slots used until Sept 12 15:38 UTC.
+

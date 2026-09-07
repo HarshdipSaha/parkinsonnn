@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | in-progress (opened Sept 6 15:55 UTC) |
+| **State** | complete — public **0.2667** / AUROC 0.9536 / rank **39** (id-321298, Sept 7 03:45 UTC) |
 | **Plan** | [2026-09-06-run4-toward-0.21.md](../../../docs/superpowers/plans/2026-09-06-run4-toward-0.21.md) (detailed, bite-sized tasks); background in [2026-09-06-run3-finish-and-run4.md](../../../docs/superpowers/plans/2026-09-06-run3-finish-and-run4.md) Part B and `docs/RESEARCH_SIMILAR_COMPETITIONS.md` |
 | **Baseline** | Run 3: public 0.2817 / AUROC 0.9477 / rank 66; OOF stack 0.2580 (nested 0.2603); leader 0.2192 / 0.971 |
 | **Budget** | Kaggle GPU: editor shows quota 12:42 of 30 h on Sept 6 16:00 UTC (≈ 12.7 h left this week; the weekly reset is not Saturday 00:00 UTC), 30 h next week. Real submissions: slot 3 free now; slot 1 back Sept 12 15:38 UTC; slot 2 back Sept 13 15:11 UTC. Deadline Sept 16 23:59 UTC |
@@ -44,4 +44,5 @@ Public 0.24–0.25 after 4a/4b (top 10–15). 0.21 requires the test AUROC to ri
 | 6 | 22:35–23:05 | Slot-3 upload: 844 MB zip twice closed the DrivenData dialog without uploading; Playwright MCP crashed; Chrome extension unavailable. Smaller fallback zip built (587 MB, nested 0.2504). Stuck Kaggle Version 3 still running (Stop Session blocked for me) | handed to the user: upload (smoke → normal) + Stop Session |
 | 7 | Sept 7 03:10 | Laptop shut down overnight; nothing uploaded; Version 3 still running toward its 12 h limit (~03:45 UTC). Diagnosed the upload failures: the Playwright bridge crashes on the 844 MB zip. Built `submission_v4a_450.zip` (398 MB, nested 0.2509) | slot-3 candidate; upload once the browser bridge is reconnected |
 | 8 | Sept 7 03:14–03:38 | Browser bridge back: path-based CDP attach uploads the 844 MB zip in 45 s (the crashes were caused by network listeners, not size); discovered smoke id-321293 = 0.2176 had already run overnight; duplicate smoke id-321297 = 0.2263; **real submission id-321298 (slot 3) uploaded 03:38 UTC**, 3 of 3 slots used until Sept 12 15:38 UTC | awaiting public score |
+| 9 | Sept 7 03:45 | Public score id-321298: **0.2667 / 0.9536 / rank 39** (from 66); nested 0.2491 → gap 0.018 | effort closed; run 5 (effort 004) next + three parallel approach agents (effort 005) |
 
