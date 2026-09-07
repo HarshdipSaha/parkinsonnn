@@ -1,0 +1,3 @@
+[r3d_se48_f0_s0] params=3.64M train=1089 val=273 norm=ref spec={'arm': '3d', 'size': [48, 48, 32], 'n_slabs': 3, 'slab_mm': 12.0, 'hw': 192, 'slab_mode': 'mean', 'z_center': None, 'plane': 'axial', 'tta_z': [0], 'crop': None, 'crop3d': [48, 48, 32], 'center3d': [47.5, 57.3, 33.5], 'tta_affine': 0} model_kw={'arch': 'se', 'widths': (32, 64, 128, 256), 'blocks': 1, 'se': True, 'drop_path': 0.1, 'n_scalars': 0}
+[r3d_se48_f0_s0] ep00 train=0.6397 val_logloss=0.5089 val_auroc=0.8656 raw=0.5384/0.8706 (1027s)
+[r3d_se48_f0_s0] done final val_logloss=0.5087 auroc=0.8665 (best epoch 0.5089) in 1087s
