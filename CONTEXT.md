@@ -136,3 +136,23 @@ The wall-clock deadlines inside inference after which remaining stages are skipp
 
 **Run**:
 One complete training campaign with a fixed design (run 1, run 2, run 3); each run has its own effort in the AI-DLC docs.
+
+**Shift gap**:
+The difference between a submission's nested out-of-fold log loss and its public score; 0.021 for run 3 and 0.018 for run 4a. It measures how much the hidden test's sites differ from the training sites.
+_Avoid_: generalisation gap (ambiguous with the random-fold gap)
+
+**Smoke-to-public track**:
+The pairs (smoke-test score, public score) of the real submissions so far, used as a coarse check that a candidate ranks the same way on both; never used to fit anything (ADR 0005).
+
+**Site pool**:
+The leave-pseudo-site-out predictions of every arm that has them, pooled over folds; where the site-fold temperature and, when every kept arm has one, the combiner weights are fitted.
+
+**Hemisphere member**:
+An arm whose encoder sees the left and right striatal half-crops separately (the right mirrored to the left orientation) and whose head combines the two, so a one-sided deficit is an explicit signal.
+
+**Super-stack**:
+A combiner fitted over the arms of several runs at once (runs 3–7), gated to at most ten arms by out-of-fold weight.
+
+**Checkpoint dataset**:
+The private Kaggle dataset (`dat-run3-checkpoints`) that every notebook resumes from and uploads its finished checkpoints, out-of-fold files and metadata to every four jobs.
+
