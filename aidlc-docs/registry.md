@@ -8,3 +8,4 @@ Derived from `aidlc-docs/efforts/*/effort-state.md`; the per-effort files are th
 | 002 | [run3-registered-ensemble](efforts/002-run3-registered-ensemble/effort-state.md) | complete | Public **0.2817** / AUROC 0.9477 / **rank 66** (id-321263, Sept 6); OOF 0.2580; container bug fixed by local repack |
 | 003 | [run4-toward-rank1](efforts/003-run4-toward-rank1/effort-state.md) | complete | Public **0.2667** / AUROC 0.9536 / **rank 39** (id-321298, Sept 7); nested 0.2491 |
 | 004 | [run5-site-invariance](efforts/004-run5-site-invariance/effort-state.md) | planning (spec + plan written) | DANN/group-DRO, hist standardisation, typicality temperature, affine TTA on the run-4a winners; PPMI conditional |
+| 005 | [run6-parallel-approaches](efforts/005-run6-parallel-approaches/effort-state.md) | in-progress | A (SE crop-3D family) and B (tri-planar fusion) merged with notebooks + HOWTO PDFs; C (features + SSL) running |
