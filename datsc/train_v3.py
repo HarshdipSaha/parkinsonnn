@@ -199,7 +199,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             with torch.no_grad():
                 if augment:
                     x = train_augment(x, aug)
-                dz = int(np.random.randint(-z_jitter, z_jitter + 1)) if (z_jitter and spec.arm == "2d") else 0
+                dz = int(np.random.randint(-z_jitter, z_jitter + 1)) if (z_jitter and spec.arm in ("2d", "tri")) else 0
                 inp = spec(x, dz)                                     # random slab-centre shift == the TTA offsets
                 if mixup > 0:
                     lam = float(np.random.beta(mixup, mixup)); perm = torch.randperm(inp.shape[0], device=device)
