@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | planning → ready to build (spec + plan written Sept 6 22:45 UTC); construction starts after the slot-3 submission is in |
+| **State** | in-progress — Kaggle **Version 4 = run 5** running since Sept 7 03:53 UTC (≈ 3 h) |
 | **Spec** | [2026-09-06-run5-site-invariance-spec.md](../../../docs/superpowers/specs/2026-09-06-run5-site-invariance-spec.md) |
 | **Plan** | [2026-09-06-run5-site-invariance-plan.md](../../../docs/superpowers/plans/2026-09-06-run5-site-invariance-plan.md) (Tasks 1–9, code included; Task 9 = PPMI, conditional on access) |
 | **Baseline** | Run 4a gated stack: nested 0.2491 (crop-3D .375, V2-S .25, ConvNeXt .125, coronal B0 .125, feat .125); best single arm striatal-crop 3D 0.2568 / 0.960 |
@@ -40,4 +40,5 @@
 | 3 | 23:40–23:50 | Task 4: reproducible affine TTA in `InputSpec.variants` (`--tta-affine`), re-OOF override | measured on crop-3D fold 0: 0.2257 → 0.2269 (K=3) → **not used** |
 | 4 | 23:50–00:10 | Task 5: typicality (Mahalanobis in the feat arm's PCA space, stats in `feat_v4.npz`), per-scan temperature in `combine`, `--typ` selection | run-4a stack nested 0.2499 → 0.2479 (κ 0.5, d0 = q0.9 = 1.19): below the 0.003 gate → **not selected** (kept available) |
 | 5 | 00:10–00:20 | Task 6: `JOBS4`, trimmed `ARMS` (10 arms), `EXTRAS`, queue-4 cell, landmark template + feat artefacts preferred from the checkpoint dataset, `--typ` in the stack cell; `kaggle/dat-parkinsons-train.ipynb` regenerated (63 cells); checkpoint-dataset snapshot (342 files) upload started | ready to launch — needs a browser (Playwright down) or the human path: import the ipynb, attach the 3 datasets, GPU T4 x2, Internet on, secrets, Save & Run All |
+| 6 | Sept 7 03:53 | Version 3 cancelled by the 12 h limit at 03:52; draft synced (63 cells) and **Version 4 (run 5) launched** as Save & Run All on GPU T4 x2; watcher `-Out data/kaggle_output_v5` | running; queues 1–3 should print 0 jobs, queue 4 trains JOBS4 |
 
