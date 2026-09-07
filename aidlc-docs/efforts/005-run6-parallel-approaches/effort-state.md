@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | delivered (all three merged Sept 7 05:00 UTC); Kaggle runs pending on the teammate's account (A after run 5; B and C any time) |
+| **State** | delivered (all three merged Sept 7 04:30 UTC); Kaggle runs pending on the teammate's account (A after run 5; B and C any time) |
 | **Ask** | User: three subagents, each a unique approach grounded in the EDA/research/results (+ web search), delivering an end-to-end Kaggle notebook runnable with one command from this repo, a one-page HOWTO PDF, and all code; use the smoke-vs-public ladder as a factor; runnable on a teammate's Kaggle account |
 | **Delivery** | `kaggle/run6a_crop3d/`, `kaggle/run6b_triplanar/`, `kaggle/run6c_features_ssl/` (each: `gen_run6x.py` → `notebook.ipynb` + `kernel-metadata.json`, `APPROACH.md`, `HOWTO.md` + `HOWTO.pdf`, tests `tests/test_run6x.py`); launch = `kaggle kernels push -p kaggle/<folder>`; second account: `docs/how-to-run-on-a-second-kaggle-account.md` |
 | **Depth** | standard |
@@ -20,6 +20,6 @@
 | # | When (UTC) | What | Result |
 |---|---|---|---|
 | 1 | Sept 7 03:50 | Three fork agents launched in isolated worktrees with identical constraints (rules, resume + per-4-job uploads, ≤ 6 h, compositions stack ≤ 10 arms, fail-safe tail, smoke-set scores per arm, < 850 MB zip, no launches) | |
-| 2 | 04:20–04:35 | B then A merged into master; notebooks regenerated after the merge so each carries the other's modules; 57 tests green; selftest OK | `fa30329` |
-| 3 | 04:55–05:00 | C merged; all three notebooks regenerated after the three-way merge (71 / 70 / 73 cells) and validated; 62 tests green; selftest OK | `HEAD` |
+| 2 | 04:10–04:25 | B then A merged into master; notebooks regenerated after the merge so each carries the other's modules; 57 tests green; selftest OK | `fa30329` |
+| 3 | 04:25–04:30 | C merged; all three notebooks regenerated after the three-way merge (71 / 70 / 73 cells) and validated; 62 tests green; selftest OK | `HEAD` |
 

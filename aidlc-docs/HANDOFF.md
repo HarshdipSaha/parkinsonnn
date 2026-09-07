@@ -116,7 +116,7 @@ Before launching make sure the stuck Version 3 is stopped (View Active Events �
 
 After the run: `python scripts/run4_assemble.py --src <dir with artifacts_v3> --extra-dir artifacts/featarm_v4 --smoke <smoke_dir> --zip data/submission_v5.zip` (add `--typ` to the fit_stack call inside if wanted), gates per the plan Task 7, smoke test, real submission when slot 1 returns (Sept 12 15:38 UTC).
 
-### Run 6 — three ready-to-launch notebooks (Sept 7 05:00 UTC)
+### Run 6 — three ready-to-launch notebooks (Sept 7 04:30 UTC)
 
 `kaggle/run6a_crop3d` (SE crop-3D family, ≈ 4.7 h), `kaggle/run6b_triplanar` (tri-planar fusion, ≈ 4 h), `kaggle/run6c_features_ssl` (116-descriptor feature arm + VICReg SSL, ≈ 2.5 h). Each folder: `gen_run6x.py` → `notebook.ipynb` + `kernel-metadata.json`, `APPROACH.md`, `HOWTO.md`/`HOWTO.pdf`. Launch from the repo root with `kaggle kernels push -p kaggle/<folder>` (regenerate first with `python kaggle/<folder>/gen_run6x.py`); second account: `docs/how-to-run-on-a-second-kaggle-account.md`. Do not run A concurrently with run 5 on the same account (both write the `r3d_cropinv` tag into the checkpoint dataset). After each run: `scripts/watch_kaggle_output.py --kernel <owner>/<slug> --out data/run6x` → `scripts/run4_assemble.py --src data/run6x --extra-dir artifacts/featcarm_v5 ...` (the assembler stacks every arm with OOF files; the new arms are listed in each generator's ARMS).
 
