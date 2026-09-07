@@ -174,4 +174,6 @@ B0 5 + feat; 398 MB): weights .4/.3/.2/.1, nested 0.2509, OOF 0.2464 — the slo
 **Correction (Sept 7 03:30 UTC):** the 844 MB zip was accepted after all — DrivenData smoke test **id-321293 = 0.2176** on the smoke set
 (run 3: 0.2397; run 2: 0.2567); the earlier "dialog closed" attempts had in fact uploaded (the page list simply lagged). A duplicate smoke
 test (id-321297) from the 03:14 retry was cancelled to free the code-job slot for the real submission of `submission_v4a_local.zip`.
+**Submission 3 (slot 3): id-321298, uploaded Sept 7 03:38 UTC** — `submission_v4a_local.zip` (844 MB, 30 checkpoints: crop-3D .375 / V2-S .25 /
+ConvNeXt .125 / coronal B0 .125 / feat .125; nested 0.2491). Smoke tests of the same zip: id-321293 = 0.2176, id-321297 = 0.2263. Public score below when scored.
 
