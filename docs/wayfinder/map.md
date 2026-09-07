@@ -1,7 +1,7 @@
 ---
 label: wayfinder:map
 title: The way to public 0.21–0.22 (DaT Parkinson's Challenge)
-created: 2026-09-07 05:00 UTC
+created: 2026-09-07 04:15 UTC
 ---
 
 # Map: the way to public 0.21–0.22
@@ -15,7 +15,7 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 - Domain glossary: `CONTEXT.md`; ADRs `docs/adr/0001–0005`. Standing decisions that this map does NOT revisit: registered 2 mm frame (ADR 0001), Kaggle as venue with private datasets (ADR 0002), few-number combiner with temperature floor (ADR 0003), honest protocol / no site scalars (ADR 0004), the smoke set is validation-only (ADR 0005).
 - Skills every session consults: `grilling` + `domain-modeling` for decisions, `research` for research tickets, `writing-plans` when a ticket graduates to a build, `verification-before-completion` before any claim of "verified".
 - **Execution is carried into this map** (override of "plan, don't do"): the user asked for the notebook + HOWTO as the end product, so T07/T09/T11 are build tickets, resolved by delivered, tested artefacts.
-- Where we stand (Sept 7 05:00 UTC): public 0.2667 / AUROC 0.9536 / rank 39 (run 4a, nested 0.2491); the **shift gap** (nested → public) has been 0.021 and 0.018; the leader is 0.2192 / 0.971. Reaching 0.215 needs roughly nested ≈ 0.20 with today's gap, or nested ≈ 0.22 with the gap closed — both a −0.03 to −0.05 step. Run 5 (site-invariant training, hist) is training; runs 6a/6b/6c are ready to launch; PPMI is applied for.
+- Where we stand (Sept 7 04:15 UTC): public 0.2667 / AUROC 0.9536 / rank 39 (run 4a, nested 0.2491); the **shift gap** (nested → public) has been 0.021 and 0.018; the leader is 0.2192 / 0.971. Reaching 0.215 needs roughly nested ≈ 0.20 with today's gap, or nested ≈ 0.22 with the gap closed — both a −0.03 to −0.05 step. Run 5 (site-invariant training, hist) is training; runs 6a/6b/6c are ready to launch; PPMI is applied for.
 - Honest odds recorded at charting: ≤ 0.22 public by the deadline ≈ 10–15 % (needs PPMI or an unusually strong site-gap closure); ≤ 0.24 (top 10) ≈ 40 %.
 - Rules that bound every ticket: no pseudo-labelling or transductive test use; per-sample inference within 3 h on 1×A100; public commercial-use weights only; external data only with legal right and disclosure.
 

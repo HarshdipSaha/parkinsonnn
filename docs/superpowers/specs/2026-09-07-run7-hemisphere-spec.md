@@ -1,6 +1,6 @@
 # Spec: Run 7 — hemisphere-level members and the super-stack (effort 006, wayfinder ticket T07)
 
-*Written Sept 7 2026 05:30 UTC in the `to-spec` synthesis format. Companion documents: `docs/wayfinder/map.md` (the route to 0.21–0.22), `kaggle/run7_hemisphere/APPROACH.md` (design and evidence), `kaggle/run7_hemisphere/HOWTO.md` (one-command launch).*
+*Written Sept 7 2026 04:45 UTC in the `to-spec` synthesis format. Companion documents: `docs/wayfinder/map.md` (the route to 0.21–0.22), `kaggle/run7_hemisphere/APPROACH.md` (design and evidence), `kaggle/run7_hemisphere/HOWTO.md` (one-command launch).*
 
 ## Problem Statement
 
