@@ -37,6 +37,7 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 <!-- one line per closed ticket: gist + link -->
 
 - [PPMI DaT-SPECT: what we would get and what the DUA allows](tickets/T02-ppmi-dat-spect-what-we-would-get.md): PPMI cannot be used here — DUA bars Kaggle-style platforms and any scan-list sharing; organiser ruled PPMI-trained models prize-ineligible. External data leaves the route.
+- [Build run 7: hemisphere-level Siamese members and the super-stack notebook](tickets/T07-build-run-7-hemisphere-level-siamese-members.md): built and tested; one-command launch ready; member's 1-epoch smoke beats crop-3D (0.413 vs 0.471).
 
 ## Not yet specified
 

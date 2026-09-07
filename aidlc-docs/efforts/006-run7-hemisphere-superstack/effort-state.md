@@ -22,3 +22,5 @@
 | # | When (UTC) | Unit | Result |
 |---|---|---|---|
 | 1 | Sept 7 04:20–04:48 | `HemiNet3D` (shared encoder over mirrored half-crops, symmetric pair + max-side head), dispatch `arch=hemi`, `--arch`/`--loss` on the standard CLI, bootstrapped loss in the trainer, JOBS7 (32 jobs ≈ 2.3 h on 2×T4), super-stack cell (top-10 arms), HOWTO md + 1-page pdf, APPROACH | 66 tests green (3 new); selftest OK; notebook validated; real-cache CPU smoke of the member running |
+| 2 | 05:00 | Real-cache CPU smoke of `r3d_hemi48_f0_s0`, one epoch | val 0.4128 / AUROC 0.8844 in 615 s (crop-3D one epoch: 0.4705 / 0.8621); T07 resolved on the wayfinder map |
+

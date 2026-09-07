@@ -181,3 +181,7 @@ ConvNeXt .125 / coronal B0 .125 / feat .125; nested 0.2491). Smoke tests of the 
 gap 0.018 (run 3: 0.021). Smoke-vs-public ladder: run 2 0.2567 → 0.3391; run 3 0.2397 → 0.2817; run 4a 0.2176/0.2263 → 0.2667 — the
 20-scan smoke set tracks the public ordering and is a cheap out-of-distribution check (never fit on it). All 3 slots used until Sept 12 15:38 UTC.
 
+## Run 7 built (Sept 7 05:00 UTC): hemisphere-level member + super-stack notebook
+
+`kaggle/run7_hemisphere/` — HemiNet3D (shared encoder over the two mirrored striatal half-crops; head over [f_L + f_R, |f_L − f_R|] + max side logit; mirror-invariant), `--loss bootstrap` probe, JOBS7 32 jobs, super-stack over the 10 best arms of runs 3–7. One-epoch CPU smoke of the member: 0.4128 / 0.884 (crop-3D one epoch: 0.4705 / 0.862). Not launched yet. PPMI ruled out for the competition (DUA + organiser ruling; `docs/wayfinder/research/ppmi-dat-spect.md`).
+
