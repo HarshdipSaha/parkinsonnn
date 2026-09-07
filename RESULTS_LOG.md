@@ -171,4 +171,7 @@ Sept 7 03:10 UTC: the failed uploads are a browser-bridge limit, not DrivenData 
 the 844 MB file (419 MB worked in run 3). Sub-limit variant `data/submission_v4a_450.zip` (crop-3D 5 + V2-S seeds 0–1 (9) + coronal
 B0 5 + feat; 398 MB): weights .4/.3/.2/.1, nested 0.2509, OOF 0.2464 — the slot-3 candidate. Rule for future zips: keep them < 420 MB
 (fewer V2-S/ConvNeXt checkpoints) or upload by hand.
+**Correction (Sept 7 03:30 UTC):** the 844 MB zip was accepted after all — DrivenData smoke test **id-321293 = 0.2176** on the smoke set
+(run 3: 0.2397; run 2: 0.2567); the earlier "dialog closed" attempts had in fact uploaded (the page list simply lagged). A duplicate smoke
+test (id-321297) from the 03:14 retry was cancelled to free the code-job slot for the real submission of `submission_v4a_local.zip`.
 
