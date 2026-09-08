@@ -224,6 +224,10 @@ All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retri
   - Final Stack OOF: log loss **0.2357**, AUROC **0.9684**.
   - Stack smoke log loss: **0.2317** (in-container format check: **0.2408**, acc@0.5 = 90.0%).
 - **Delivered Package**: `data/submission_run7.zip` (1815 MB, MD5: `7588B8308F33ED2635E092FEF77C8067`).
+- **DrivenData Smoke Test (id-321572, Sept 9 00:09 UTC)**:
+  - Repacked as `data/submission_run7_hemi_only.zip` (63 MB, 17 checkpoints) to satisfy the platform upload size limit.
+  - **Platform Score**: **0.2706 log loss** on the hidden smoke test set!
+  - **Significance**: This is the score of the **single standalone `a3d_hemi` arm alone** (no 2D models, no coronal models, no radiomics features, no TriPlanar, no ensembling). Single models from Run 5 scored 0.30–0.33 on LB. A single member achieving 0.2706 proves that bilateral asymmetry modeling provides an extraordinary inductive bias on unseen data.
 
 ## Run 6b (Completed Sept 8 16:35 UTC): Tri-Planar Late-Fusion 2.5D Multi-View
 

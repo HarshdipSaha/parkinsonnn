@@ -17,4 +17,10 @@
 | 2026-09-06 15:10 | Real submission uploaded before the smoke-test result was visible (slot 2 of 3) | User: "now submit" |
 | 2026-09-06 15:20 | Keep the GPU closed after the run (no interactive sessions) | User: "close the gpu ok" — draft session confirmed off |
 | 2026-09-06 15:50 | Public 0.2817 / rank 66. New target set by the user: 0.21 using all research + EDA findings | User: "IMPROVE THIS TO 0.21" |
+| 2026-09-08 08:00 | Teammate Kaggle credentials (`skyfall23`) used due to GPU quota exhaustion on primary account | User instruction |
+| 2026-09-08 11:10 | Run 7 (HemiNet3D bilateral Siamese) launched on Kaggle `skyfall23/dat-run7-hemisphere` | Autonomous execution per roadmap |
+| 2026-09-08 14:00 | Run 6b (Tri-Planar 2.5D late fusion) launched on Kaggle `skyfall23/dat-run6b-triplanar` | Autonomous execution per roadmap |
+| 2026-09-08 16:45 | Run 6c (116 radiomic descriptors + VICReg SSL) launched on Kaggle `skyfall23/dat-run6c-features-ssl` | User instruction ("start running: Run 6c") |
+| 2026-09-08 23:25 | Large 1.8GB submission zip rejected by DrivenData upload; isolated slim package `data/submission_run7_hemi_only.zip` (63 MB) built and uploaded for pure HemiNet evaluation | Autonomous fix to bypass platform upload size limit |
+| 2026-09-09 00:09 | DrivenData smoke test id-321572 evaluated: **0.2706 log loss** for single standalone HemiNet arm on hidden test set | Platform evaluation result |
 
