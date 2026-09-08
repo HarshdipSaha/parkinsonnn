@@ -211,8 +211,36 @@ All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retri
 ### 4. DrivenData Evaluation:
 - **Smoke test id-321496** (`submission_run5.zip`, 39 ckpts, 1421 MB): **0.2388 log loss** (local container smoke loss: 0.2241, acc@0.5 = 95.0%). Slot 1 submission candidate for Sept 12 15:38 UTC.
 
-## Run 7 built (Sept 7 05:00 UTC): hemisphere-level member + super-stack notebook
+## Run 7 (Completed Sept 8 13:40 UTC): HemiNet3D Bilateral Siamese Architecture
 
-`kaggle/run7_hemisphere/` — HemiNet3D (shared encoder over the two mirrored striatal half-crops; head over [f_L + f_R, |f_L − f_R|] + max side logit; mirror-invariant), `--loss bootstrap` probe, JOBS7 32 jobs, super-stack over the 10 best arms of runs 3–7. One-epoch CPU smoke of the member: 0.4128 / 0.884 (crop-3D one epoch: 0.4705 / 0.862). Not launched yet. PPMI ruled out for the competition (DUA + organiser ruling; `docs/wayfinder/research/ppmi-dat-spect.md`).
+- **Kernel**: `skyfall23/dat-run7-hemisphere` on 2x Tesla T4 (32 jobs completed).
+- **Core Innovation**: `HemiNet3D` (midline split at $x=24$, right hemisphere mirrored, shared 3D ResNet encoder, symmetric pair head $[f_L+f_R, |f_L-f_R|]$ + max-side head).
+- **Single-model Breakthrough**:
+  - `a3d_hemi` OOF: log loss **0.2379**, AUROC **0.9658** (15 checkpoints).
+  - Best fold: `r3d_hemi48_f2_s0_site` val log loss **0.1925** (best epoch **0.1829**), AUROC **0.9832**.
+  - `r3d_hemi48_f4_s2`: val log loss **0.2021**, AUROC **0.9775**.
+- **Ensemble Result**:
+  - `a3d_hemi` took **50.0% weight** in the final super-stack!
+  - Final Stack OOF: log loss **0.2357**, AUROC **0.9684**.
+  - Stack smoke log loss: **0.2317** (in-container format check: **0.2408**, acc@0.5 = 90.0%).
+- **Delivered Package**: `data/submission_run7.zip` (1815 MB, MD5: `7588B8308F33ED2635E092FEF77C8067`).
+
+## Run 6b (Completed Sept 8 16:35 UTC): Tri-Planar Late-Fusion 2.5D Multi-View
+
+- **Kernel**: `skyfall23/dat-run6b-triplanar` on 2x Tesla T4 (25 jobs completed in 8925s ≈ 2.47h).
+- **Core Innovation**: `TriPlanarNet` (ImageNet ConvNeXt-Tiny & EfficientNet-V2-S reading Axial, Coronal, Sagittal-L, Sagittal-R slabs with view attention).
+- **Single-model Performance**:
+  - `tri_cnx` (10 ckpts): OOF log loss **0.2560**, AUROC **0.9603**. Fold 0 seed 1: **0.2341**, Fold 4 seed 1: **0.2425**.
+  - `tri_v2s` (5 ckpts): OOF log loss **0.2634**, AUROC **0.9583**. Smoke log loss: **0.1641**.
+- **Ensemble Result**:
+  - `tri_cnx` took **25.0% weight** in the stack!
+  - Final Stack OOF: log loss **0.2434**, AUROC **0.9664**.
+  - In-container smoke test: **0.2139 log loss**, acc@0.5 = 90.0%, 136s runtime.
+- **Delivered Package**: `data/run6b/submission_v3.zip` (2275 MB, 73 checkpoints).
+
+## Run 6c (Launched Sept 8 16:45 UTC): 116 Radiomics + VICReg SSL
+
+- **Kernel**: `skyfall23/dat-run6c-features-ssl` on 2x Tesla T4.
+- **Scope**: 116 radiomic descriptors (`featc` arm) + VICReg self-supervised pretraining on DaT scans + fine-tuned crop-3D models (17 jobs). Currently running.
 
 

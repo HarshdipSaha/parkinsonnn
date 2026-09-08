@@ -104,8 +104,10 @@ nb.metadata["kernelspec"] = {"name": "python3", "display_name": "Python 3", "lan
 nb.cells = [nbformat.v4.new_markdown_cell(c["source"]) if c["type"] == "markdown" else nbformat.v4.new_code_cell(c["source"]) for c in cells]
 nbformat.validate(nb)
 nbformat.write(nb, str(HERE / "notebook.ipynb"))
+owner = sys.argv[sys.argv.index("--owner") + 1] if "--owner" in sys.argv else KERNEL_ID.split("/")[0]
+kid = f"{owner}/dat-run6c-features-ssl"
 (HERE / "kernel-metadata.json").write_text(json.dumps({
-    "id": KERNEL_ID, "title": "dat-run6c-features-ssl", "code_file": "notebook.ipynb", "language": "python", "kernel_type": "notebook",
+    "id": kid, "title": "dat-run6c-features-ssl", "code_file": "notebook.ipynb", "language": "python", "kernel_type": "notebook",
     "is_private": True, "enable_gpu": True, "enable_tpu": False, "enable_internet": True,
     "dataset_sources": DATASETS, "competition_sources": [], "kernel_sources": [], "model_sources": []}, indent=1))
-print(f"wrote {HERE/'notebook.ipynb'} ({len(nb.cells)} cells) + kernel-metadata.json (id {KERNEL_ID}); jobs: {sum(len(j['seeds'])*len(j.get('folds', range(5))) for j in JOBS_C)} fine-tune runs")
+print(f"wrote {HERE/'notebook.ipynb'} ({len(nb.cells)} cells) + kernel-metadata.json (id {kid}); jobs: {sum(len(j['seeds'])*len(j.get('folds', range(5))) for j in JOBS_C)} fine-tune runs")
