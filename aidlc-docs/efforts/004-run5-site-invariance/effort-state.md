@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | in-progress — Kaggle **Version 4 = run 5** running since Sept 7 03:53 UTC (≈ 3 h) |
+| **State** | delivered (assembled nested 0.2433; submission candidate for Sept 12 15:38 UTC) |
 | **Spec** | [2026-09-06-run5-site-invariance-spec.md](../../../docs/superpowers/specs/2026-09-06-run5-site-invariance-spec.md) |
 | **Plan** | [2026-09-06-run5-site-invariance-plan.md](../../../docs/superpowers/plans/2026-09-06-run5-site-invariance-plan.md) (Tasks 1–9, code included; Task 9 = PPMI, conditional on access) |
 | **Baseline** | Run 4a gated stack: nested 0.2491 (crop-3D .375, V2-S .25, ConvNeXt .125, coronal B0 .125, feat .125); best single arm striatal-crop 3D 0.2568 / 0.960 |
@@ -40,5 +40,7 @@
 | 3 | 23:40–23:50 | Task 4: reproducible affine TTA in `InputSpec.variants` (`--tta-affine`), re-OOF override | measured on crop-3D fold 0: 0.2257 → 0.2269 (K=3) → **not used** |
 | 4 | 23:50–00:10 | Task 5: typicality (Mahalanobis in the feat arm's PCA space, stats in `feat_v4.npz`), per-scan temperature in `combine`, `--typ` selection | run-4a stack nested 0.2499 → 0.2479 (κ 0.5, d0 = q0.9 = 1.19): below the 0.003 gate → **not selected** (kept available) |
 | 5 | 00:10–00:20 | Task 6: `JOBS4`, trimmed `ARMS` (10 arms), `EXTRAS`, queue-4 cell, landmark template + feat artefacts preferred from the checkpoint dataset, `--typ` in the stack cell; `kaggle/dat-parkinsons-train.ipynb` regenerated (63 cells); checkpoint-dataset snapshot (342 files) upload started | ready to launch — needs a browser (Playwright down) or the human path: import the ipynb, attach the 3 datasets, GPU T4 x2, Internet on, secrets, Save & Run All |
-| 6 | Sept 7 03:53 | Version 3 cancelled by the 12 h limit at 03:52; draft synced (63 cells) and **Version 4 (run 5) launched** as Save & Run All on GPU T4 x2; watcher `-Out data/kaggle_output_v5` | running; queues 1–3 should print 0 jobs, queue 4 trains JOBS4 |
+| 6 | Sept 7 03:53–09:39 | Version 4 (run 5) ran on Kaggle (2xT4); 479 artefacts retrieved to `data/kaggle_output_v5/artifacts_v3` | completed |
+| 7 | Sept 7 10:40 | Readout & assembly: `r3d_cropinv` fails gate (0.2884 vs 0.2589 on site folds) -> OUT. `r3d_crophist` improves single-seed (0.2539 vs 0.2568) and displaces crop-3D at 37.5% weight -> IN. Re-fitted nested combiner estimate: **0.2433** (vs run-4a 0.2491, gain -0.0058); stack OOF **0.2394** / AUROC **0.9672** (equal-weight 0.2370). Zip assembled. | gate passed (nested < 0.2491) |
+| 8 | Sept 8 14:30 | DrivenData Smoke Test id-321496 (`submission_run5.zip`): **0.2388 log loss** (local container smoke loss 0.2241, acc@0.5 = 95.0%). Locked in as candidate for Slot 1 (Sept 12 15:38 UTC). | smoke test verified |
 

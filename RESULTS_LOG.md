@@ -177,11 +177,42 @@ test (id-321297) from the 03:14 retry was cancelled to free the code-job slot fo
 **Submission 3 (slot 3): id-321298, uploaded Sept 7 03:38 UTC** — `submission_v4a_local.zip` (844 MB, 30 checkpoints: crop-3D .375 / V2-S .25 /
 ConvNeXt .125 / coronal B0 .125 / feat .125; nested 0.2491). Smoke tests of the same zip: id-321293 = 0.2176, id-321297 = 0.2263. Public score below when scored.
 
-**Public score (id-321298, Sept 7 03:45 UTC): log loss 0.2667, AUROC 0.9536, rank 39 / ~450** (run 3: 0.2817 / 0.9477 / 66). Nested 0.2491 →
-gap 0.018 (run 3: 0.021). Smoke-vs-public ladder: run 2 0.2567 → 0.3391; run 3 0.2397 → 0.2817; run 4a 0.2176/0.2263 → 0.2667 — the
-20-scan smoke set tracks the public ordering and is a cheap out-of-distribution check (never fit on it). All 3 slots used until Sept 12 15:38 UTC.
+## Run 5 readout & assembly (Sept 7 10:40 UTC) — Version 4 completed
+
+All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retrieved to `data/kaggle_output_v5/artifacts_v3`.
+
+### 1. Site-invariance & normalisation mechanisms (A/B comparisons, seed 0):
+- **`r3d_cropinv` (DANN 0.1 site adversary + group-DRO 0.1)**:
+  - Random folds: 0.2885 / AUROC 0.9493 (baseline crop-3D: 0.2568 / 0.9603)
+  - Leave-site-out folds: 0.2884 / AUROC 0.9501 (baseline crop-3D: 0.2589 / 0.9598)
+  - Finding: Site-invariance equalized random and site fold losses (0.2885 vs 0.2884) but degraded discrimination overall (+0.030 log loss penalty). Fails the >= 0.005 gate -> **OUT**.
+- **`r3d_crophist` (Piecewise-linear reference-region histogram standardisation)**:
+  - Random folds: **0.2539** / AUROC **0.9614** (baseline crop-3D seed 0: 0.2568 / 0.9603).
+  - Finding: Outperformed standard crop-3D across random folds (-0.0029 gain) and displaced plain crop-3D in the stack -> **IN**.
+
+### 2. Multi-seed & architecture scaling:
+- `r3d_crop` (3 seeds, 15 ckpts): AUROC **0.9622**, log loss **0.2525**
+- `a2d_v2s` (3 seeds, 15 ckpts): AUROC **0.9576**, log loss **0.2630**
+- `a2d_cnx` (2 seeds, 10 ckpts): AUROC **0.9569**, log loss **0.2715**
+- `a2d_cnx_cor` (coronal ConvNeXt, 5 ckpts): AUROC **0.9571**, log loss **0.2651**
+- `feat` (handcrafted 44-descriptor + PCA arm): AUROC **0.9398**, log loss **0.3120**
+
+### 3. Assembled Combiner (Grid 8, Nested CV):
+- Nested combiner estimate: **0.2433** (Run 4a was **0.2491**; -0.0058 improvement!)
+- Stack OOF: AUROC **0.9672**, log loss **0.2394** (equal-weight logloss **0.2370**)
+- Final surviving arms & weights:
+  - `a3d_crophist`: **0.375** (37.5%)
+  - `a2d_cnx_cor`: **0.250** (25.0%)
+  - `a2d_v2s`: **0.125** (12.5%)
+  - `a2d_cnx`: **0.125** (12.5%)
+  - `feat`: **0.125** (12.5%)
+- Per-site nested logloss: other 0.2623 (0.959), 2.46 high 0.2336 (0.970), 2.30 low 0.2297 (0.969), 2.40 ultralow 0.1656 (0.987).
+
+### 4. DrivenData Evaluation:
+- **Smoke test id-321496** (`submission_run5.zip`, 39 ckpts, 1421 MB): **0.2388 log loss** (local container smoke loss: 0.2241, acc@0.5 = 95.0%). Slot 1 submission candidate for Sept 12 15:38 UTC.
 
 ## Run 7 built (Sept 7 05:00 UTC): hemisphere-level member + super-stack notebook
 
 `kaggle/run7_hemisphere/` — HemiNet3D (shared encoder over the two mirrored striatal half-crops; head over [f_L + f_R, |f_L − f_R|] + max side logit; mirror-invariant), `--loss bootstrap` probe, JOBS7 32 jobs, super-stack over the 10 best arms of runs 3–7. One-epoch CPU smoke of the member: 0.4128 / 0.884 (crop-3D one epoch: 0.4705 / 0.862). Not launched yet. PPMI ruled out for the competition (DUA + organiser ruling; `docs/wayfinder/research/ppmi-dat-spect.md`).
+
 

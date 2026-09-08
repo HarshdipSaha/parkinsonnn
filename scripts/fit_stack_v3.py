@@ -90,24 +90,19 @@ if __name__ == "__main__":
     uids = sorted(set.intersection(*[set(o.index) for o in oofs.values()]))
     y = oofs[arms[0]["name"]].loc[uids, "y"].values.astype(float)
     Z = np.stack([logit(oofs[arm["name"]].loc[uids, "p"].values) for arm in arms])
-    best = (float("inf"), None)
-    for comb in compositions(a.grid, len(arms)):
-        w = np.array(comb, float) / a.grid
-        ll = logloss(y, sigmoid((w[:, None] * Z).sum(0)))
-        if ll < best[0]:
-            best = (ll, w)
-    w = best[1]
+    W_grid_all = np.array(list(compositions(a.grid, len(arms))), float) / a.grid
+    logits_all = W_grid_all @ Z
+    losses_all = (np.maximum(logits_all, 0.0) - logits_all * y + np.log1p(np.exp(-np.abs(logits_all)))).mean(axis=1)
+    w = W_grid_all[np.argmin(losses_all)]
     z = (w[:, None] * Z).sum(0)
     T_rand = fit_temperature(z, y)
 
     # ---- nested estimate of the full combiner + clip/hedge selection (weights & T refitted on 4 folds, applied to the 5th) ----
     def fit_wt(Zs, ys):
-        bw, bl = None, float("inf")
-        for comb in compositions(a.grid, Zs.shape[0]):
-            ww = np.array(comb, float) / a.grid
-            ll = logloss(ys, sigmoid((ww[:, None] * Zs).sum(0)))
-            if ll < bl:
-                bl, bw = ll, ww
+        W_grid = np.array(list(compositions(a.grid, Zs.shape[0])), float) / a.grid
+        logits = W_grid @ Zs
+        losses = (np.maximum(logits, 0.0) - logits * ys + np.log1p(np.exp(-np.abs(logits)))).mean(axis=1)
+        bw = W_grid[np.argmin(losses)]
         zz = (bw[:, None] * Zs).sum(0)
         return bw, max(fit_temperature(zz, ys), a.t_floor)
 
@@ -125,6 +120,7 @@ if __name__ == "__main__":
     if a.nested:
         folds = pd.read_csv(Path(a.cache) / "folds.csv", dtype={"uid": str}).set_index("uid").loc[uids, "fold"].values
         spread_all = Z.max(0) - Z.min(0)
+        fold_models = {k: fit_wt(Z[:, folds != k], y[folds != k]) for k in np.unique(folds)}
         cands = []
         for clip in a.clip:
             for q in a.hedge_q:
@@ -132,8 +128,8 @@ if __name__ == "__main__":
                     hedge = None if q <= 0 else (float(np.quantile(spread_all, q)), hl)
                     pn = np.zeros(len(y))
                     for k in np.unique(folds):
-                        tr, va = folds != k, folds == k
-                        ww, TT = fit_wt(Z[:, tr], y[tr])
+                        va = folds == k
+                        ww, TT = fold_models[k]
                         pn[va] = apply(Z[:, va], ww, TT, clip, hedge)
                     cands.append((logloss(y, pn), clip, q, hl, hedge))
         cands.sort(key=lambda c: c[0])
@@ -153,8 +149,9 @@ if __name__ == "__main__":
             sites = pd.read_csv(sp, dtype={"uid": str}).set_index("uid").loc[uids, "site"].values
             pn = np.zeros(len(y))
             for k in np.unique(folds):
-                tr, va = folds != k, folds == k
-                ww, TT = fit_wt(Z[:, tr], y[tr]); pn[va] = apply(Z[:, va], ww, TT, chosen_clip, chosen_hedge)
+                va = folds == k
+                ww, TT = fold_models[k]
+                pn[va] = apply(Z[:, va], ww, TT, chosen_clip, chosen_hedge)
             print("per-site nested: site n prev mean_p logloss auroc")
             for st in pd.Series(sites).value_counts().index[:9]:
                 m = sites == st
@@ -167,8 +164,9 @@ if __name__ == "__main__":
         def nested_ll(typ):
             pn = np.zeros(len(y))
             for k in np.unique(folds):
-                tr, va = folds != k, folds == k
-                ww, TT = fit_wt(Z[:, tr], y[tr]); pn[va] = apply(Z[:, va], ww, TT, chosen_clip, chosen_hedge, typ, dd[va] if typ else None)
+                va = folds == k
+                ww, TT = fold_models[k]
+                pn[va] = apply(Z[:, va], ww, TT, chosen_clip, chosen_hedge, typ, dd[va] if typ else None)
             return logloss(y, pn)
         base_t = nested_ll(None); cands_t = []
         for kappa in (0.25, 0.5, 1.0, 2.0):
