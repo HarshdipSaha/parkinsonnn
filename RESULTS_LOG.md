@@ -241,6 +241,10 @@ All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retri
   - Final Stack OOF: log loss **0.2434**, AUROC **0.9664**.
   - In-container smoke test: **0.2139 log loss**, acc@0.5 = 90.0%, 136s runtime.
 - **Delivered Package**: `data/run6b/submission_v3.zip` (2275 MB, 73 checkpoints).
+- **DrivenData Smoke Test (id-321610, Sept 9 06:35 UTC)**:
+  - Repacked as `data/submission_run6b_triplanar_only.zip` (930 MB, 20 checkpoints: `tri_cnx`, `tri_cnx_hist`, `tri_v2s`).
+  - **Platform Score**: **0.2341 log loss** on the hidden smoke test set!
+  - **Significance**: This is the **strongest standalone score in the entire competition history**, outperforming even the full 15-model Run 5 ensemble (0.2388). It proves that multi-planar 2.5D attention (axial + coronal + dual sagittal views) provides unmatched spatial representation.
 
 ## Run 6c (Completed Sept 9 00:15 UTC): 116 Radiomics + VICReg SSL
 

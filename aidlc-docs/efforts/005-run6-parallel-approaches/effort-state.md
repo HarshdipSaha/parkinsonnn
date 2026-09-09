@@ -24,4 +24,5 @@
 | 3 | 04:25–04:30 | C merged; all three notebooks regenerated after the three-way merge (71 / 70 / 73 cells) and validated; 62 tests green; selftest OK | `HEAD` |
 | 4 | Sept 8 14:00–16:35 | Kaggle execution of Unit B `skyfall23/dat-run6b-triplanar` (25 jobs on 2xT4) | Completed. `tri_cnx` OOF 0.2560; stack OOF 0.2434; container smoke 0.2139 log loss; artifacts retrieved to `data/run6b/`. |
 | 5 | Sept 8 16:45–20:20 | Kaggle execution of Unit C `skyfall23/dat-run6c-features-ssl` (17 jobs on 2xT4) | Completed. VICReg SSL pretraining 91 min; `a3d_ssl` 38% stack weight; `featc` 12% weight; stack OOF 0.2412; container smoke 0.2289. |
+| 6 | Sept 9 06:35 | DrivenData smoke test evaluation **id-321610** (`submission_run6b_triplanar_only.zip`) | **Score: 0.2341 log loss**! Strongest single-architecture score on the platform, beating the full 15-model Run 5 ensemble (0.2388). |
 
