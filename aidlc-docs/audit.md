@@ -24,4 +24,5 @@
 | 2026-09-08 23:25 | Large 1.8GB submission zip rejected by DrivenData upload; isolated slim package `data/submission_run7_hemi_only.zip` (63 MB) built and uploaded for pure HemiNet evaluation | Autonomous fix to bypass platform upload size limit |
 | 2026-09-09 00:09 | DrivenData smoke test id-321572 evaluated: **0.2706 log loss** for single standalone HemiNet arm on hidden test set | Platform evaluation result |
 | 2026-09-09 06:35 | DrivenData smoke test id-321610 evaluated: **0.2341 log loss** for standalone Tri-Planar 2.5D package on hidden test set (beats full Run 5 ensemble 0.2388) | Platform evaluation result |
+| 2026-09-09 12:25 | DrivenData smoke test id-321617 evaluated: **0.2363 log loss** for unified 5-pillar `submission_master_final.zip` (463.92 MB) on hidden test set | Platform evaluation result |
 

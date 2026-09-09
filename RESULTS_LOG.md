@@ -276,5 +276,8 @@ All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retri
 - **Container End-to-End Smoke Test**:
   - Tested locally on CPU via `local_e2e_v3.py`: `exit=0`, `failed volumes: 0`, all checkpoints used (5/5 for each arm), `FORMAT OK (20, 2)`, `acc@0.5 = 0.900`.
 - **Shipped Package**: `data/submission_master_final.zip` (463.92 MB, 20 neural checkpoints + 1 radiomics model; zero duplicate files). Ready for official DrivenData submission.
+- **DrivenData Smoke Test (id-321617, Sept 9 12:25 UTC)**:
+  - **Platform Score**: **0.2363 log loss** on the hidden smoke test set!
+  - **Significance**: Beats our previous official ensemble benchmark (Run 5 smoke loss 0.2388). Confirms that the 5-pillar master ensemble generalizes cleanly on the DrivenData cloud container without any runtime, memory, or domain-shift issues. Official Slot 1 primary submission candidate.
 
 
