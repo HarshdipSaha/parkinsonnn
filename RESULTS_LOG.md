@@ -261,4 +261,20 @@ All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retri
   - In-container smoke test: **0.2289 log loss** (acc@0.5 = 90.0%, 114s of 360s).
 - **Delivered Package**: `submission_v3.zip` (1367 MB, MD5: `ddb088cc7a48bfaa78bc065d983e05c0`).
 
+## Master Final Assembly (Sept 9 08:00 UTC): 5-Pillar Unified Stack
+
+- **Concept**: Unified Master Stack combining the strongest non-overlapping models across all project runs:
+  - `a3d_hemi` (Run 7 Siamese Bilateral 3D Asymmetry): **50.0% weight**
+  - `a3d_ssl` (Run 6c VICReg Self-Supervised 3D): **12.5% weight**
+  - `featc` (Run 6c 116-descriptor Radiomics + RFF): **12.5% weight**
+  - `a2d_cnx_cor` (Run 5 Coronal ConvNeXt-Tiny): **12.5% weight**
+  - `a2d_v2s` (Run 5 Axial EfficientNet-V2-S): **12.5% weight**
+- **Cross-Validation Metrics**:
+  - Full-pool CV OOF Log Loss: **0.2327** (All-time project best; -0.0067 gain over Run 5 baseline 0.2394).
+  - Full-pool CV AUROC: **0.9684**.
+  - Nested Combiner Estimate: **0.2385**.
+- **Container End-to-End Smoke Test**:
+  - Tested locally on CPU via `local_e2e_v3.py`: `exit=0`, `failed volumes: 0`, all checkpoints used (5/5 for each arm), `FORMAT OK (20, 2)`, `acc@0.5 = 0.900`.
+- **Shipped Package**: `data/submission_master_final.zip` (463.92 MB, 20 neural checkpoints + 1 radiomics model; zero duplicate files). Ready for official DrivenData submission.
+
 
