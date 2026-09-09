@@ -242,9 +242,19 @@ All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retri
   - In-container smoke test: **0.2139 log loss**, acc@0.5 = 90.0%, 136s runtime.
 - **Delivered Package**: `data/run6b/submission_v3.zip` (2275 MB, 73 checkpoints).
 
-## Run 6c (Launched Sept 8 16:45 UTC): 116 Radiomics + VICReg SSL
+## Run 6c (Completed Sept 9 00:15 UTC): 116 Radiomics + VICReg SSL
 
-- **Kernel**: `skyfall23/dat-run6c-features-ssl` on 2x Tesla T4.
-- **Scope**: 116 radiomic descriptors (`featc` arm) + VICReg self-supervised pretraining on DaT scans + fine-tuned crop-3D models (17 jobs). Currently running.
+- **Kernel**: `skyfall23/dat-run6c-features-ssl` on 2x Tesla T4 (completed in 12781s ≈ 3.55h).
+- **Core Innovations**:
+  - **VICReg SSL Pretraining**: 91 min (8400 steps) on raw DaT scans (`ssl_c_encoder.pt`). Linear probe random folds: 0.2827 / 0.9466; site folds: 0.2896 / 0.9444.
+  - **116 Handcrafted Radiomics Descriptors (`featc`)**: Best grid model: RFF kernel (`n_comp=20, C=0.3, gamma=0.5, n_rff=512`). Random folds OOF: **0.2997 / 0.9455** (vs old feat 0.3120); Site folds OOF: **0.3106 / 0.9410** (vs old feat **0.3548**; -0.0442 gain on domain-shifted sites!).
+  - **Fine-Tuned SSL Models (`r3d_ssl`)**: 17 checkpoints trained. Random folds OOF: **0.2519 / 0.9608**. Best fold: `r3d_ssl_f2_s0_site` val log loss **0.2019 / 0.9760**.
+- **Stacking Optimization**:
+  - `a3d_ssl` took **38.0% weight** (completely displaced old un-pretrained `a3d_crop`).
+  - `featc` took **12.0% weight** (completely displaced old `feat` arm).
+  - Combined Run 6c arms captured **50.0% of the entire stack weight**!
+  - Final Stack OOF: log loss **0.2412**, AUROC **0.9654**.
+  - In-container smoke test: **0.2289 log loss** (acc@0.5 = 90.0%, 114s of 360s).
+- **Delivered Package**: `submission_v3.zip` (1367 MB, MD5: `ddb088cc7a48bfaa78bc065d983e05c0`).
 
 
