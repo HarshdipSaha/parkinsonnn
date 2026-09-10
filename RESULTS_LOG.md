@@ -288,7 +288,7 @@ Empirical tracking of DrivenData hidden smoke test scores (20 volumes) versus ac
 |---|---|---|---|---|
 | **Run 3** | `0.2397` (id-321261) | **`0.2817`** (id-321263, rank 66) | **+0.042** | 44-ckpt stack (B0x18/V2S/coronal/3D/LR) |
 | **Run 4a** | `0.2176` (id-321293) / `0.2263` (id-321297) | **`0.2667`** (id-321298, rank 39) | **+0.049** | 30-ckpt stack (Crop-3D + V2S x3 + CNX + B0-cor + Feat) |
-| **Run 5** | `0.2388` (id-321496) | **`0.2600`** (id-321520, rank 44) | **+0.021** | 39-ckpt stack (Crophist .375 / CNX-cor .25 / V2S .125 / CNX .125 / Feat .125) |
+| **Run 5** | `0.2388` (id-321496) | *(never submitted for real — see correction below)* | — | 39-ckpt stack (Crophist .375 / CNX-cor .25 / V2S .125 / CNX .125 / Feat .125) |
 | **Run 7 (hemi)** | `0.2706` (id-321572) | — | — | Standalone Siamese Bilateral HemiNet 3D (`a3d_hemi`) |
 | **Run 6b (tri)** | `0.2341` (id-321610) | — | — | Standalone Tri-Planar 2.5D Multi-View (`tri_cnx` / `tri_v2s`) |
 | **Master Final** | `0.2363` (id-321617) | **Projected `0.254 – 0.258`** | **~+0.022** | 21-ckpt 5-pillar stack (`a3d_hemi` .5 / `a3d_ssl` .125 / `featc` .125 / `a2d_cnx_cor` .125 / `a2d_v2s` .125) |
@@ -306,6 +306,8 @@ Empirical tracking of DrivenData hidden smoke test scores (20 volumes) versus ac
 ## Sept 10 2026 — Master-pool stacking analysis and Master v2 (scratch script stack_analysis.py; numbers in artifacts_dev/stack_analysis.json)
 
 Leaderboard Sept 10: #1 0.2166, #10 0.2379, #15 0.2457; ours 0.2667 = rank 44 (board shows 3 submissions — the "run 5 public 0.2600 id-321520" line above is UNVERIFIED until the submissions page is read while logged in).
+
+**CORRECTION (Sept 10, 19:38 UTC, read live from the logged-in DrivenData submissions page):** id-321520 does not exist in our account's submission history. The real "Normal submission" table has exactly 3 rows: id-321156 (0.3391), id-321263 (0.2817), id-321298 (0.2667, current best, rank #44). "Submissions used: 3 of 3", "0 of 3 submissions left per 7 days, next on Sept 12 2026 UTC" — matching the plan, not depleted. The "Run 5 public 0.2600" row above was never real; run 5 was smoke-tested only (id-321496, 0.2388) and never submitted as a normal submission. All smoke tests through id-321617 (Master Final, 0.2363, Sept 9 07:56 UTC) are confirmed present and match RESULTS_LOG. Three real slots remain for Sept 12/13 as planned.
 
 Nested estimates over data/master_pool/artifacts_v3 (weights + T refit per fold, T floor 1.0, lam 0.02):
 
