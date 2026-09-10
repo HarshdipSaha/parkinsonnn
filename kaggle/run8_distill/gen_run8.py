@@ -32,6 +32,10 @@ ap.add_argument("--ckpt-ds", default="harshdipsaha/dat-run3-checkpoints")
 ap.add_argument("--soft-lam", type=float, default=0.4)
 ap.add_argument("--mistake-w", type=float, default=2.0)
 ap.add_argument("--soft-table", default=str(HERE / "soft_master_v2.csv"))
+ap.add_argument("--hemisoft-seeds", type=int, nargs="+", default=[0, 1, 2], help="seeds of the soft-target hemisphere member on random folds (bracket session: 0 1 2 3 4)")
+ap.add_argument("--hemi-more-seeds", type=int, nargs="+", default=[3, 4], help="extra plain hemisphere seeds")
+ap.add_argument("--skip", nargs="*", default=[], help="job names to drop, e.g. r3d_hemimw r3d_crophistsoft")
+ap.add_argument("--kernel-source", action="append", default=[], help="notebook whose output is mounted under /kaggle/input (e.g. skyfall23/dat-run8-distill): the cache cell copies its artifacts_v3 so the push resumes without secrets")
 args = ap.parse_args()
 OUT = Path(args.out); OUT.mkdir(parents=True, exist_ok=True)
 
@@ -52,13 +56,14 @@ HEMI = CROP + " --arch hemi"
 SOFT = f" --soft-csv cache_v4/soft_master_v2.csv --soft-lam {args.soft_lam}"
 MW = SOFT + f" --mistake-w {args.mistake_w}"
 JOBS8 = [   # ≈ 12.4 GPU-min per hemisphere fold on a T4 → 42 jobs ≈ 8.7 GPU-h ≈ 4.5 h wall on two T4s; priority order (a cut session keeps the top)
-    {"name": "r3d_hemisoft", "seeds": [0, 1, 2], "folds_csv": "folds.csv", "tag": "r3d_hemisoft_f{f}_s{s}", "args": HEMI + SOFT},
+    {"name": "r3d_hemisoft", "seeds": list(args.hemisoft_seeds), "folds_csv": "folds.csv", "tag": "r3d_hemisoft_f{f}_s{s}", "args": HEMI + SOFT},
     {"name": "r3d_hemisoft_site", "seeds": [0], "folds_csv": "folds_site.csv", "tag": "r3d_hemisoft_f{f}_s{s}_site", "args": HEMI + SOFT},
-    {"name": "r3d_hemi_more", "seeds": [3, 4], "folds_csv": "folds.csv", "tag": "r3d_hemi48_f{f}_s{s}", "args": HEMI},
+    {"name": "r3d_hemi_more", "seeds": list(args.hemi_more_seeds), "folds_csv": "folds.csv", "tag": "r3d_hemi48_f{f}_s{s}", "args": HEMI},
     {"name": "r3d_hemimw", "seeds": [0], "folds_csv": "folds.csv", "tag": "r3d_hemimw_f{f}_s{s}", "args": HEMI + MW},
     {"name": "r3d_crophistsoft", "seeds": [0], "folds_csv": "folds.csv", "tag": "r3d_crophistsoft_f{f}_s{s}", "args": CROP + " --norm hist" + SOFT},
     {"name": "r3d_hemisoft_full", "seeds": [0, 1], "folds": [-1], "folds_csv": "folds.csv", "tag": "r3d_hemisoft_fall_s{s}", "args": HEMI + SOFT},
 ]
+JOBS8 = [j for j in JOBS8 if j["name"] not in set(args.skip)]
 ARMS_ALL = [
     ("a3d_hemisoft", "r3d_hemisoft_f?_s?", "r3d_hemisoft_f?_s?_site"), ("a3d_hemimw", "r3d_hemimw_f?_s?", None), ("a3d_crophistsoft", "r3d_crophistsoft_f?_s?", None),
     ("a3d_hemi", "r3d_hemi48_f?_s?", "r3d_hemi48_f?_s?_site"), ("a3d_hemiinv", "r3d_hemiinv_f?_s?", None), ("a3d_cropboot", "r3d_cropboot_f?_s?", None),
@@ -131,7 +136,7 @@ nb.cells = [nbformat.v4.new_markdown_cell(c["source"]) if c["type"] == "markdown
 nbformat.validate(nb); nbformat.write(nb, str(OUT / "notebook.ipynb"))
 meta = {"id": f"{args.owner}/{args.slug}", "title": args.slug, "code_file": "notebook.ipynb", "language": "python", "kernel_type": "notebook",
         "is_private": True, "enable_gpu": True, "enable_tpu": False, "enable_internet": True,
-        "dataset_sources": [args.cache_ds, args.raw_ds, args.ckpt_ds], "competition_sources": [], "kernel_sources": [], "model_sources": []}
+        "dataset_sources": [args.cache_ds, args.raw_ds, args.ckpt_ds], "competition_sources": [], "kernel_sources": list(args.kernel_source), "model_sources": []}
 (OUT / "kernel-metadata.json").write_text(json.dumps(meta, indent=1))
 n_jobs = sum(len(j["seeds"]) * len(j.get("folds", range(5))) for j in JOBS8)
-print(f"wrote {OUT / 'notebook.ipynb'} ({len(nb.cells)} cells, {n_jobs} training jobs) and kernel-metadata.json (id {meta['id']})")
+print(f"wrote {OUT / 'notebook.ipynb'} ({len(nb.cells)} cells, {n_jobs} training jobs) and kernel-metadata.json (id {meta['id']}; kernel sources {meta['kernel_sources']})")

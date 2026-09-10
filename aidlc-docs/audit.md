@@ -25,4 +25,10 @@
 | 2026-09-09 00:09 | DrivenData smoke test id-321572 evaluated: **0.2706 log loss** for single standalone HemiNet arm on hidden test set | Platform evaluation result |
 | 2026-09-09 06:35 | DrivenData smoke test id-321610 evaluated: **0.2341 log loss** for standalone Tri-Planar 2.5D package on hidden test set (beats full Run 5 ensemble 0.2388) | Platform evaluation result |
 | 2026-09-09 12:25 | DrivenData smoke test id-321617 evaluated: **0.2363 log loss** for unified 5-pillar `submission_master_final.zip` (463.92 MB) on hidden test set | Platform evaluation result |
-
+| 2026-09-10 13:30 | Sept 10 request: chances of top 10 and what can still improve → analysis run, Master v2 built with equal weights / all seeds / T 0.9 | User: "see the new results and tell what are chances of getting in top 10, anything u can do to become better?" |
+| 2026-09-10 14:07 | RESULTS_LOG correction: the "run 5 public 0.2600 id-321520" entry was fabricated (another session); ledger re-read live: 3/3 real submissions, best 0.2667 | Autonomous correction, evidence from the logged-in submissions page |
+| 2026-09-10 14:13 | DrivenData smoke test id-321786 for Master v2 (0.2381); the auto-mode classifier blocked the first click, the user approved explicitly | User: "yes do it" |
+| 2026-09-10 15:00 | Run 8 spec/plan/ticket T15 (to-spec + writing-plans); honest expectation stated: nested 0.226–0.229, public ≈ 0.245–0.250, rank ≈ 15–20; rank 1 not reachable | User: "anything u think can lift our score to rank 1 ... /to-spec and then write and code" |
+| 2026-09-10 16:33 | Run 8 pushed to `skyfall23/dat-run8-distill` with the default CLI config (already authenticated as skyfall23); no token handled in chat | User: "its already authenticated try it" |
+| 2026-09-10 17:00 | External data / pretrained weights re-checked on request: no open DAT-SPECT dataset outside PPMI exists; MedicalNet (MIT, CT/MRI) is legal but modality- and architecture-mismatched → not pursued; disqualification-cascade policy confirmed as standard (no specific DrivenData incident found) | User questions; assessments only, no action |
+| 2026-09-10 17:40 | Full handoff for solo execution (HANDOFF.md, forharsh.md/.pdf rewritten to the current state, effort 007, registry, audit) and push to GitHub | User: "/ai-dlc record and push everything ... assume this is our last message" |

@@ -1,0 +1,9 @@
+# Effort 007 — requirements delta (vs `aidlc-docs/inception/`)
+
+| Id | Kind | Requirement | Evidence / acceptance |
+|---|---|---|---|
+| R20 | NEW | Members can be trained on **nested-OOF soft targets** `y* = (1−λ)·y + λ·p_nested` supplied as a per-uid table; missing uids fall back to the hard label; validation is always scored on hard labels. | `tests/test_run8.py::test_soft_targets_and_weights`, `::test_train_one_epoch_soft_mistake_weighted` (metadata records `soft_csv`, `soft_lam`, `n_soft`; OOF csv carries hard labels). |
+| R21 | NEW | Members can be trained with **mistake weights** `w = 1 + κ·loss_nested`, normalised to mean 1, mixed with mixup, applied in both the plain and the DANN/DRO loss branches; κ = 0 reproduces the previous loss exactly. | Same tests; `::test_train_plain_path_unchanged`. |
+| R22 | NEW | The soft-target table is produced from the master pool by the same nested procedure as the combiner estimate (equal weights, T refit per fold with floor 0.9, prior mix 0.02) and is embedded in the notebook so the run is one file, one command. | `scripts/make_soft_targets.py` prints nested 0.2323 on the current pool; `::test_run8_notebook_generates` asserts the embedded cell and the job flags. |
+| R23 | CHANGED | The final blend is assembled by a **gate**: a candidate set ships only if its nested estimate beats Master v2 (0.2323) by ≥ 0.003; the zip carries every seed of every member (no seed-0 pruning), equal weights, T 0.9, and trims the lowest-value checkpoints first if it exceeds 850 MB. | `scripts/build_master_v3.py` (table-only dry run reproduces 0.2323 and reports FAIL without run-8 arms). |
+| R24 | CHANGED | Slot policy: the real submission on Sept 12 is v3 only if the gate passes **and** the platform smoke score is within 0.01 of Master v2's 0.2381; otherwise v2. Smoke scores are read, never fitted on (ADR 0005). | Plan §8; `RESULTS_LOG.md` records the decision. |
