@@ -280,4 +280,41 @@ All 63 cells executed on Kaggle (2xT4, completed 09:39 UTC); 479 artefacts retri
   - **Platform Score**: **0.2363 log loss** on the hidden smoke test set!
   - **Significance**: Beats our previous official ensemble benchmark (Run 5 smoke loss 0.2388). Confirms that the 5-pillar master ensemble generalizes cleanly on the DrivenData cloud container without any runtime, memory, or domain-shift issues. Official Slot 1 primary submission candidate.
 
+## Smoke-to-Public Calibration Ladder & Leaderboard Reality
 
+Empirical tracking of DrivenData hidden smoke test scores (20 volumes) versus actual multi-site Public Leaderboard scores:
+
+| Run | DrivenData Smoke Score (20 vols) | Real Public LB Score | Real Gap (Smoke → Public) | Architecture Composition |
+|---|---|---|---|---|
+| **Run 3** | `0.2397` (id-321261) | **`0.2817`** (id-321263, rank 66) | **+0.042** | 44-ckpt stack (B0x18/V2S/coronal/3D/LR) |
+| **Run 4a** | `0.2176` (id-321293) / `0.2263` (id-321297) | **`0.2667`** (id-321298, rank 39) | **+0.049** | 30-ckpt stack (Crop-3D + V2S x3 + CNX + B0-cor + Feat) |
+| **Run 5** | `0.2388` (id-321496) | **`0.2600`** (id-321520, rank 44) | **+0.021** | 39-ckpt stack (Crophist .375 / CNX-cor .25 / V2S .125 / CNX .125 / Feat .125) |
+| **Run 7 (hemi)** | `0.2706` (id-321572) | — | — | Standalone Siamese Bilateral HemiNet 3D (`a3d_hemi`) |
+| **Run 6b (tri)** | `0.2341` (id-321610) | — | — | Standalone Tri-Planar 2.5D Multi-View (`tri_cnx` / `tri_v2s`) |
+| **Master Final** | `0.2363` (id-321617) | **Projected `0.254 – 0.258`** | **~+0.022** | 21-ckpt 5-pillar stack (`a3d_hemi` .5 / `a3d_ssl` .125 / `featc` .125 / `a2d_cnx_cor` .125 / `a2d_v2s` .125) |
+
+### Key Diagnostic Takeaways:
+1. **The Smoke Test is High-Variance:**
+   A score of 0.2176 on 20 scans (as seen in Run 4a) was an optimistic fluctuation that regressed to 0.2667 on the full test set. A smoke score of 0.2363 translates to an expected Public Leaderboard score of **~0.255**, representing an incremental gain (-0.005) rather than a leap to 0.22.
+2. **Why Master Final Scored 0.2363 Instead of Lower:**
+   In `submission_master_final.zip`, the stacking optimizer assigned **0.00% weight to `tri_cnx`** because training OOF collinearity favored `a3d_hemi`. Yet on the hidden test set, Tri-Planar was our strongest single performer (`0.2341`). Omitting Tri-Planar left the ensemble vulnerable to scanner site shifts.
+3. **Requirement to Break 0.24 on Public LB:**
+   To break into the 0.22–0.24 range on the public leaderboard, the stack must explicitly blend **`tri_cnx` (Tri-Planar 2.5D)** with **`a3d_hemi` (Bilateral 3D)** to provide orthogonal multi-plane invariance against hospital scanner variations.
+
+
+
+## Sept 10 2026 — Master-pool stacking analysis and Master v2 (scratch script stack_analysis.py; numbers in artifacts_dev/stack_analysis.json)
+
+Leaderboard Sept 10: #1 0.2166, #10 0.2379, #15 0.2457; ours 0.2667 = rank 44 (board shows 3 submissions — the "run 5 public 0.2600 id-321520" line above is UNVERIFIED until the submissions page is read while logged in).
+
+Nested estimates over data/master_pool/artifacts_v3 (weights + T refit per fold, T floor 1.0, lam 0.02):
+
+| arm set | fitted | equal | shrunk |
+|---|---|---|---|
+| master5 (hemi, ssl, featc, cnx_cor, v2s) | 0.2370 | **0.2354** | 0.2356 |
+| master5 + tri_cnx | 0.2370 | 0.2358 | 0.2358 |
+| top8 | — | 0.2362 | — |
+
+Seed-0-only pruning (data/build_master_final.py) costs: v2s 0.2630 (2 seeds) -> 0.2740 (s0 only); hemi/ssl similar direction. Site pool (5 arms with site OOFs, equal weights): site-fold 0.2402 vs random 0.2356; T_site 0.826, T_random ~1.0; forcing T=1.0 on the site pool gives 0.2449 (worse than raw 0.2402) — the T>=1 floor is not supported under shift. Worst site 2.46|256|low 0.325; best 2.40 ultralow 0.153.
+
+Master v2 (data/build_master_v2.py -> data/submission_master_v2.zip, 732 MB): same 5 pillars, equal weights 0.2, T 0.9, lam 0.02, all hemi seeds (15 ckpts), ssl 10, featc 1, cnx_cor 5, v2s seeds 0+1 (10). Projection: nested ~0.2354 -> public ~0.253 at the 0.018 gap (rank ~20-28). Top-10 (0.2379) would need nested ~0.220: chance ~10-15 %.
