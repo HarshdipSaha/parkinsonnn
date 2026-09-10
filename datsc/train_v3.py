@@ -141,11 +141,29 @@ def _grad_scaler(amp: bool):
     return torch.cuda.amp.GradScaler(enabled=amp)        # local torch 2.2 fallback
 
 
+def soft_targets(soft_csv, uids, labels, soft_lam: float = 0.0, mistake_w: float = 0.0):
+    """Run 8 (ensemble-corrected members). From a table uid,p[,loss] of the ensemble's NESTED out-of-fold probability (and loss) per
+    training scan: soft target y* = (1 - lam) * y + lam * p for uids in the table (the hard label otherwise) and a per-sample weight
+    w = 1 + kappa * loss normalised to mean 1 over the training uids (all 1 when kappa == 0 or the table is missing).
+    Returns (soft_map, w_map, n_found); soft_map is empty when lam == 0 so the caller can skip the lookup."""
+    uids = list(uids); labels = np.asarray(labels, float)
+    if not soft_csv or (soft_lam <= 0 and mistake_w <= 0):
+        return {}, {}, 0
+    t = pd.read_csv(soft_csv, dtype={"uid": str}).drop_duplicates("uid").set_index("uid")
+    p = t["p"].reindex(uids); l = t["loss"].reindex(uids) if "loss" in t.columns else pd.Series(np.nan, index=uids)
+    found = p.notna().values
+    soft = {u: float((1 - soft_lam) * y + soft_lam * pp) for u, y, pp, ok in zip(uids, labels, p.values, found) if ok} if soft_lam > 0 else {}
+    w = 1.0 + mistake_w * np.nan_to_num(l.values.astype(float), nan=0.0) if mistake_w > 0 else np.ones(len(uids))
+    w = w / max(float(w.mean()), 1e-8)
+    return soft, ({u: float(x) for u, x in zip(uids, w)} if mistake_w > 0 else {}), int(found.sum())
+
+
 def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_kw: dict, tag: str,
               epochs=60, batch_size=16, lr=5e-4, backbone_lr=None, weight_decay=1e-2, warmup_epochs=3,
               mixup=0.0, ema_decay=0.995, norm="ref", folds_csv="folds.csv", num_workers=2, device=None,
               augment=True, save_fp16=True, select: str = "final", aug: str = "base", z_jitter: int = 0,
-              dann: float = 0.0, dro: float = 0.0, init_path=None, loss: str = "bce") -> dict:
+              dann: float = 0.0, dro: float = 0.0, init_path=None, loss: str = "bce",
+              soft_csv=None, soft_lam: float = 0.0, mistake_w: float = 0.0) -> dict:
     cache_dir, out_dir = Path(cache_dir), Path(out_dir); out_dir.mkdir(parents=True, exist_ok=True)
     device = device or ("cuda" if torch.cuda.is_available() else "cpu"); amp = device.startswith("cuda")
     torch.backends.cudnn.benchmark = True
@@ -181,6 +199,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
         opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     # site-invariant training: pseudo-site ids of the training uids; DANN head (gradient reversal) and/or group-DRO weights
     site_map, n_sites = load_site_ids(cache_dir, tr["uid"], min_n=25)
+    soft_map, w_map, n_soft = soft_targets(soft_csv, tr["uid"], tr["is_pathologic"], soft_lam, mistake_w)   # run 8: ensemble-corrected targets/weights
     site_head = SiteHead(model.feat_dim, n_sites).to(device) if (dann > 0 and n_sites > 1) else None
     if site_head is not None:
         opt.add_param_group({"params": list(site_head.parameters()), "lr": lr, "weight_decay": weight_decay})
@@ -204,6 +223,9 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
         for x, s, y, u in dl_tr:
             x, s, y = x.to(device, non_blocking=True), s.to(device), y.to(device)
             site = torch.tensor([site_map.get(uid, 0) for uid in u], device=device)
+            if soft_map:
+                y = torch.tensor([soft_map.get(uid, float(yy)) for uid, yy in zip(u, y.tolist())], device=device, dtype=y.dtype)
+            w = torch.tensor([w_map.get(uid, 1.0) for uid in u], device=device, dtype=torch.float32)
             with torch.no_grad():
                 if augment:
                     x = train_augment(x, aug)
@@ -211,17 +233,17 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
                 inp = spec(x, dz)                                     # random slab-centre shift == the TTA offsets
                 if mixup > 0:
                     lam = float(np.random.beta(mixup, mixup)); perm = torch.randperm(inp.shape[0], device=device)
-                    inp = lam * inp + (1 - lam) * inp[perm]; s = lam * s + (1 - lam) * s[perm]; y = lam * y + (1 - lam) * y[perm]
+                    inp = lam * inp + (1 - lam) * inp[perm]; s = lam * s + (1 - lam) * s[perm]; y = lam * y + (1 - lam) * y[perm]; w = lam * w + (1 - lam) * w[perm]
             with torch.autocast(device_type="cuda", enabled=amp):
                 if site_head is None and not (dro > 0 and n_sites > 1):
                     logit = model(inp, s).float()
                     y_t = (0.9 * y + 0.1 * torch.sigmoid(logit).detach()) if loss_kind == "bootstrap" else y   # soft bootstrapping (Reed 2015): ambiguous labels pull less
-                    loss = F.binary_cross_entropy_with_logits(logit, y_t)
+                    loss = (F.binary_cross_entropy_with_logits(logit, y_t, reduction="none") * w).mean()
                 else:
                     h = model.features(inp)
                     logit = model.head(model.scalars(h, s)).squeeze(1).float()
                     y_t = (0.9 * y + 0.1 * torch.sigmoid(logit).detach()) if loss_kind == "bootstrap" else y
-                    per = F.binary_cross_entropy_with_logits(logit, y_t, reduction="none")
+                    per = F.binary_cross_entropy_with_logits(logit, y_t, reduction="none") * w
                     if dro > 0 and n_sites > 1:                       # group-DRO: exponentially up-weight the worst pseudo-sites
                         Lg = torch.zeros(n_sites, device=device).index_add_(0, site, per)
                         cnt = torch.zeros(n_sites, device=device).index_add_(0, site, torch.ones_like(per))
@@ -284,6 +306,7 @@ def train_run(cache_dir, fold: int, seed: int, out_dir, spec: InputSpec, model_k
             "norm": norm, "folds_csv": folds_csv, "mixup": mixup, "ema_decay": ema_decay, "lr": lr, "backbone_lr": backbone_lr,
             "aug": aug, "z_jitter": z_jitter, "skipped_batches": n_skipped, "dann": dann, "dro": dro, "n_sites": n_sites, "loss": loss_kind,
             "init": (str(init_path) if init_path else None), "init_loaded": init_loaded,
+            "soft_csv": (str(soft_csv) if soft_csv else None), "soft_lam": soft_lam, "mistake_w": mistake_w, "n_soft": n_soft,
             "weight_decay": weight_decay, "history": hist, "params": count_params(model), "sec": time.time() - t0}
     (out_dir / f"{tag}.json").write_text(json.dumps(meta))
     if full:

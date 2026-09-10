@@ -1,0 +1,19 @@
+{
+ "id": "skyfall23/dat-run8-distill",
+ "title": "dat-run8-distill",
+ "code_file": "notebook.ipynb",
+ "language": "python",
+ "kernel_type": "notebook",
+ "is_private": true,
+ "enable_gpu": true,
+ "enable_tpu": false,
+ "enable_internet": true,
+ "dataset_sources": [
+  "harshdipsaha/dat-parkinsons-cache-v4",
+  "harshdipsaha/dat-parkinsons-challenge-data",
+  "harshdipsaha/dat-run3-checkpoints"
+ ],
+ "competition_sources": [],
+ "kernel_sources": [],
+ "model_sources": []
+}

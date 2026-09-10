@@ -45,6 +45,9 @@ if __name__ == "__main__":
     ap.add_argument("--stem-stride", type=int, default=1)
     ap.add_argument("--arch", default=None, choices=[None, "base", "se", "hemi"], help="3D architecture: base ResNet3D, se (run 6a), hemi (run 7 hemisphere member)")
     ap.add_argument("--loss", default="bce", choices=["bce", "bootstrap"], help="bootstrap = soft bootstrapped targets (label-noise robust)")
+    ap.add_argument("--soft-csv", default=None, help="run 8: table uid,p[,loss] of the ensemble's nested OOF probability per training scan")
+    ap.add_argument("--soft-lam", type=float, default=0.0, help="run 8: soft-target mix, y* = (1-lam) y + lam p (0 = hard labels)")
+    ap.add_argument("--mistake-w", type=float, default=0.0, help="run 8: per-sample weight 1 + k * nested loss, normalised to mean 1 (0 = off)")
     ap.add_argument("--crop3d", type=int, nargs=3, default=None, help="3D: crop (voxels) around --center3d before the resize")
     ap.add_argument("--center3d", type=float, nargs=3, default=None, help="3D: crop centre (voxels; template striatal_center x y z)")
     # 2d
@@ -79,4 +82,5 @@ if __name__ == "__main__":
     train_run(a.cache, a.fold, a.seed, a.out, spec, model_kw, tag, epochs=a.epochs, batch_size=a.batch_size, lr=a.lr,
               backbone_lr=a.backbone_lr, weight_decay=a.weight_decay, warmup_epochs=a.warmup, mixup=a.mixup,
               ema_decay=a.ema or None, norm=a.norm, folds_csv=a.folds_csv, num_workers=a.workers, augment=not a.no_aug,
-              select=a.select, aug=a.aug, z_jitter=a.z_jitter, dann=a.dann, dro=a.dro, init_path=a.init, loss=a.loss)
+              select=a.select, aug=a.aug, z_jitter=a.z_jitter, dann=a.dann, dro=a.dro, init_path=a.init, loss=a.loss,
+              soft_csv=a.soft_csv, soft_lam=a.soft_lam, mistake_w=a.mistake_w)
