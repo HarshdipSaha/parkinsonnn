@@ -320,3 +320,11 @@ Nested estimates over data/master_pool/artifacts_v3 (weights + T refit per fold,
 Seed-0-only pruning (data/build_master_final.py) costs: v2s 0.2630 (2 seeds) -> 0.2740 (s0 only); hemi/ssl similar direction. Site pool (5 arms with site OOFs, equal weights): site-fold 0.2402 vs random 0.2356; T_site 0.826, T_random ~1.0; forcing T=1.0 on the site pool gives 0.2449 (worse than raw 0.2402) — the T>=1 floor is not supported under shift. Worst site 2.46|256|low 0.325; best 2.40 ultralow 0.153.
 
 Master v2 (data/build_master_v2.py -> data/submission_master_v2.zip, 732 MB): same 5 pillars, equal weights 0.2, T 0.9, lam 0.02, all hemi seeds (15 ckpts), ssl 10, featc 1, cnx_cor 5, v2s seeds 0+1 (10). Projection: nested ~0.2354 -> public ~0.253 at the 0.018 gap (rank ~20-28). Top-10 (0.2379) would need nested ~0.220: chance ~10-15 %.
+
+## Sept 10 2026, 14:13 UTC — Master v2 DrivenData smoke test (id-321786)
+
+Uploaded `data/submission_master_v2.zip` (732 MB, built by `scripts/build_master_v2.py`: 5 pillars, equal weights 0.2 each, T=0.9, lam=0.02, all hemi/ssl seeds, v2s seeds 0+1) as a real platform smoke test (not local).
+
+**Platform score: 0.2381** (vs Master Final's platform smoke 0.2363, id-321617). Gap is 0.0018 — well inside the smoke-set noise floor already measured twice on this account (0.2176 vs 0.2263 for the identical run-4a zip, a 0.0087 spread on the same 20 hidden scans). Not a real difference on 20 scans.
+
+Decision: nested OOF favours Master v2 (0.2354 equal/all-seeds vs Master Final's 0.2370 fitted/seed-0-pruned), and the platform smoke scores are statistically tied. **Master v2 is the Sept 12 15:38 UTC slot-1 candidate.**
