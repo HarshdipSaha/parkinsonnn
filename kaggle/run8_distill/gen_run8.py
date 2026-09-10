@@ -34,6 +34,8 @@ ap.add_argument("--mistake-w", type=float, default=2.0)
 ap.add_argument("--soft-table", default=str(HERE / "soft_master_v2.csv"))
 ap.add_argument("--hemisoft-seeds", type=int, nargs="+", default=[0, 1, 2], help="seeds of the soft-target hemisphere member on random folds (bracket session: 0 1 2 3 4)")
 ap.add_argument("--hemi-more-seeds", type=int, nargs="+", default=[3, 4], help="extra plain hemisphere seeds")
+ap.add_argument("--hemimw-seeds", type=int, nargs="+", default=[0], help="seeds of the mistake-weighted hemisphere member")
+ap.add_argument("--crophistsoft-seeds", type=int, nargs="+", default=[0], help="seeds of the soft-target crop-hist member")
 ap.add_argument("--skip", nargs="*", default=[], help="job names to drop, e.g. r3d_hemimw r3d_crophistsoft")
 ap.add_argument("--kernel-source", action="append", default=[], help="notebook whose output is mounted under /kaggle/input (e.g. skyfall23/dat-run8-distill): the cache cell copies its artifacts_v3 so the push resumes without secrets")
 args = ap.parse_args()
@@ -59,8 +61,8 @@ JOBS8 = [   # ≈ 12.4 GPU-min per hemisphere fold on a T4 → 42 jobs ≈ 8.7 G
     {"name": "r3d_hemisoft", "seeds": list(args.hemisoft_seeds), "folds_csv": "folds.csv", "tag": "r3d_hemisoft_f{f}_s{s}", "args": HEMI + SOFT},
     {"name": "r3d_hemisoft_site", "seeds": [0], "folds_csv": "folds_site.csv", "tag": "r3d_hemisoft_f{f}_s{s}_site", "args": HEMI + SOFT},
     {"name": "r3d_hemi_more", "seeds": list(args.hemi_more_seeds), "folds_csv": "folds.csv", "tag": "r3d_hemi48_f{f}_s{s}", "args": HEMI},
-    {"name": "r3d_hemimw", "seeds": [0], "folds_csv": "folds.csv", "tag": "r3d_hemimw_f{f}_s{s}", "args": HEMI + MW},
-    {"name": "r3d_crophistsoft", "seeds": [0], "folds_csv": "folds.csv", "tag": "r3d_crophistsoft_f{f}_s{s}", "args": CROP + " --norm hist" + SOFT},
+    {"name": "r3d_hemimw", "seeds": list(args.hemimw_seeds), "folds_csv": "folds.csv", "tag": "r3d_hemimw_f{f}_s{s}", "args": HEMI + MW},
+    {"name": "r3d_crophistsoft", "seeds": list(args.crophistsoft_seeds), "folds_csv": "folds.csv", "tag": "r3d_crophistsoft_f{f}_s{s}", "args": CROP + " --norm hist" + SOFT},
     {"name": "r3d_hemisoft_full", "seeds": [0, 1], "folds": [-1], "folds_csv": "folds.csv", "tag": "r3d_hemisoft_fall_s{s}", "args": HEMI + SOFT},
 ]
 JOBS8 = [j for j in JOBS8 if j["name"] not in set(args.skip)]

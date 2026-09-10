@@ -66,6 +66,49 @@ kaggle kernels push -p kaggle/run8_distill
 
 Every upload: note = what it is + nested number; write the score and id into `RESULTS_LOG.md`.
 
+## 4b. After each real submission: read the score, then run exactly this
+
+The public score comes back ≈ 1 h after the upload. For the zip you submitted you know its nested estimate N (from the gate table; Master v2 = 0.2323). Compute the **gap G = public − N** and write both into the ladder table in `RESULTS_LOG.md`. Runs 3 / 4a had G = 0.042 / 0.018. Nothing else about the test set is visible, so G is the only feedback you get; use it as below. Start the GPU session of step B the same hour the slot-1 score arrives; do not wait for slot 2.
+
+**After slot 1 (score ≈ Sept 12 16:40 UTC) — pick the first case that matches:**
+
+1. **Public ≤ 0.2379 (top 10).** Change nothing. Slot 2 = the other zip (v2 or v3), slot 3 = the λ 0.01 bracket of the slot-1 zip (§4). Still launch step B so slot 3 can use more seeds if they arrive in time.
+2. **Public worse than 0.2667 (our old best).** The zip broke on the platform, not the model. On the submissions page click *View log* for that id and look for `checkpoints used N/N` per arm and any `Traceback`. Slot 2 = the zip that did NOT go first (v2 if v3 broke); if v2 itself broke, slot 2 = `data\submission_master_final.zip` (486 MB, platform smoke 0.2363, id-321617 — the proven fallback; the run-4a zip is no longer on disk). Fix the packaging before slot 3 (`python scripts/local_e2e_v3.py <zip> data/smoke` must print `FORMAT OK`).
+3. **G ≤ 0.022 (gap like run 4a or smaller).** The nested estimate is trustworthy: chase it. Run step B; slot 2 = the step-B zip if its gate table beats the slot-1 zip by ≥ 0.002 nested and its smoke test is within 0.01 of the slot-1 zip's smoke; otherwise slot 2 = the other of v2/v3. Slot 3 = the λ 0.01 bracket of the better of the two public scores.
+4. **G > 0.03 (shift dominates).** Confident mistakes are being punished; hedge the calibration. Slot 2 = the **shift hedge** of the slot-1 zip (same models, T 1.0, λ 0.03 — less confident):
+   ```
+   python scripts/build_master_v2.py --T 1.0 --lam 0.03 --out data/submission_master_v2_hedge.zip
+   python scripts/local_e2e_v3.py data/submission_master_v2_hedge.zip data/smoke
+   ```
+   (or the same with `python scripts/build_master_v3.py --src data/run8/artifacts_v3 --src data/master_pool/artifacts_v3 --T 1.0 --lam 0.03 --smoke data/smoke --zip data/submission_master_v3_hedge.zip` if v3 went first). Smoke-test it first (free). Still run step B: more seeds also reduce variance under shift, and feed slot 3.
+
+**Step B — the second GPU session (≈ 2.5–3 h on skyfall23; the quota bar on the notebook page shows what is left).** Choose ONE line according to run 8's gate table, then push:
+
+```
+# (i) the soft-target hemisphere arm gated in (a3d_hemisoft in the best set):
+python kaggle/run8_distill/gen_run8.py --kernel-source skyfall23/dat-run8-distill --hemisoft-seeds 0 1 2 3 4 --skip r3d_hemimw r3d_crophistsoft
+# (ii) the mistake-weighted arm gated in instead (a3d_hemimw in the best set):
+python kaggle/run8_distill/gen_run8.py --kernel-source skyfall23/dat-run8-distill --hemimw-seeds 0 1 2 --skip r3d_crophistsoft
+# (iii) nothing from run 8 gated in: more plain hemisphere seeds (the safe gain):
+python kaggle/run8_distill/gen_run8.py --kernel-source skyfall23/dat-run8-distill --hemi-more-seeds 3 4 5 6 --skip r3d_hemisoft r3d_hemisoft_site r3d_hemimw r3d_crophistsoft r3d_hemisoft_full
+kaggle kernels push -p kaggle/run8_distill
+```
+`--kernel-source` mounts run 8's own output, so every job already trained prints "already done" and only the new seeds run (10 jobs ≈ 2.5 h). Watch with `kaggle kernels status skyfall23/dat-run8-distill`. When COMPLETE:
+```
+python scripts/watch_kaggle_output.py --kernel skyfall23/dat-run8-distill --out data/run8b
+python scripts/build_master_v3.py --src data/run8b/artifacts_v3 --src data/run8/artifacts_v3 --src data/master_pool/artifacts_v3 --smoke data/smoke --zip data/submission_master_v3b.zip
+```
+Read its GATE TABLE against the zip you already submitted (not against 0.2323): use `submission_master_v3b.zip` only if it is ≥ 0.002 nested better than that zip, and only after a free smoke test.
+
+**After slot 2 (score ≈ Sept 13 16:50 UTC), 10 h before slot 3 — no training fits any more, only assembly:**
+
+1. Write the score and G into `RESULTS_LOG.md`. You now have two public scores; the zip with the better one is the **base**.
+2. If the step-B zip exists, was smoke-tested, and beat the base's nested by ≥ 0.002 → slot 3 = that zip.
+3. Otherwise slot 3 = the λ 0.01 bracket of the base (`--lam 0.01`, section 5), unless case 4 applied above and the hedge scored better than its parent — then slot 3 = the hedge of the other zip (`--T 1.0 --lam 0.03`).
+4. Container check (`FORMAT OK`, all arms N/N) before every upload; never the same zip twice; the best of the three on the private set counts.
+
+**After slot 3 (Sept 14):** nothing more can be submitted before the deadline. Write the final ladder into `RESULTS_LOG.md`, then `forharsh.md` §8.
+
 ## 5. Gotchas (do not rediscover)
 
 | Area | Gotcha | Do this instead |
