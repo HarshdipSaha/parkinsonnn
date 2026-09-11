@@ -328,3 +328,33 @@ Uploaded `data/submission_master_v2.zip` (732 MB, built by `scripts/build_master
 **Platform score: 0.2381** (vs Master Final's platform smoke 0.2363, id-321617). Gap is 0.0018 — well inside the smoke-set noise floor already measured twice on this account (0.2176 vs 0.2263 for the identical run-4a zip, a 0.0087 spread on the same 20 hidden scans). Not a real difference on 20 scans.
 
 Decision: nested OOF favours Master v2 (0.2354 equal/all-seeds vs Master Final's 0.2370 fitted/seed-0-pruned), and the platform smoke scores are statistically tied. **Master v2 is the Sept 12 15:38 UTC slot-1 candidate.**
+
+## Sept 11 2026 — Run 8 Distillation Completed & Master v3 Gate Passed
+
+Kernel `skyfall23/dat-run8-distill` completed 42 jobs on 2x Tesla T4. Artifacts fetched to `data/run8/artifacts_v3`.
+
+### GATE TABLE (nested estimate; equal / shrunk / fitted weights; T floor 0.90; lam 0.02)
+- Master v2 as shipped (hemi s0-2, v2s s0-1): equal **0.2323** | shrunk 0.2322 | fitted 0.2336
+- pillars, every local seed: equal **0.2322** | shrunk 0.2318 | fitted 0.2329
+- pillars + a3d_hemisoft: equal **0.2299** | shrunk 0.2298 | fitted 0.2306
+- pillars + a3d_hemimw: equal **0.2313** | shrunk 0.2316 | fitted 0.2329
+- pillars + a3d_crophistsoft: equal **0.2303** | shrunk 0.2305 | fitted 0.2319
+- pillars + all run-8 arms: equal **0.2293** | shrunk 0.2304 | fitted 0.2322
+- **greedy best subset**: equal **`0.2289`** | shrunk 0.2302 | fitted 0.2322 (`a3d_hemi`, `a3d_ssl`, `featc`, `a2d_cnx_cor`, `a2d_v2s`, `a3d_hemisoft`, `a3d_crophistsoft`)
+
+**Gate Result**: Best set nested **`0.2289`** vs Master v2 **`0.2323`**; gain **`+0.0034`** $\ge 0.0030$ $\longrightarrow$ **`GATE: PASS`**!
+
+### Delivered Package: `data/submission_master_v3.zip`
+- **Size**: **847 MB**, 71 checkpoint files across 7 arms.
+- **Weights**: Equal weights (1/7 ≈ 0.143 each), $T = 0.90$, $\lambda = 0.02$.
+  - `a3d_hemi`: 25 ckpts
+  - `a3d_ssl`: 10 ckpts
+  - `featc`: 1 ckpt
+  - `a2d_cnx_cor`: 5 ckpts
+  - `a2d_v2s`: 10 ckpts
+  - `a3d_hemisoft`: 15 ckpts
+  - `a3d_crophistsoft`: 5 ckpts
+- **Container Smoke Test (`local_e2e_v3.py`)**:
+  - `exit=0`, `failed volumes: 0`, all checkpoints used (71/71).
+  - `FORMAT OK (20, 2)` | smoke log loss = **`0.2266`** (vs v2 smoke 0.2381 / local 0.2078) | acc@0.5 = 0.900 | 566s.
+- **Official Submission Status**: Replaces Master v2 as the primary **Slot 1 Submission Candidate (Sept 12 15:38 UTC)** pending platform smoke test confirmation ($\le 0.2481$).
