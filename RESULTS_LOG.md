@@ -357,4 +357,9 @@ Kernel `skyfall23/dat-run8-distill` completed 42 jobs on 2x Tesla T4. Artifacts 
 - **Container Smoke Test (`local_e2e_v3.py`)**:
   - `exit=0`, `failed volumes: 0`, all checkpoints used (71/71).
   - `FORMAT OK (20, 2)` | smoke log loss = **`0.2266`** (vs v2 smoke 0.2381 / local 0.2078) | acc@0.5 = 0.900 | 566s.
-- **Official Submission Status**: Replaces Master v2 as the primary **Slot 1 Submission Candidate (Sept 12 15:38 UTC)** pending platform smoke test confirmation ($\le 0.2481$).
+- **DrivenData Smoke Test (id-321850, Sept 11 06:22 UTC)**:
+  - **Platform Score**: **`0.2374 log loss`** on the hidden smoke test set!
+  - **Decision Rule Evaluation**:
+    - Condition 1: Nested estimate **`0.2289`** $\le 0.2293$ ($\checkmark$ PASS)
+    - Condition 2: Platform smoke **`0.2374`** $\le 0.2481$ ($\checkmark$ PASS; beats Master v2 smoke 0.2381)
+  - **Outcome**: **`submission_master_v3.zip` is officially locked as our primary Slot 1 submission for Sept 12 15:38 UTC!**

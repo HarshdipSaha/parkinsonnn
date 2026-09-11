@@ -26,9 +26,10 @@ See [requirements-delta.md](requirements-delta.md) (R20–R24).
 | 6 | 15:30–16:20 | Trainer knobs (soft targets by uid lookup before mixup; mistake weights mean-normalised; weighted BCE in both loss branches; metadata), runner flags, `make_soft_targets.py` (1362 rows, nested 0.2323), `gen_run8.py` (JOBS8 = 42 jobs, embedded table cell, GATE cell, T floor 0.9), `build_master_v3.py`, tests, HOWTO pdf | `tests/test_run8.py` 6/6; `tests -q` 94 passed; gate table dry run on the master pool reproduces 0.2323 and correctly reports GATE FAIL with no run-8 arms present. Commit `e6a6070`. |
 | 7 | 16:33 | Push `skyfall23/dat-run8-distill` | Version 1 completed 42 jobs on 2xT4 in ~4.5h. |
 | 8 | Sept 11 05:45–06:16 | Master v3 Gate & Assembly (`scripts/build_master_v3.py`) | **GATE PASSED**: Greedy best subset nested **0.2289** (gain +0.0034 vs 0.2323 baseline). `submission_master_v3.zip` built (847 MB, 71 ckpts, 7 arms, equal weights 0.143, T 0.9, lam 0.02). Smoke test passed: exit=0, 71/71 ckpts used, smoke logloss **0.2266**, acc@0.5=0.900. |
+| 9 | Sept 11 06:22 | DrivenData smoke test evaluation **id-321850** (`submission_master_v3.zip`) | **Platform score: 0.2374 log loss** on hidden smoke test! Meets decision rule ($\le 0.2481$) and beats Master v2 (0.2381). **Master v3 is locked as official Slot 1 submission.** |
 
 ## Open items (in order)
 
-1. Free smoke test on DrivenData: upload `data/submission_master_v3.zip` (847 MB) to verify cloud container scoring. Threshold: score $\le 0.2481$.
-2. Official Slot 1 (Sept 12 15:38 UTC): submit `submission_master_v3.zip` (or v2 fallback).
-3. Optional second GPU session (`gen_run8.py --hemisoft-seeds 0 1 2 3 4`) before Sept 12 midday UTC.
+1. Official Slot 1 (Sept 12 15:38 UTC): submit `data/submission_master_v3.zip` (847 MB, note: "Master v3: 7 arms, equal weights, T 0.9, nested 0.2289").
+2. Official Slot 2 (Sept 13 15:50 UTC): submit `data/submission_master_v2.zip` (732 MB, nested 0.2323).
+3. Official Slot 3 (Sept 14 03:38 UTC): submit `submission_master_v3_lam01.zip` (bracket variant).
