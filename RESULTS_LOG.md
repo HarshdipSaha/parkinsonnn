@@ -363,3 +363,9 @@ Kernel `skyfall23/dat-run8-distill` completed 42 jobs on 2x Tesla T4. Artifacts 
     - Condition 1: Nested estimate **`0.2289`** $\le 0.2293$ ($\checkmark$ PASS)
     - Condition 2: Platform smoke **`0.2374`** $\le 0.2481$ ($\checkmark$ PASS; beats Master v2 smoke 0.2381)
   - **Outcome**: **`submission_master_v3.zip` is officially locked as our primary Slot 1 submission for Sept 12 15:38 UTC!**
+
+### Slot 3 Bracket Variant Package: `data/submission_master_v3_lam01.zip`
+- Built with `scripts/build_master_v3.py --lam 0.01` (71 checkpoints, 7 arms, equal weights $1/7$, $T=0.90$, $\lambda=0.01$).
+- **Nested Estimate**: **`0.2266`** (Our lowest cross-validation estimate across the entire competition).
+- **Container Smoke Test**: `exit=0`, `FORMAT OK (20, 2)`, all 71 checkpoints loaded, `acc@0.5 = 0.900`.
+- **Role**: Ready for Slot 3 (Sept 14 03:38 UTC) as our high-upside bracket.
