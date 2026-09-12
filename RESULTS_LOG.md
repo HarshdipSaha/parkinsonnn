@@ -291,7 +291,8 @@ Empirical tracking of DrivenData hidden smoke test scores (20 volumes) versus ac
 | **Run 5** | `0.2388` (id-321496) | *(never submitted for real — see correction below)* | — | 39-ckpt stack (Crophist .375 / CNX-cor .25 / V2S .125 / CNX .125 / Feat .125) |
 | **Run 7 (hemi)** | `0.2706` (id-321572) | — | — | Standalone Siamese Bilateral HemiNet 3D (`a3d_hemi`) |
 | **Run 6b (tri)** | `0.2341` (id-321610) | — | — | Standalone Tri-Planar 2.5D Multi-View (`tri_cnx` / `tri_v2s`) |
-| **Master Final** | `0.2363` (id-321617) | **Projected `0.254 – 0.258`** | **~+0.022** | 21-ckpt 5-pillar stack (`a3d_hemi` .5 / `a3d_ssl` .125 / `featc` .125 / `a2d_cnx_cor` .125 / `a2d_v2s` .125) |
+| **Master Final** | `0.2363` (id-321617) | *(never submitted for real)* | — | 21-ckpt 5-pillar stack (`a3d_hemi` .5 / `a3d_ssl` .125 / `featc` .125 / `a2d_cnx_cor` .125 / `a2d_v2s` .125) |
+| **Master v3** | `0.2374` (id-321850) | **`0.2557`** (Sept 12, **rank 23**, AUROC 0.9576) | **+0.0183** | 71-ckpt 7-arm stack (`a3d_hemi`, `a3d_ssl`, `featc`, `a2d_cnx_cor`, `a2d_v2s`, `a3d_hemisoft`, `a3d_crophistsoft`) |
 
 ### Key Diagnostic Takeaways:
 1. **The Smoke Test is High-Variance:**
@@ -369,3 +370,21 @@ Kernel `skyfall23/dat-run8-distill` completed 42 jobs on 2x Tesla T4. Artifacts 
 - **Nested Estimate**: **`0.2266`** (Our lowest cross-validation estimate across the entire competition).
 - **Container Smoke Test**: `exit=0`, `FORMAT OK (20, 2)`, all 71 checkpoints loaded, `acc@0.5 = 0.900`.
 - **Role**: Ready for Slot 3 (Sept 14 03:38 UTC) as our high-upside bracket.
+
+## Sept 12 2026 — Slot 1 Official Real Submission (`submission_master_v3.zip`): Public LB 0.2557 / Rank #23
+
+Uploaded `data/submission_master_v3.zip` (847 MB, 71 checkpoints across 7 arms, equal weights $1/7$, $T=0.90$, $\lambda=0.02$) as real submission (4th submission on DrivenData account `harshdipsaha`).
+
+- **Public Leaderboard Result**:
+  - **Log Loss**: **`0.2557`**
+  - **AUROC**: **`0.9576`**
+  - **Leaderboard Rank**: **`#23`** (jump of +21 leaderboard places from previous best 0.2667 / Rank #44).
+- **Gap Diagnostics**:
+  - **Nested CV**: `0.2289`
+  - **Public Gap $G = \text{Public} - \text{Nested}$**: `0.2557 - 0.2289 = +0.0268`
+  - **Smoke-to-Public Gap**: `0.2557 - 0.2374 = +0.0183` (our narrowest smoke-to-public gap of the entire project: Run 3 was +0.042, Run 4a was +0.049).
+- **Analysis against Decision Tree (`forharsh.md` §5b)**:
+  - $G = 0.0268$ is situated between Case 3 ($G \le 0.022$) and Case 4 ($G > 0.03$). The distillation + 7-arm bilateral architecture significantly curtailed domain shift.
+  - Slot 2 strategy: Submit `submission_master_v3_lam01.zip` (nested 0.2266; projected ~0.253) to push toward the top 20.
+  - Slot 3 strategy: Submit `submission_master_v2.zip` (732 MB, nested 0.2323) for architectural diversification across the private test set.
+

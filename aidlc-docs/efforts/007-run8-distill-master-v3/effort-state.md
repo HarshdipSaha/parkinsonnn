@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **State** | delivered / verified (Kaggle completed Sept 11 05:15 UTC; Gate PASSED with nested 0.2289, gain +0.0034; `submission_master_v3.zip` 847 MB built and smoke verified) |
+| **State** | delivered / verified (Public Leaderboard **0.2557**, AUROC **0.9576**, **Rank #23**; jump of +21 spots from rank 44; Slot 1 evaluated Sept 12) |
 | **Spec** | [2026-09-10-run8-distill-spec.md](../../../docs/superpowers/specs/2026-09-10-run8-distill-spec.md) |
 | **Plan** | [2026-09-10-run8-distill-plan.md](../../../docs/superpowers/plans/2026-09-10-run8-distill-plan.md) (timeline, decision rule, launch commands) |
 | **Ticket** | `docs/wayfinder/tickets/T15-run8-ensemble-corrected-members-and-master-v3.md` |
@@ -27,9 +27,10 @@ See [requirements-delta.md](requirements-delta.md) (R20–R24).
 | 7 | 16:33 | Push `skyfall23/dat-run8-distill` | Version 1 completed 42 jobs on 2xT4 in ~4.5h. |
 | 8 | Sept 11 05:45–06:16 | Master v3 Gate & Assembly (`scripts/build_master_v3.py`) | **GATE PASSED**: Greedy best subset nested **0.2289** (gain +0.0034 vs 0.2323 baseline). `submission_master_v3.zip` built (847 MB, 71 ckpts, 7 arms, equal weights 0.143, T 0.9, lam 0.02). Smoke test passed: exit=0, 71/71 ckpts used, smoke logloss **0.2266**, acc@0.5=0.900. |
 | 9 | Sept 11 06:22 | DrivenData smoke test evaluation **id-321850** (`submission_master_v3.zip`) | **Platform score: 0.2374 log loss** on hidden smoke test! Meets decision rule ($\le 0.2481$) and beats Master v2 (0.2381). **Master v3 is locked as official Slot 1 submission.** |
+| 10 | Sept 12 01:40 | Slot 1 Official Real Submission (`submission_master_v3.zip`) evaluated on DrivenData | **Public Leaderboard: 0.2557 log loss**, **AUROC 0.9576**, **Rank #23**! Jump of +21 leaderboard places from Rank 44 (0.2667). Public gap $G = 0.2557 - 0.2289 = +0.0268$. Smoke-to-public gap: $0.2557 - 0.2374 = +0.0183$ (our smallest smoke-to-public gap in the entire competition). |
 
 ## Open items (in order)
 
-1. Official Slot 1 (Sept 12 15:38 UTC): submit `data/submission_master_v3.zip` (847 MB, note: "Master v3: 7 arms, equal weights, T 0.9, nested 0.2289").
-2. Official Slot 2 (Sept 13 15:50 UTC): submit `data/submission_master_v2.zip` (732 MB, nested 0.2323).
-3. Official Slot 3 (Sept 14 03:38 UTC): submit `submission_master_v3_lam01.zip` (bracket variant).
+1. Official Slot 1 complete: 0.2557 log loss, AUROC 0.9576, Rank #23.
+2. Official Slot 2 (Sept 13 15:50 UTC): submit `data/submission_master_v3_lam01.zip` (bracket variant, nested 0.2266 — our all-time lowest cross-validation estimate; projected public ~0.253) or `data/submission_master_v2.zip` (732 MB, nested 0.2323).
+3. Official Slot 3 (Sept 14 03:38 UTC): submit `data/submission_master_v2.zip` or session-2 zip (`submission_master_v3b.zip`) if extra hemisoft seeds complete.
