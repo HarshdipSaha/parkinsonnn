@@ -391,16 +391,21 @@ Uploaded `data/submission_master_v3.zip` (847 MB, 71 checkpoints across 7 arms, 
 
 ## Sept 13 2026 — Slot 2 Official Real Submission (submission_master_v3_lam01.zip): Public LB 0.2473 / Rank ~#16
 
-Uploaded data/submission_master_v3_lam01.zip (847 MB, 71 ckpts, equal weights 1/7, T=0.90, lam=0.01) as real submission (5th submission on DrivenData account harshdipsaha).
-
+Uploaded `data/submission_master_v3_lam01.zip` (847 MB, 71 ckpts, equal weights 1/7, T=0.90, lam=0.01) as real submission (5th submission on DrivenData account `harshdipsaha`).
+- **Submission ID**: **`id-322091`** (Completed)
 - **Public Leaderboard Result**:
-  - **Log Loss**: **0.2473**
-  - **Leaderboard Rank**: Estimated **~#16** (jump of ~7 places from previous best 0.2557).
+  - **Log Loss**: **`0.2473`**
+  - **AUROC**: **`0.9608`** (jump of **+0.0032** from Slot 1's 0.9576; highest AUROC recorded in the project!)
+  - **Leaderboard Rank**: **`#19`** (Top 4.2% of 450 competitors; official live standing as of Sept 13).
+  - **Platform Quota Status**: `Submissions (5) total`, `Submissions used: 3 of 3`. Next slot opens Sept 14 03:38 UTC.
 - **Gap Diagnostics**:
-  - **Nested CV**: 0.2266
-  - **Public Gap $G = \text{Public} - \text{Nested}$**: 0.2473 - 0.2266 = +0.0207
-- **Analysis**: The lam=0.01 sharper prior completely lived up to its nested estimate. The universal CV-to-LB gap of +0.027 we saw on the forum is validated, though our gap is slightly smaller (+0.021).
-- **Next Steps**: Slot 3 (Sept 14) is our last shot. Will either submit Master v2 for diversity or implement Left-Right flip Test-Time Augmentation (TTA).
+  - **Nested CV**: `0.2266`
+  - **Public Gap $G = \text{Public} - \text{Nested}$**: `0.2473 - 0.2266 = +0.0207`
+- **Critical Falsification Test Settled**:
+  - AUROC officially verified on platform as **0.9608**!
+  - Since AUROC changed from 0.9576 to 0.9608 (+0.0032), and $\lambda$ is a strictly monotonic ranking-preserving transformation, this proves the improvement was **not** merely a calibration squash: the predicted rank ordering itself improved.
+  - Log verification confirms all 7 arms and 71 checkpoints executed cleanly in 364s with zero failures (`failed volumes: 0`).
+- **Next Steps**: Exactly one submission remains (opens Sept 14 03:38 UTC, live until Sept 16 23:59 UTC). Hold until freeze on Sept 16.
 
 ## Sept 13 2026 — Endgame analysis (effort 008): the prior mix is spent, and size is the binding constraint
 
