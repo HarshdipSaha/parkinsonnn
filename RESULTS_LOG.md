@@ -557,3 +557,48 @@ deadline. So one real submission remains — but it **opens** rather than expire
 than the banked 0.2266, and forfeit ~60 hours of training. Plan:
 `docs/superpowers/plans/2026-09-13-run9-endgame-plan.md`.
 
+## Sept 13 2026 — Run 9 Seeds Expansion Completed, Master v9 Assembled & Smoke Verified
+
+1. **Kaggle Kernel `skyfall23/dat-run9-seeds`**:
+   - Completed all 20 jobs on 2x Tesla T4 GPUs in 195 min (0 failures).
+   - Trained 10 new `r3d_hemisoft` jobs (seeds 3, 4 across folds 0–4) -> complete $5 \times 5 = 25$ fold-seed grid.
+   - Trained 10 new `r3d_crophistsoft` jobs (seeds 1, 2 across folds 0–4) -> complete $3 \times 5 = 15$ fold-seed grid.
+   - All 1,774 files downloaded and verified into `data/run9a/artifacts_v3` (MD5: `6ee81ffc6d297f1597ea67e4b6f81a83`).
+
+2. **GATE TABLE (`scripts/build_master_v3.py --table-only --lam 0.01 --T 0.90`)**:
+   - Master v2 shipped baseline: `0.2303` (equal weights)
+   - Pillars + `a3d_hemisoft` (25 ckpts): `0.2277` (gain: +0.0026)
+   - Pillars + `a3d_crophistsoft` (15 ckpts): `0.2282` (gain: +0.0021)
+   - **Greedy Best Subset (`pillars + hemisoft + crophistsoft`)**: **`0.2267`** (gain: **`+0.0036`** -> **`GATE: PASS`**)
+
+3. **Master v9 Package: `data/submission_v9.zip`**:
+   - Built with `scripts/build_master_v3.py --max-mb 1050 --lam 0.01 --T 0.90`.
+   - Size: **923 MB** (922.6 MB, safely within DrivenData's 1,024 MB upload ceiling).
+   - Total Checkpoints: **91 checkpoints across 7 arms** (equal weights 1/7 each):
+     - `a3d_hemi`: 25 ckpts
+     - `a3d_ssl`: 10 ckpts
+     - `featc`: 1 ckpt
+     - `a2d_cnx_cor`: 5 ckpts
+     - `a2d_v2s`: 10 ckpts
+     - `a3d_hemisoft`: 25 ckpts
+     - `a3d_crophistsoft`: 15 ckpts
+
+4. **Platform Smoke Test (`id-322198`, Sept 13 17:03 UTC)**:
+   - Uploaded: **`data/submission_v9.zip`** (923 MB, 91 checkpoints across all 7 arms).
+   - Evaluated on DrivenData cloud container: **`0.2400 log loss`**!
+   - Completed with 0 warnings and zero forbidden line filters.
+   - Satisfies decision rule threshold ($\le 0.2481$). Both local container test (0.2308) and DrivenData cloud smoke test (0.2400) confirm full health and platform compatibility.
+
+5. **Local Container Smoke Test (`local_e2e_v3.py`)**:
+   - Preprocessed 20/20 volumes in 32s (workers: 10).
+   - All 91 checkpoints executed and loaded across all 7 arms. Zero silent arms. Zero failed volumes.
+   - **Smoke Log Loss**: **`0.2308`** (vs 0.2474 for v3-lam01 on same 20 scans).
+   - **Smoke AUROC**: **`1.000`** | **Accuracy@0.5**: **`0.900`**.
+   - `FORMAT OK (20, 2)`.
+
+6. **Final Submission Slot (Slot 6) Schedule**:
+   - Current standing: **`0.2473` Log Loss, `0.9608` AUROC, Rank #19** (`id-322091`).
+   - Slot 6 unlocks: **Sept 14 03:38 UTC** (stays open through competition end Sept 16 23:59 UTC).
+   - Strategy: **HOLD** the slot until Sept 16 freeze; do not upload immediately at unlock.
+
+

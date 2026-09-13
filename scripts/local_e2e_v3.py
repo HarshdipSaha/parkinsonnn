@@ -29,7 +29,7 @@ assert used and all(int(u) == int(m) for _, u, m in used), "ARM CHECKPOINTS NOT 
 # Torch arms print "checkpoints used N/N"; the featc/LR arms print a different line and were
 # invisible to the assertion above, so a silently-dead arm still passed the gate.
 man = json.loads((sim / "artifacts" / "manifest.json").read_text())
-spoke = {a for a, _, _ in used} | set(re.findall(r"arm (\S+): (?:feat model|LR) on \d+ volumes", r.stdout))
+spoke = {a for a, _, _ in used} | set(re.findall(r"arm (\S+): (?:featc? model|LR).* on \d+ volumes", r.stdout))
 silent = [a["name"] for a in man["arms"] if a["name"] not in spoke]
 assert not silent, f"ARMS IN MANIFEST BUT SILENT IN OUTPUT: {silent} (ran: {sorted(spoke)})"
 for pat in (r"ladder: [^\n]+", r"arm \S+ failed: [^\n]+", r"checkpoint failed \([^\n]+", r"Traceback"):
