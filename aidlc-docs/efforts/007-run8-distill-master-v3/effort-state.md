@@ -28,9 +28,10 @@ See [requirements-delta.md](requirements-delta.md) (R20–R24).
 | 8 | Sept 11 05:45–06:16 | Master v3 Gate & Assembly (`scripts/build_master_v3.py`) | **GATE PASSED**: Greedy best subset nested **0.2289** (gain +0.0034 vs 0.2323 baseline). `submission_master_v3.zip` built (847 MB, 71 ckpts, 7 arms, equal weights 0.143, T 0.9, lam 0.02). Smoke test passed: exit=0, 71/71 ckpts used, smoke logloss **0.2266**, acc@0.5=0.900. |
 | 9 | Sept 11 06:22 | DrivenData smoke test evaluation **id-321850** (`submission_master_v3.zip`) | **Platform score: 0.2374 log loss** on hidden smoke test! Meets decision rule ($\le 0.2481$) and beats Master v2 (0.2381). **Master v3 is locked as official Slot 1 submission.** |
 | 10 | Sept 12 01:40 | Slot 1 Official Real Submission (`submission_master_v3.zip`) evaluated on DrivenData | **Public Leaderboard: 0.2557 log loss**, **AUROC 0.9576**, **Rank #23**! Jump of +21 leaderboard places from Rank 44 (0.2667). Public gap $G = 0.2557 - 0.2289 = +0.0268$. Smoke-to-public gap: $0.2557 - 0.2374 = +0.0183$ (our smallest smoke-to-public gap in the entire competition). |
+| 11 | Sept 13 03:08 | Slot 2 Official Real Submission (`submission_master_v3_lam01.zip`) evaluated on DrivenData | **Public Leaderboard: 0.2473 log loss**! Estimated Rank ~#16. Gap $G = 0.2473 - 0.2266 = +0.0207$. Massive gain over Slot 1, confirming the `lam=0.01` sharper prior generalizes beautifully and confirms the +0.027 LB correlation observed on the community forum. |
 
 ## Open items (in order)
 
 1. Official Slot 1 complete: 0.2557 log loss, AUROC 0.9576, Rank #23.
-2. Official Slot 2 (Sept 13 15:50 UTC): submit `data/submission_master_v3_lam01.zip` (bracket variant, nested 0.2266 — our all-time lowest cross-validation estimate; projected public ~0.253) or `data/submission_master_v2.zip` (732 MB, nested 0.2323).
-3. Official Slot 3 (Sept 14 03:38 UTC): submit `data/submission_master_v2.zip` or session-2 zip (`submission_master_v3b.zip`) if extra hemisoft seeds complete.
+2. Official Slot 2 complete: 0.2473 log loss, Rank ~#16.
+3. Official Slot 3 (Sept 14 03:38 UTC): submit `data/submission_master_v2.zip` (for diversification) or a new zip with Left-Right Flip TTA to squeeze the last 0.002-0.005.

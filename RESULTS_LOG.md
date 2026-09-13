@@ -388,3 +388,15 @@ Uploaded `data/submission_master_v3.zip` (847 MB, 71 checkpoints across 7 arms, 
   - Slot 2 strategy: Submit `submission_master_v3_lam01.zip` (nested 0.2266; projected ~0.253) to push toward the top 20.
   - Slot 3 strategy: Submit `submission_master_v2.zip` (732 MB, nested 0.2323) for architectural diversification across the private test set.
 
+
+## Sept 13 2026 — Slot 2 Official Real Submission (submission_master_v3_lam01.zip): Public LB 0.2473 / Rank ~#16
+
+Uploaded data/submission_master_v3_lam01.zip (847 MB, 71 ckpts, equal weights 1/7, T=0.90, lam=0.01) as real submission (5th submission on DrivenData account harshdipsaha).
+
+- **Public Leaderboard Result**:
+  - **Log Loss**: ** .2473**
+  - **Leaderboard Rank**: Estimated **~#16** (jump of ~7 places from previous best 0.2557).
+- **Gap Diagnostics**:
+  - **Nested CV**:  .2266`n  - **Public Gap  = \text{Public} - \text{Nested}$**:  .2473 - 0.2266 = +0.0207`n- **Analysis**: The lam=0.01 sharper prior completely lived up to its nested estimate. The universal CV-to-LB gap of +0.027 we saw on the forum is validated, though our gap is slightly smaller (+0.021).
+- **Next Steps**: Slot 3 (Sept 14) is our last shot. Will either submit Master v2 for diversity or implement Left-Right flip Test-Time Augmentation (TTA).
+

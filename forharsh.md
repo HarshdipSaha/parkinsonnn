@@ -1,14 +1,14 @@
 # forharsh — do everything yourself until Sept 16 (simple, in order)
 
-You are at **public 0.2557, rank 23** (AUROC 0.9576, Master v3 evaluated Sept 12; climbed +21 spots from rank 44). Leader 0.2166, rank 10 = 0.2379. 4 real submissions used; next slots: **Sept 13 15:50, Sept 14 03:38 UTC** (plus rolling weekly slots). Deadline **Sept 16 23:59 UTC**. Smoke tests are free (3 per day, reset daily). The best submission on the private set counts automatically. Run every command from `H:\augsepthacks\parkinsonnn` in PowerShell or Git Bash.
+You are at **public 0.2473, rank ~16** (Master v3 lam=0.01 evaluated Sept 13; climbed +7 spots from rank 23). Leader 0.2166, rank 10 = 0.2379. 5 real submissions used; next slot: **Sept 14 03:38 UTC** (plus rolling weekly slots). Deadline **Sept 16 23:59 UTC**. Smoke tests are free (3 per day, reset daily). The best submission on the private set counts automatically. Run every command from `H:\augsepthacks\parkinsonnn` in PowerShell or Git Bash.
 
 ## 0. What is already done and where it is
 
 | Thing | Where | Number |
 |---|---|---|
-| Master v2 zip (5 pillars, equal weights, T 0.9, all seeds) — **diversification candidate** | `data\submission_master_v2.zip` (732 MB) | nested 0.2323, DrivenData smoke 0.2381 (id-321786) |
+| Master v2 zip (5 pillars, equal weights, T 0.9, all seeds) — **Slot 3 diversification candidate** | `data\submission_master_v2.zip` (732 MB) | nested 0.2323, DrivenData smoke 0.2381 (id-321786) |
 | Master v3 zip (7 arms, 71 ckpts, equal weights 1/7, T 0.9, lam 0.02) — **Slot 1 COMPLETED** | `data\submission_master_v3.zip` (847 MB) | **Public 0.2557, Rank #23**, AUROC 0.9576, nested 0.2289 |
-| Master v3 bracket zip (7 arms, lam 0.01) — **Slot 2 candidate** | `data\submission_master_v3_lam01.zip` (847 MB) | nested **0.2266** (all-time lowest CV estimate), smoke 0.2474 |
+| Master v3 bracket zip (7 arms, lam 0.01) — **Slot 2 COMPLETED** | `data\submission_master_v3_lam01.zip` (847 MB) | **Public 0.2473, Rank ~#16**, nested 0.2266, smoke 0.2474 |
 | Smoke scans with labels (20, never train on them) | `data\smoke` (`niftis\`, `submission_format.csv`, `test_labels.csv`) | |
 | All OOF files of runs 3–8 | `data\master_pool\artifacts_v3` | |
 | Every number so far | `RESULTS_LOG.md` | |
@@ -49,9 +49,9 @@ https://www.drivendata.org/competitions/311/dat-parkinsons-challenge/submissions
 
 | Slot (UTC) | Upload | Note to write | Status |
 |---|---|---|---|
-| **1 — Sept 12** | `submission_master_v3.zip` (7 arms, equal weights, T 0.9, lam 0.02) | "master v3: 7 arms, equal weights, T 0.9, nested 0.2289" | **COMPLETED**: Public **0.2557**, AUROC 0.9576, **Rank #23** (jumped +21 spots!) |
-| **2 — Sept 13 15:50** | `data/submission_master_v3_lam01.zip` (nested 0.2266, sharper prior mix) or `submission_master_v2.zip` | "master v3 bracket lam 0.01 nested 0.2266" | Ready on disk (847 MB) |
-| **3 — Sept 14 03:38** | `data/submission_master_v2.zip` (732 MB, nested 0.2323) or step-B zip (`v3b`) if trained | "master v2 diversification / v3b" | Ready on disk |
+| **1 — Sept 12** | `submission_master_v3.zip` | "master v3: 7 arms, equal weights, T 0.9, nested 0.2289" | **COMPLETED**: Public **0.2557**, AUROC 0.9576, **Rank #23** |
+| **2 — Sept 13 15:50** | `data/submission_master_v3_lam01.zip` | "master v3 bracket lam 0.01 nested 0.2266" | **COMPLETED**: Public **0.2473**, **Rank ~#16** |
+| **3 — Sept 14 03:38** | `data/submission_master_v2.zip` (732 MB, nested 0.2323) or step-B zip (`v3b`) if trained or TTA | "master v2 diversification / v3b / TTA" | Ready on disk |
 
 Bracket zips (verify each with the container check before uploading):
 ```

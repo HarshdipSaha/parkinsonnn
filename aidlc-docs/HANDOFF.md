@@ -5,10 +5,10 @@
 | **Last updated** | 2026-09-12 01:55 UTC |
 | **Deadline** | 2026-09-16 23:59 UTC; best submission on the **private** set counts automatically (organiser statement) |
 | **Goal (user)** | as high as possible; honest reach: rank ≈ 15–20 (top 10 needs public 0.2379; rank 1 = 0.2166 is out of reach with this data) |
-| **Current public score** | **0.2557** log loss, AUROC **0.9576**, **Rank #23** (Master v3, Slot 1 evaluated Sept 12; climbed +21 places). Leader 0.2166, #10 0.2379, #15 0.2457 |
-| **Real submissions** | 4 used (next slots: Sept 13 15:50, Sept 14 03:38 UTC) |
-| **Best zip on hand** | `data/submission_master_v3_lam01.zip` (847 MB, nested **0.2266**, our lowest CV estimate); `data/submission_master_v2.zip` (732 MB, nested **0.2323**) |
-| **Completed** | Run 8 distill completed, Master v3 delivered and verified on public LB (0.2557, Rank #23) |
+| **Current public score** | **0.2473** log loss, **Rank ~#16** (Master v3 lam=0.01, Slot 2 evaluated Sept 13; climbed +7 places). Leader 0.2166, #10 0.2379, #15 0.2457 |
+| **Real submissions** | 5 used (next slot: Sept 14 03:38 UTC) |
+| **Best zip on hand** | `data/submission_master_v2.zip` (732 MB, nested **0.2323**) for diversification |
+| **Completed** | Master v3 bracket delivered and verified on public LB (0.2473, Rank ~#16) |
 | **Solo playbook** | `forharsh.md` / `forharsh.pdf` (repo root) — the short, ordered version of this file |
 
 Reading order: this file → `forharsh.md` → `efforts/007-run8-distill-master-v3/effort-state.md` → `docs/superpowers/plans/2026-09-10-run8-distill-plan.md` → `RESULTS_LOG.md`.
@@ -61,8 +61,8 @@ kaggle kernels push -p kaggle/run8_distill
 | Slot (UTC) | Zip | Condition / Status |
 |---|---|---|
 | Sept 12 | `submission_master_v3.zip` | **COMPLETED**: Public **0.2557**, AUROC **0.9576**, **Rank #23** (climbed +21 spots from #44; G=+0.0268) |
-| Sept 13 15:50 | `data/submission_master_v3_lam01.zip` (bracket variant, nested 0.2266) or `submission_master_v2.zip` | ready on disk; never the same zip twice |
-| Sept 14 03:38 | `data/submission_master_v2.zip` (diversification) or session-2 zip if gated better | container check first |
+| Sept 13 15:50 | `data/submission_master_v3_lam01.zip` | **COMPLETED**: Public **0.2473**, **Rank ~#16** (climbed +7 spots from #23; G=+0.0207) |
+| Sept 14 03:38 | `data/submission_master_v2.zip` (diversification) or TTA zip | container check first |
 
 Every upload: note = what it is + nested number; write the score and id into `RESULTS_LOG.md`.
 
