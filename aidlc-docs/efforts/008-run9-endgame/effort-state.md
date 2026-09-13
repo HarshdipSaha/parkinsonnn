@@ -7,7 +7,7 @@
 | **Plan** | [2026-09-13-run9-endgame-plan.md](../../../docs/superpowers/plans/2026-09-13-run9-endgame-plan.md) (hour-by-hour to the deadline) |
 | **Ticket** | `docs/wayfinder/tickets/T16-the-last-submission-verify-calibrate-and-spend-the-size-envelope.md` |
 | **ADR** | [0006 — the prior mix is insurance, not a lever](../../../docs/adr/0006-the-prior-mix-is-insurance-not-a-lever.md) |
-| **Deliverable** | `scripts/sweep_calibration.py` (new); size assert in `scripts/build_master_v3.py`; arm-coverage, ladder and `typ` checks in `scripts/local_e2e_v3.py`; `tests/test_run9.py` (5 tests); `RESULTS_LOG.md` byte-repair; ADR 0006 |
+| **Deliverable** | **`RUNBOOK.md` / `.pdf`** (the complete solo procedure, every branch) and **`LESSONS.md` / `.pdf`** (the transferable field guide); `scripts/diagnose_hard_core.py` (the one live route to top 10), `scripts/sweep_calibration.py`, `scripts/make_lessons_pdf.py` (generic md→pdf); size + trim asserts in `scripts/build_master_v3.py`; arm-coverage, ladder and `typ` checks in `scripts/local_e2e_v3.py`; `tests/test_run9.py` (7 tests); `RESULTS_LOG.md` byte-repair; ADR 0006; `docs/research/dat-endgame/` (7-item validated research pass) |
 | **Depth** | standard |
 
 ## Requirements delta (vs baseline)

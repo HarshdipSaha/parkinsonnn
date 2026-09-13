@@ -1,5 +1,10 @@
 # forharsh — do everything yourself until Sept 16 (simple, in order)
 
+> **Read [`RUNBOOK.md`](RUNBOOK.md) / `RUNBOOK.pdf` instead of this file.** It is the complete solo version:
+> every command, what you should see, and what to do when it goes either way. This file is kept for its
+> history and its gotchas table. Afterwards, read [`LESSONS.md`](LESSONS.md) / `LESSONS.pdf` — the transferable
+> version, written for whatever you enter next.
+
 You are at **public 0.2473, rank ~16** (Master v3 lam=0.01 evaluated Sept 13; climbed +7 spots from rank 23). Leader 0.2166, rank 10 = 0.2379. 5 real submissions used. Deadline **Sept 16 23:59 UTC**. Smoke tests are free (3 per day, reset daily). The best submission on the private set counts automatically. Run every command from `H:\augsepthacks\parkinsonnn` in PowerShell or Git Bash.
 
 > **Read this before anything else (effort 008, Sept 13).**

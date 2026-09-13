@@ -92,6 +92,26 @@ def test_build_master_v3_refuses_a_silently_trimmed_zip():
     assert '"--allow-trim"' in s and "a.allow_trim" in s, "--allow-trim must exist and be wired through"
 
 
+def test_hard_core_permutation_test_separates_signal_from_noise():
+    """The diagnostic must find a planted site effect and stay quiet when there is none -- it is the only
+    remaining evidence that could distinguish a shared preprocessing defect from irreducible label noise."""
+    from diagnose_hard_core import permutation_max_enrichment
+
+    rng = np.random.default_rng(7)
+    n = 1362
+    flag = np.zeros(n); flag[:88] = 1.0            # 88 "hard" scans, as in the real pool
+
+    uniform = rng.choice(["a", "b", "c", "d"], size=n)
+    obs_u, p_u = permutation_max_enrichment(flag.copy(), uniform, n_perm=2000)
+    assert p_u > 0.05, f"no planted effect, yet p={p_u:.4f} (false positive)"
+
+    groups = np.array(["a"] * n, dtype=object)     # put most of the hard core into a small group
+    groups[rng.choice(n, 200, replace=False)] = "b"
+    groups[:60] = "b"
+    obs_c, p_c = permutation_max_enrichment(flag.copy(), groups, n_perm=2000)
+    assert obs_c > 2.0 and p_c < 0.01, f"planted concentration missed: enrich={obs_c:.2f} p={p_c:.4f}"
+
+
 def test_local_e2e_catches_a_silent_arm():
     """featc/LR arms never print 'checkpoints used N/N', so the old assertion could not see them die."""
     s = (ROOT / "scripts" / "local_e2e_v3.py").read_text(encoding="utf-8")

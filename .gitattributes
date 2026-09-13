@@ -1,0 +1,13 @@
+# core.autocrlf is true on the Windows box. Git's binary heuristic has held so far, but it is a heuristic --
+# one CRLF conversion inside a PDF, a .npz or a checkpoint corrupts it silently. Say so explicitly.
+*.pdf   binary
+*.npz   binary
+*.png   binary
+*.pt    binary
+*.zip   binary
+*.nii   binary
+*.gz    binary
+
+# Keep committed data tables byte-stable across platforms so hashes and diffs mean something.
+*.csv   text eol=lf
+*.ipynb text eol=lf

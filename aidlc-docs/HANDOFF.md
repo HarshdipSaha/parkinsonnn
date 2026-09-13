@@ -13,7 +13,9 @@
 | **GPU** | **30+ GPU-hours remain** (the "≈10 GPU-h" figure below and in `forharsh.md` §3 is stale) |
 | **Solo playbook** | `forharsh.md` / `forharsh.pdf` (repo root) — the short, ordered version of this file |
 
-Reading order: this file → `docs/superpowers/plans/2026-09-13-run9-endgame-plan.md` → `forharsh.md` → `efforts/008-run9-endgame/effort-state.md` → `RESULTS_LOG.md`.
+Reading order: **`RUNBOOK.md`** (the complete solo procedure, with every branch) → this file →
+`docs/superpowers/plans/2026-09-13-run9-endgame-plan.md` → `efforts/008-run9-endgame/effort-state.md` →
+`RESULTS_LOG.md`. After the deadline: `LESSONS.md` / `LESSONS.pdf`.
 
 > **Three corrections to the plan below, from effort 008 (Sept 13).** The sections after this box were written
 > assuming the last slot is spent on Sept 14 and that no training time remains. Both assumptions are wrong.
