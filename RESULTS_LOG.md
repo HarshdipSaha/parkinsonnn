@@ -389,14 +389,166 @@ Uploaded `data/submission_master_v3.zip` (847 MB, 71 checkpoints across 7 arms, 
   - Slot 3 strategy: Submit `submission_master_v2.zip` (732 MB, nested 0.2323) for architectural diversification across the private test set.
 
 
-## Sept 13 2026 � Slot 2 Official Real Submission (submission_master_v3_lam01.zip): Public LB 0.2473 / Rank ~#16
+## Sept 13 2026 — Slot 2 Official Real Submission (submission_master_v3_lam01.zip): Public LB 0.2473 / Rank ~#16
 
 Uploaded data/submission_master_v3_lam01.zip (847 MB, 71 ckpts, equal weights 1/7, T=0.90, lam=0.01) as real submission (5th submission on DrivenData account harshdipsaha).
 
 - **Public Leaderboard Result**:
-  - **Log Loss**: ** .2473**
+  - **Log Loss**: **0.2473**
   - **Leaderboard Rank**: Estimated **~#16** (jump of ~7 places from previous best 0.2557).
 - **Gap Diagnostics**:
-  - **Nested CV**:  .2266`n  - **Public Gap  = \text{Public} - \text{Nested}$**:  .2473 - 0.2266 = +0.0207`n- **Analysis**: The lam=0.01 sharper prior completely lived up to its nested estimate. The universal CV-to-LB gap of +0.027 we saw on the forum is validated, though our gap is slightly smaller (+0.021).
+  - **Nested CV**: 0.2266
+  - **Public Gap $G = \text{Public} - \text{Nested}$**: 0.2473 - 0.2266 = +0.0207
+- **Analysis**: The lam=0.01 sharper prior completely lived up to its nested estimate. The universal CV-to-LB gap of +0.027 we saw on the forum is validated, though our gap is slightly smaller (+0.021).
 - **Next Steps**: Slot 3 (Sept 14) is our last shot. Will either submit Master v2 for diversity or implement Left-Right flip Test-Time Augmentation (TTA).
+
+## Sept 13 2026 — Endgame analysis (effort 008): the prior mix is spent, and size is the binding constraint
+
+All numbers below are recomputed from `kaggle/run8_distill/soft_master_v2.csv` (1,362 rows, committed) with
+numpy/pandas. The reproduction check first, so the inversion can be trusted:
+
+| Quantity | Recomputed | Previously recorded |
+|---|---|---|
+| Master v2 nested log loss | **0.232252** | 0.2323 |
+| Top-100 scans' share of total loss | **54.2 %** | 54 % |
+| Scans losing > 1 nat | **94** | 94 |
+| Log loss with per-scan loss capped at 2 | **0.220130** | 0.2201 |
+| Prevalence π | **0.548458** | 0.548 |
+
+Since those match, undoing the shipped λ = 0.02 mix recovers the combined probabilities exactly, giving the
+λ ladder at the shipped T = 0.9:
+
+| λ | nested log loss | vs λ = 0.02 |
+|---|---|---|
+| 0.02 (slot 1) | 0.232252 | — |
+| 0.015 | 0.231233 | −0.0010 |
+| **0.01 (slot 2)** | **0.230255** | **−0.0020** |
+| 0.005 | 0.229320 | −0.0029 |
+| 0 | 0.228437 | −0.0038 |
+
+**The recorded "+0.0084 public from λ" is impossible.** With the arms held fixed λ is a pure post-hoc squash, so
+its effect is bounded by arithmetic regardless of the data: the largest possible per-scan improvement from
+0.02 → 0.01 is 0.004546 (y = 1) or 0.005530 (y = 0), and that is reached only by a scan the ensemble is already
+maximally confident *and* correct about. The realistic value on the real pool is **0.0020**. A recorded gain of
+0.0084 is 1.5× the hard ceiling and 4× the expected effect, so it did not come from λ. Something else differed
+between slots 1 and 2 — most plausibly the wall-clock ladder (`datsc/infer_v3.py:24`, `main_v3.py:68`) dropping
+arms, with `combine()` renormalising over the survivors, which is silent. **Unresolved until the two
+`View log` outputs are read.** → `docs/adr/0006-the-prior-mix-is-insurance-not-a-lever.md`.
+
+**λ is insurance, and the nested pool cannot price it.** The nested pool is built from random folds and holds no
+site shift, so its loss is monotone decreasing in λ and it will always argue for λ → 0. What λ actually buys is
+a floor on a confident miss: −log(λ·π) = **5.21 nats at λ = 0.01** against **9.21 at λ = 0**, where only
+`EPS = 1e-4` remains (`datsc/calibrate.py:11,48`). Going to λ = 0 buys ≤ 0.0018 nested and costs +4 nats on every
+confidently wrong scan. **Decision: λ stays 0.01, T stays 0.9.** `scripts/sweep_calibration.py` prints the
+nested, worst-case and break-even columns together so this is decided on the real master pool.
+
+**Confident mistakes — the 23-vs-46 discrepancy is resolved, and both are right.** 46 is the
+`p > 0.80 & y = 0 | p < 0.20 & y = 1` rule; **23** is the `p > 0.90 / p < 0.10` rule (which is algebraically
+the same as `loss > ln 10`). The count is purely threshold-dependent and should never again be quoted without
+its threshold.
+
+**The residual is predominantly irreducible, and the evidence is cross-representational.** **88 scans (6.46 %
+of the pool) carry 46.9 % of all loss and are wrong under all three independent representations** — including
+the non-CNN registered-ROI scalar arm — against **0.04** scans expected if the three failed independently.
+Errors do not cluster by fold (permutation p = 0.838, i.e. *less* clustered than chance); the mid band is
+calibrated at its own entropy (0.6081 vs 0.6136); and a full model generation (run 4a → v2, temperature-matched
+to remove the confound) improved the mean entirely from the non-tail while the top-100 moved **+2.2 nats**.
+The image-derived ambiguity rate of 6.5–7.2 % converges with the literature's 7.8 % discrepant-expert-read rate
+for DaT-SPECT.
+
+**Both escape routes are closed.** Calibration is exhausted — a cross-fitted isotonic fit scores **0.232086**
+against the actual 0.232252, i.e. **0.0002** of headroom, which also rules out Venn-Abers. "Never be confident"
+strictly loses: **+0.0017** at a 0.98 cap, **+0.0136** at 0.95. And hedging on arm disagreement cannot work:
+the hard core has **AUC 0.4193**, so those scans disagree *less* than average — which finally explains the
+repo's long-unexplained result that clip and hedge produced no nested gain.
+
+The leader's implied ≈0.195 nested is an inference from *our* gap; closing it needs ~43 nats, of which only
+5.3 exist in the easy mass. That implies a better representation, not more capacity.
+
+**Conclusion: verify, don't train.** The highest-value remaining action costs zero GPU — read the two
+DrivenData `View log` outputs. The queued seed run is worth doing but must clear a hard **≥ 0.003** nested
+gate, because anything smaller sits inside the **±0.013** bootstrap noise of the pool.
+
+**Compliance (audited Sept 13).** The shipped inference path is clean: every normalisation is per-scan
+(`volume.py:56-74`, `register.py:212-216`), the standardiser and PCA are training-fitted and loaded
+(`featmodel.py:38-40`), every `axis=0` reduction is over *arms* not scans (`infer_v3.py:169-194`), models run
+in eval mode with GroupNorm (`models_v3.py:16-17` — the only `BatchNorm` in the repo, `model.py:12-32`, is
+never constructed by `build_model`), and **no pretrained weight file ships at all**
+(`build_master_v3.py:126-133`; `models_v3.py:92` builds with `weights=None`). Of the six torchvision
+state_dicts ever fetched (BSD-3), only **convnext_tiny** and **efficientnet_v2_s** are ancestors of Master v3.
+Zero external data.
+
+Two exposures, neither in the inference path. (a) **Six git-tracked files reproduce the entire training label
+set** — `artifacts/featarm_v4/oof_*.csv`, `artifacts/featcarm_v5/oof_*.csv`, `artifacts/run4a_stack/oof_stack.csv`
+and `kaggle/run8_distill/soft_master_v2.csv`, each 1,362 uids with `y` summing to 747 positives. Harmless while
+the repo is private (confirmed: an unauthenticated fetch of the GitHub page returns 404) but a breach of "never
+share, copy, or publish the data" at the moment of the MIT release — **purge them in the release commit**.
+(b) **The raw-scan Kaggle dataset was shared with `skyfall23`** and nothing in the repo records whether that
+account is a second account of the same person, a registered DrivenData teammate, or neither. That must be
+settled *before* the remaining GPU hours are spent on it.
+
+Note also that `main_v3.py:64`'s test-set aggregate print is inert only because `build_master_v3.py:111` sets
+`typ: None`; `fit_stack_v3.py:199` can set it and `repack_v3.py:16-18` copies a manifest verbatim, so the new
+`typ` assertion in `local_e2e_v3.py` is the only guard on those two paths.
+
+**Size, not GPU, is the binding constraint.** The shipped zip is 847 MB against `build_master_v3.py --max-mb 850`
+— about 3 MB, a quarter of one checkpoint. Any added seed triggers `DROP_ORDER`, whose first entry deletes
+`a2d_v2s` seed 1, a pruning measured at ≈ 0.01 — roughly five times what one new seed returns.
+
+**Correction to the per-checkpoint figure.** 847/71 ≈ 11.9 MB is a zip average and the wrong unit. Checkpoints
+are fp16 (`datsc/train_v3.py:300-302`) and sizes are arm-dependent:
+
+| arm | ≈ MB per checkpoint | how many fit in the 203 MB from 847 → 1050 |
+|---|---|---|
+| 3D (hemi / hemisoft / crophistsoft / ssl) | **3.83** | ~52 |
+| `a2d_v2s` | **37.1** | ~5 |
+| `a2d_cnx_cor` | **51.2** | ~3 |
+
+3.83 MB is confirmed two independent ways: empirically as (847 − 732)/30 across the Master v2 → v3 zips
+(lines 323, 349-357 above), and from the HemiNet3D parameter count (`datsc/models_h.py:24-49`, 2,079,482
+params → 4.16 MB fp16 × ~0.92 deflate).
+
+**But neither megabytes nor the ladder actually binds.** The upload limit is at least 1421 MB: a 1421 MB /
+39-checkpoint zip smoke-scored successfully as `id-321496`, and the only recorded rejection was at 1.8 GB, so
+the true limit lies in [1421, 1815) MB. And the ladder has enormous slack — using the one platform-measured
+anchor (20 scans preprocessed in 6 s with 20 workers ⇒ ~6 CPU-s/volume ⇒ ~600 s for 2,000), a full
+71-checkpoint run costs ≈ 24 min and an 88-checkpoint run ≈ 26 min, i.e. **16–17 % of the 9000 s ladder**;
+truncation would need on the order of **1,580 checkpoints**. The 566 s local container figure is a CPU-laptop
+number that already exceeds the 360 s smoke cap for a zip that passed, so it predicts nothing about the
+platform.
+
+**What actually caps the spend is diminishing returns**, and the arm order is a feature rather than a bug: the
+pillars run first, so a truncated run would degrade to exactly the Master v2 ensemble (platform smoke 0.2381)
+rather than losing `a3d_hemi`. Do **not** reorder the manifest.
+
+**Which seeds are worth it.** `a3d_hemi` seeds 3→5 bought **0.0001 nats for 10 checkpoints** (the only
+difference between the two gate rows at lines 338-339 is the `_s[012]` vs `_s?` glob) — about 38× worse per
+checkpoint than `a3d_crophistsoft`. More plain hemisphere seeds are therefore rejected; the spend goes to
+`a3d_crophistsoft` 1→3 seeds and `a3d_hemisoft` 3→5 seeds.
+
+**Two further findings.** Left-right flip test-time averaging is **already on and free** — `InputSpec.variants`
+yields `self.flip(inp)` unconditionally (`datsc/train_v3.py:73-80`) and `infer_v3.py:157` averages exactly that
+set — so the "implement LR flip TTA" idea in the Sept 13 next-steps is already done and adds no checkpoints.
+And seven of `gen_run8.py`'s 42 default jobs (`r3d_hemisoft_site`, `r3d_hemisoft_full`) produce checkpoints
+that `load_arm`'s `_site`/`_fall` filter (`build_master_v3.py:26`) can never ship — they must be skipped or the
+GPU time is wasted outright.
+
+**Two silent-degradation paths found and closed.** (a) `build_master_v3.py` wrote an oversized zip with no
+assertion once `DROP_ORDER` was exhausted — it now exits non-zero. (b) `local_e2e_v3.py`'s
+`arm X: checkpoints used N/N` regex cannot match the `featc`/LR arms, which print a different line, so a dead
+non-torch arm still passed the gate — it now cross-checks the manifest, fails on any `ladder:` or failure line,
+and refuses a manifest with `typ` set (logging test-set statistics is grounds for disqualification,
+`DAT_PARKINSONS_CHALLENGE.md:86`).
+
+**Ledger integrity.** This section's own predecessor was byte-corrupted: three NUL bytes where `0.2473` and
+`0.2266` belong, a lone cp1252 `0x97`, and two literal `` `n `` escapes collapsing three lines into one.
+Repaired at those exact offsets. Separately, **neither slot-1 nor slot-2 carries a DrivenData submission id**,
+though `aidlc-docs/HANDOFF.md:126` requires one after the earlier fabrication incident, and slot 2's rank is
+recorded as "Estimated". Transcribing the submissions page is the first item of the endgame plan.
+
+**Slot arithmetic.** Sept 7 03:38 frees the slot at Sept 14 03:38; the next expiry is Sept 19, past the
+deadline. So one real submission remains — but it **opens** rather than expires and is live until Sept 16
+23:59. Spending it at 03:38 on Sept 14 would burn the last option on Master v2 (nested 0.2323), which is worse
+than the banked 0.2266, and forfeit ~60 hours of training. Plan:
+`docs/superpowers/plans/2026-09-13-run9-endgame-plan.md`.
 

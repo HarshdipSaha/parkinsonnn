@@ -2,7 +2,7 @@
     python scripts/local_e2e_v3.py <submission.zip> <smoke_dir>   (smoke_dir holds niftis/ or *.nii.gz, submission_format.csv, test_labels.csv)"""
 from __future__ import annotations
 
-import os, re, shutil, subprocess, sys, tempfile, time, zipfile
+import json, os, re, shutil, subprocess, sys, tempfile, time, zipfile
 from pathlib import Path
 
 import numpy as np, pandas as pd
@@ -26,6 +26,16 @@ assert r.returncode == 0
 used = re.findall(r"arm (\S+): checkpoints used (\d+)/(\d+)", r.stdout)
 print("checkpoints used per arm:", used)
 assert used and all(int(u) == int(m) for _, u, m in used), "ARM CHECKPOINTS NOT ALL USED"
+# Torch arms print "checkpoints used N/N"; the featc/LR arms print a different line and were
+# invisible to the assertion above, so a silently-dead arm still passed the gate.
+man = json.loads((sim / "artifacts" / "manifest.json").read_text())
+spoke = {a for a, _, _ in used} | set(re.findall(r"arm (\S+): (?:feat model|LR) on \d+ volumes", r.stdout))
+silent = [a["name"] for a in man["arms"] if a["name"] not in spoke]
+assert not silent, f"ARMS IN MANIFEST BUT SILENT IN OUTPUT: {silent} (ran: {sorted(spoke)})"
+for pat in (r"ladder: [^\n]+", r"arm \S+ failed: [^\n]+", r"checkpoint failed \([^\n]+", r"Traceback"):
+    hit = re.findall(pat, r.stdout + r.stderr)
+    assert not hit, f"DEGRADED RUN, ensemble is not what was gated: {hit[:3]}"
+assert man.get("typ") is None, "manifest typ is set: inference would print test-set statistics (rules)"
 fmt = pd.read_csv(fmt_csv, dtype={"uid": str}); sub = pd.read_csv(sim / "submission.csv", dtype={"uid": str})
 assert list(sub.columns) == ["uid", "is_pathologic"] and list(sub.uid) == list(fmt.uid) and sub.is_pathologic.between(0, 1).all()
 lab = pd.read_csv(next(src.rglob("test_labels.csv")), dtype={"uid": str}).set_index("uid").loc[sub.uid]

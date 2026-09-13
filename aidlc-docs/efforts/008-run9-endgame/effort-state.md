@@ -1,0 +1,57 @@
+# Effort 008: run 9 — the last submission (wayfinder T16)
+
+| | |
+|---|---|
+| **State** | in progress — analysis and build guards delivered; verification, sweep, GPU and the final upload are Harshdip's to run |
+| **Spec** | [2026-09-13-run9-endgame-spec.md](../../../docs/superpowers/specs/2026-09-13-run9-endgame-spec.md) |
+| **Plan** | [2026-09-13-run9-endgame-plan.md](../../../docs/superpowers/plans/2026-09-13-run9-endgame-plan.md) (hour-by-hour to the deadline) |
+| **Ticket** | `docs/wayfinder/tickets/T16-the-last-submission-verify-calibrate-and-spend-the-size-envelope.md` |
+| **ADR** | [0006 — the prior mix is insurance, not a lever](../../../docs/adr/0006-the-prior-mix-is-insurance-not-a-lever.md) |
+| **Deliverable** | `scripts/sweep_calibration.py` (new); size assert in `scripts/build_master_v3.py`; arm-coverage, ladder and `typ` checks in `scripts/local_e2e_v3.py`; `tests/test_run9.py` (5 tests); `RESULTS_LOG.md` byte-repair; ADR 0006 |
+| **Depth** | standard |
+
+## Requirements delta (vs baseline)
+
+See [requirements-delta.md](requirements-delta.md) (R25–R30).
+
+## Construction log
+
+| # | When (UTC) | Unit | Result |
+|---|---|---|---|
+| 1 | Sept 13 09:05 | Clock and slot arithmetic | Deadline is 87 h out. Sept 7 03:38 frees the only remaining slot at **Sept 14 03:38**; the next expiry is Sept 19, past the deadline. But the slot **opens, it does not expire** — it is live until Sept 16 23:59. The standing plan spends it at 03:38 on `master_v2` (nested 0.2323), which is *worse* than the banked 0.2266, and declares "no training fits any more"; that discards ~60 h of runway and the 30+ GPU-h now available (docs assume ~10). |
+| 2 | Sept 13 09:20 | λ arithmetic on the committed nested pool (`kaggle/run8_distill/soft_master_v2.csv`, 1,362 scans) | Reproduces the shipped numbers exactly: log loss **0.232252** vs recorded 0.2323; top-100 scans = **54.2 %** of loss vs recorded 54 %; **94** scans over 1 nat (matches); capped-at-2 ceiling **0.220130** vs recorded 0.2201. Inversion of the λ=0.02 mix is therefore sound. λ sweep: 0.02 → 0.232252, 0.01 → 0.230255 (**−0.0020**), 0.005 → 0.229320, 0 → 0.228437. **λ 0.01→0 buys ≤0.0018.** |
+| 3 | Sept 13 09:25 | The recorded "λ=0.01 gained 0.0084 public" | **Arithmetically impossible.** With arms fixed, λ is a post-hoc squash; the maximum gain from 0.02→0.01 over *any* data is 0.0055 nats (0.00455 at y=1, 0.00553 at y=0), and the realistic value on the real pool is 0.0020. The recorded gain is 1.5× the hard ceiling and 4× the expected effect, so it did not come from λ. Leading candidate: the 150-min ladder dropping arms (`infer_v3.py:24`, `main_v3.py:68`), with `combine()` renormalising over the survivors — two 847 MB / 71-ckpt zips can ship different ensembles. → ADR 0006. |
+| 4 | Sept 13 09:30 | Tail-risk direction | λ is insurance: a confident miss is floored at −log(λ·π) = **5.2 nats at λ=0.01** but only by `EPS=1e-4` = **9.21 nats at λ=0** (`datsc/calibrate.py:11,48`). The nested pool contains no shift, so it is monotone in λ and always argues for less insurance than is wise. → `scripts/sweep_calibration.py` prints nested, worst-case and break-even together. |
+| 5 | Sept 13 09:40 | Build-tool audit | Two silent-degradation paths found and closed. (a) `build_master_v3.py` wrote an oversized zip with **no assert** once `DROP_ORDER` was exhausted → now exits non-zero. (b) `local_e2e_v3.py`'s `checkpoints used N/N` regex cannot match the `featc`/LR arms, so a dead non-torch arm passed the gate → now cross-checks the manifest, fails on `ladder:`/failure lines, and refuses a manifest with `typ` set (logging test-set statistics is a disqualification risk, `DAT_PARKINSONS_CHALLENGE.md`:86). |
+| 6 | Sept 13 09:45 | Size envelope | **Not GPU-bound.** 847 MB against `--max-mb 850` is ~3 MB of headroom. Any new seed triggers `DROP_ORDER`, whose first action deletes `a2d_v2s` seed 1, measured at ≈0.01 (`HANDOFF.md`:121) — five times any single seed's gain. |
+| 7 | Sept 13 11:30 | Per-checkpoint size (corrects unit 6) | 847/71 ≈ 11.9 MB is a **zip average and the wrong unit**. Checkpoints are fp16 (`train_v3.py:300-302`) and arm-dependent: 3D ≈ **3.83 MB**, `a2d_v2s` ≈ 37.1, `a2d_cnx_cor` ≈ 51.2. 3.83 confirmed twice: (847−732)/30 across the v2→v3 zips, and HemiNet3D's 2,079,482 params (`models_h.py:24-49`) → 4.16 MB fp16 × 0.92 deflate. So 1,050 MB fits ~52 more 3D checkpoints, not 17. |
+| 10 | Sept 13 11:45 | Ladder and upload limit (corrects unit 7's conclusion) | **Neither size nor the ladder binds.** A **1421 MB / 39-ckpt zip already smoke-scored** (`id-321496`) and the only recorded rejection was 1.8 GB → true limit in [1421, 1815) MB. From the one platform anchor (20 vols preprocessed in 6 s at 20 workers ⇒ ~6 CPU-s/vol ⇒ ~600 s for 2,000), a 71-ckpt run ≈ **24 min** and an 88-ckpt run ≈ 26 min = **16–17 % of the 9000 s ladder**; truncation needs ~**1,580** checkpoints. The 566 s local figure is a CPU-laptop number that already exceeds the 360 s smoke cap for a zip that passed. **Do not reorder the manifest**: pillars-first means a truncated run degrades to exactly Master v2 (smoke 0.2381) instead of losing `a3d_hemi`. The ladder therefore **cannot** explain the λ anomaly — slots 1 and 2 ran the identical 71-ckpt zip. |
+| 11 | Sept 13 11:45 | A subtler silent path | A **successful** `DROP_ORDER` trim changes the ensemble *after* the gate table prints and renormalises the weights without re-gating; the unit-5 assert only fired when `DROP_ORDER` was *exhausted*. Now fatal by default (`--allow-trim` to override). Also unfixed by design: `infer_v3.py:52-60` — one crashed preprocess worker raises `BrokenProcessPool`, caught per-future, so every remaining volume is written as the prior while `os._exit(0)` reports success. Not patched: it would ship untested inference code. |
+| 8 | Sept 13 11:30 | Which seeds are worth GPU | `a3d_hemi` seeds 3→5 bought **0.0001 nats for 10 checkpoints** (the two gate rows at `RESULTS_LOG.md`:338-339 differ only by the `_s[012]` vs `_s?` glob) — ~38× worse per checkpoint than `a3d_crophistsoft`. More plain hemi seeds rejected; spend goes to `a3d_crophistsoft` 1→3 and `a3d_hemisoft` 3→5 (20 jobs, ≈4.1 GPU-h). Also: 7 of `gen_run8.py`'s 42 default jobs produce checkpoints `load_arm`'s `_site`/`_fall` filter (`build_master_v3.py:26`) can never ship — skip them or waste the GPU. |
+| 9 | Sept 13 11:30 | Left-right flip TTA | **Already on and free.** `InputSpec.variants` yields `self.flip(inp)` unconditionally (`train_v3.py:73-80`) and `infer_v3.py:157` averages that set. The "implement LR flip TTA" next-step in effort 007 is already satisfied and adds zero checkpoints. Model soup would load unchanged (`infer_v3.py:150-152`) but is rejected: independently initialised seeds share no basin, and it would ship an ensemble the gate never measured. |
+| 7 | Sept 13 09:50 | `RESULTS_LOG.md` integrity | The Sept 13 entry was byte-corrupted: **3 NUL bytes** at offsets 34026/34169/34231 where `0.2473`/`0.2266` belong, a lone cp1252 `0x97` at 33701, and two literal `` `n `` escapes collapsing three lines into one. Repaired surgically at those offsets (a first, blanket pass also mangled six `×` characters and an inline code span, and was reverted). |
+| 8 | Sept 13 10:00 | Spec, plan, ticket T16, ADR 0006, `tests/test_run9.py` | 5 tests green (`pytest tests/test_run9.py --noconftest`): λ ceiling, realistic λ gain, worst-case pricing, and both build guards. |
+
+| 12 | Sept 13 12:10 | Deep-research pass (Deep-Research-skills workflow: `research` → `research-deep` → `research-report`) | 7 items, one agent each, schema-gated by `docs/research/dat-endgame/validate.py`; **VALIDATION OK, 7/7 complete**. Output: `docs/research/dat-endgame/report.md`. Four of this effort's own earlier conclusions were corrected by it (units 7, 10, 11 above). |
+| 13 | Sept 13 12:10 | Residual error — **the strategic finding** | The residual is **predominantly irreducible**: **88 scans (6.46 %) carry 46.9 % of all loss and are wrong under all three independent representations**, including the non-CNN ROI scalar arm, against **0.04** expected under independence. No fold clustering (permutation p = 0.838); mid band calibrated at its own entropy (0.6081 vs 0.6136); image-derived ambiguity 6.5–7.2 % converges with the literature's 7.8 % discrepant-read rate. Both escapes closed: cross-fitted isotonic 0.232086 vs 0.232252 (**0.0002** headroom, also killing Venn-Abers); "never be confident" loses (+0.0017 at a 0.98 cap, +0.0136 at 0.95); hedge-on-disagreement cannot work because the hard core has **AUC 0.4193** — those scans disagree *less* than average, which explains the repo's unexplained "clip/hedge: no nested gain". 23-vs-46 resolved: 46 = p>0.80/p<0.20, 23 = p>0.90/p<0.10. **Verdict: verify, don't train.** Seed run needs a hard ≥0.003 gate (pool bootstrap noise is ±0.013). |
+| 14 | Sept 13 12:10 | Compliance | Inference path audited **clean** — per-scan normalisation throughout, every `axis=0` reduction over arms not scans, eval-mode GroupNorm (the repo's only BatchNorm is never constructed), and **no pretrained weight ships at all**. Two exposures outside it: (a) **six git-tracked files reproduce the whole 1,362-row label set** (`artifacts/featarm_v4`, `featcarm_v5`, `run4a_stack/oof_stack.csv`, `kaggle/run8_distill/soft_master_v2.csv`) — safe while private (GitHub returns 404 unauthenticated) but must be **purged in the MIT release commit**; (b) the raw-scan Kaggle dataset was shared with `skyfall23` and the repo never records whether that account is the same person, a registered teammate, or neither — **settle before spending the remaining GPU**. `typ` stays inert only via `build_master_v3.py:111`; `fit_stack_v3.py:199` can set it and `repack_v3.py:16-18` copies manifests verbatim, so the new `local_e2e_v3.py` assertion is the only guard. |
+
+## Open items (in order)
+
+The deep-research pass moved this from "spend the GPU well" to **"verify, don't train"** — the residual is
+mostly irreducible and calibration has 0.0002 of headroom, so the zero-GPU verification steps dominate.
+
+1. **Verify the ledger** (plan Step 1, free, ~15 min). Neither real submission carries a DrivenData id, though
+   the repo's own rule requires one, and the rank is recorded as "Estimated ~#16". Transcribe every row and
+   both `View log` outputs. **Read slot 2's AUROC**: λ is strictly monotone and cannot change a ranking, so
+   genuine λ-only twins must both report 0.9576. If they differ, the recorded λ story is void.
+2. **Settle skyfall23's team status** before any GPU is spent on that account (plan Step 8).
+3. Run `scripts/sweep_calibration.py` on the training machine (it needs `cache_v4/`, absent from a clone).
+   Expect confirmation, not change: ADR 0006 fixes T 0.90 / λ 0.01 / `clip null` on measured grounds.
+4. Size probe at `--max-mb 1050`. Neither size nor the ladder binds; a *successful* trim is now fatal.
+5. Optional GPU session: `a3d_crophistsoft` 1→3 and `a3d_hemisoft` 3→5 seeds (20 jobs, ≈4.1 GPU-h).
+   Hard gate **≥ 0.003** nested over 0.2266, else ship what is banked. No training starts after Sept 15 18:00.
+6. Freeze Sept 16 12:00, smoke 13:00 (pass = within ~0.01 of **0.2374**, `id-321850`), upload ~16:00.
+   Never at Sept 14 03:38 out of habit.
+7. After the deadline: `docs/DISCLOSURE.md` (T12; drafted content in `results/compliance.json`), and purge the
+   six label-bearing files in the release commit.

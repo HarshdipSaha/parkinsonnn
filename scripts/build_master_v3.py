@@ -1,7 +1,7 @@
 """Master v3 = Master v2's five pillars + the run-8 arms that pass the nested gate, all seeds, equal weights, T 0.9.
 
 python scripts/build_master_v3.py [--src data/run8/artifacts_v3 ...] [--smoke <smoke_dir>] [--zip data/submission_master_v3.zip]
-                                  [--gate 0.003] [--T 0.9] [--lam 0.02] [--max-mb 850] [--no-e2e] [--mode equal|shrunk]
+                                  [--gate 0.003] [--T 0.9] [--lam 0.02] [--max-mb 850] [--no-e2e] [--mode equal|shrunk] [--allow-trim]
 
 Prints the gate table (nested estimate, weights + T refit per fold): Master v2 as shipped, pillars with every local seed, pillars + each
 run-8 arm, pillars + all run-8 arms, greedy best subset; builds the zip for the best set; runs scripts/local_e2e_v3.py on the smoke set.
@@ -92,7 +92,7 @@ def gate_table(pool, gate, mode):
     return best_row, gain >= gate
 
 
-def build_zip(pool, names, mode, T, lam, out, max_mb, note):
+def build_zip(pool, names, mode, T, lam, out, max_mb, note, allow_trim=False):
     master = json.loads((ROOT / "data" / "master_pool" / "artifacts_v3" / "manifest.json").read_text())
     by_name = {a["name"]: a for a in master["arms"]}
     if "a3d_crophist" not in by_name and Path("data/submission_run5.zip").exists():   # template for crophistsoft lives in the run-5 manifest
@@ -133,6 +133,7 @@ def build_zip(pool, names, mode, T, lam, out, max_mb, note):
             zo.writestr("artifacts/manifest.json", json.dumps(man, indent=1))
         return n, Path(out).stat().st_size / 1e6
     n, mb = write(man)
+    trimmed = []
     for arm_name, key in DROP_ORDER:
         if mb <= max_mb:
             break
@@ -143,7 +144,16 @@ def build_zip(pool, names, mode, T, lam, out, max_mb, note):
                     man["arms"] = [a for a in man["arms"] if a["name"] != arm_name]; man["weights"].pop(arm_name, None)
                     s = sum(man["weights"].values()); man["weights"] = {k: v / s for k, v in man["weights"].items()}
                 print(f"zip {mb:.0f} MB > {max_mb}: dropped {arm_name} {key or '(whole arm)'} ({before} -> {len(arm['checkpoints'])} ckpts)")
+                trimmed.append(f"{arm_name} {key or '(whole arm)'}")
         n, mb = write(man)
+    if mb > max_mb:
+        raise SystemExit(f"FATAL: {out} is {mb:.0f} MB > --max-mb {max_mb} and DROP_ORDER is exhausted. "
+                         f"Raise --max-mb or extend DROP_ORDER; do NOT submit this zip.")
+    if trimmed and not allow_trim:
+        raise SystemExit(f"FATAL: the zip fitted only after trimming {trimmed}. The gate table above scored the "
+                         f"UNTRIMMED set, and dropping an arm also renormalises the weights, so what would ship is "
+                         f"not what was measured. Raise --max-mb and rebuild, or pass --allow-trim to accept it "
+                         f"and re-read the gate table for the trimmed set.")
     print(f"wrote {out}: {n} checkpoint files across {len(man['arms'])} arms, {mb:.0f} MB; weights {json.dumps({k: round(v, 3) for k, v in man['weights'].items()})}; T {man['T']} lam {man['lam']}")
     for arm in man["arms"]:
         print(f"  {arm['name']:<16} {len(arm['checkpoints'])} ckpts")
@@ -155,6 +165,7 @@ if __name__ == "__main__":
     ap.add_argument("--smoke", default=None); ap.add_argument("--zip", default="data/submission_master_v3.zip"); ap.add_argument("--gate", type=float, default=0.003)
     ap.add_argument("--T", type=float, default=0.9); ap.add_argument("--lam", type=float, default=0.02); ap.add_argument("--max-mb", type=float, default=850)
     ap.add_argument("--mode", default="equal", choices=["equal", "shrunk", "fitted"]); ap.add_argument("--no-e2e", action="store_true"); ap.add_argument("--table-only", action="store_true")
+    ap.add_argument("--allow-trim", action="store_true", help="accept a zip that only fitted after DROP_ORDER trimming; by default that is fatal, because the gate table scored the untrimmed set")
     a = ap.parse_args()
     srcs = a.src or ["data/run8/artifacts_v3", "data/master_pool/artifacts_v3"]
     pool = Pool(srcs, a.cache, a.T, a.lam)
@@ -162,7 +173,7 @@ if __name__ == "__main__":
     best_row, passed = gate_table(pool, a.gate, a.mode)
     if a.table_only:
         sys.exit(0)
-    man = build_zip(pool, best_row[1], a.mode, a.T, a.lam, a.zip, a.max_mb, f"master v3: {best_row[0]}; nested {a.mode} {best_row[2 if a.mode == 'equal' else 3 if a.mode == 'shrunk' else 4]:.4f}; gate {'PASS' if passed else 'FAIL'}")
+    man = build_zip(pool, best_row[1], a.mode, a.T, a.lam, a.zip, a.max_mb, f"master v3: {best_row[0]}; nested {a.mode} {best_row[2 if a.mode == 'equal' else 3 if a.mode == 'shrunk' else 4]:.4f}; gate {'PASS' if passed else 'FAIL'}", a.allow_trim)
     if a.smoke and not a.no_e2e:
         print("container-style check on the smoke set ...", flush=True)
         r = subprocess.run([sys.executable, str(ROOT / "scripts" / "local_e2e_v3.py"), a.zip, a.smoke], capture_output=True, text=True)

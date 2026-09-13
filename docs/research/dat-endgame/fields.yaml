@@ -1,0 +1,50 @@
+# Field schema for the dat-endgame deep research pass.
+# Hierarchy: brief -> moderate -> detailed. Every item's JSON must carry every field below.
+# Values that could not be established from the repo, the rules or arithmetic must be prefixed
+# with "[uncertain]" and their field name listed in the item's "uncertain" array.
+
+verdict:
+  level: brief
+  type: string
+  description: "One sentence. The recommendation for this item, stated as an instruction."
+
+confidence:
+  level: brief
+  type: string
+  enum: [high, medium, low]
+  description: "high = verified in source or by arithmetic; medium = strong inference; low = needs checking on the platform."
+
+numbers:
+  level: moderate
+  type: object
+  description: "The quantitative result. Keys are metric names, values are numbers or short strings. Empty object if the item is not quantitative."
+
+evidence:
+  level: moderate
+  type: list
+  description: "Each entry cites file:line, a rules clause, or a computation that can be re-run. No claim without a locator."
+
+risk_if_wrong:
+  level: moderate
+  type: string
+  description: "What it costs if this verdict is mistaken, in log loss, rank, or a burned submission slot."
+
+action:
+  level: detailed
+  type: list
+  description: "Exact ordered commands or steps Harshdip runs. Copy-pasteable. Empty list if the item is analysis only."
+
+rejected_alternatives:
+  level: detailed
+  type: list
+  description: "Options considered and dropped, each with the reason. Guards against re-litigating settled questions."
+
+open_questions:
+  level: detailed
+  type: list
+  description: "What remains unresolved and what would resolve it."
+
+uncertain:
+  level: brief
+  type: list
+  description: "Names of fields above whose values are marked [uncertain]. Empty list if none."

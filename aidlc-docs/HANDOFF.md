@@ -2,16 +2,37 @@
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-12 01:55 UTC |
+| **Last updated** | 2026-09-13 10:00 UTC |
 | **Deadline** | 2026-09-16 23:59 UTC; best submission on the **private** set counts automatically (organiser statement) |
 | **Goal (user)** | as high as possible; honest reach: rank ≈ 15–20 (top 10 needs public 0.2379; rank 1 = 0.2166 is out of reach with this data) |
 | **Current public score** | **0.2473** log loss, **Rank ~#16** (Master v3 lam=0.01, Slot 2 evaluated Sept 13; climbed +7 places). Leader 0.2166, #10 0.2379, #15 0.2457 |
-| **Real submissions** | 5 used (next slot: Sept 14 03:38 UTC) |
-| **Best zip on hand** | `data/submission_master_v2.zip` (732 MB, nested **0.2323**) for diversification |
+| **Real submissions** | 5 used. **One slot left**: it opens Sept 14 03:38 UTC and stays open until the deadline — the next expiry after that is Sept 19 |
+| **Best zip on hand** | `data/submission_master_v2.zip` (732 MB, nested **0.2323**) — note this is *worse* than the banked 0.2266; it is a diversification bet, not an upgrade |
 | **Completed** | Master v3 bracket delivered and verified on public LB (0.2473, Rank ~#16) |
+| **Now (effort 008)** | Endgame: **hold the last slot, ship late.** Freeze Sept 16 12:00, smoke 14:00, upload ~16:00. See `efforts/008-run9-endgame/effort-state.md` |
+| **GPU** | **30+ GPU-hours remain** (the "≈10 GPU-h" figure below and in `forharsh.md` §3 is stale) |
 | **Solo playbook** | `forharsh.md` / `forharsh.pdf` (repo root) — the short, ordered version of this file |
 
-Reading order: this file → `forharsh.md` → `efforts/007-run8-distill-master-v3/effort-state.md` → `docs/superpowers/plans/2026-09-10-run8-distill-plan.md` → `RESULTS_LOG.md`.
+Reading order: this file → `docs/superpowers/plans/2026-09-13-run9-endgame-plan.md` → `forharsh.md` → `efforts/008-run9-endgame/effort-state.md` → `RESULTS_LOG.md`.
+
+> **Three corrections to the plan below, from effort 008 (Sept 13).** The sections after this box were written
+> assuming the last slot is spent on Sept 14 and that no training time remains. Both assumptions are wrong.
+>
+> 1. **The slot opens; it does not expire.** It is live until Sept 16 23:59. Submitting at 03:38 on Sept 14
+>    throws away ~60 h of runway and spends the last option on a zip (nested 0.2323) worse than what is banked
+>    (0.2266). Hold it. Freeze Sept 16 12:00.
+> 2. **Do not chase λ any further.** λ 0.02→0.01 is capped at 0.0055 nats by arithmetic and is worth 0.0020 on
+>    the real pool; the +0.0084 credited to it in `RESULTS_LOG.md` is impossible, so something else differed
+>    between those two submissions — most likely the ladder dropping arms. λ 0.01→0 buys ≤0.0018 and removes
+>    the last cap on a confident miss (9.21 nats vs 5.2). See `docs/adr/0006-the-prior-mix-is-insurance-not-a-lever.md`.
+> 3. **Size is the binding constraint, not GPU.** 847 MB against `--max-mb 850` is ~3 MB of headroom. Any new
+>    seed triggers `DROP_ORDER`, which deletes `a2d_v2s` seed 1 first — worth ≈0.01, five times what a seed
+>    returns. Measure the envelope at `--max-mb 1050` *before* launching any training. Note checkpoint size is
+>    **per-arm**, not an average: fp16 3D checkpoints are ≈3.83 MB each, but `a2d_v2s` is ≈37.1 MB and
+>    `a2d_cnx_cor` ≈51.2 MB. So 1,050 MB buys ~52 more 3D checkpoints but only ~5 v2s ones. Neither size nor
+>    the ladder actually binds (a 1421 MB zip already smoke-scored, `id-321496`; a 71-ckpt run uses ~24 min of
+>    the 150-min ladder). What caps the spend is **diminishing returns** — `a3d_hemi` seeds 3→5 bought 0.0001
+>    nats for 10 checkpoints — so add ~20 checkpoints where they still pay and stop.
 
 ---
 
@@ -61,8 +82,8 @@ kaggle kernels push -p kaggle/run8_distill
 | Slot (UTC) | Zip | Condition / Status |
 |---|---|---|
 | Sept 12 | `submission_master_v3.zip` | **COMPLETED**: Public **0.2557**, AUROC **0.9576**, **Rank #23** (climbed +21 spots from #44; G=+0.0268) |
-| Sept 13 15:50 | `data/submission_master_v3_lam01.zip` | **COMPLETED**: Public **0.2473**, **Rank ~#16** (climbed +7 spots from #23; G=+0.0207) |
-| Sept 14 03:38 | `data/submission_master_v2.zip` (diversification) or TTA zip | container check first |
+| Sept 13 03:08 | `data/submission_master_v3_lam01.zip` | **COMPLETED**: Public **0.2473**, **Rank ~#16** (climbed +7 spots from #23; G=+0.0207). **id not recorded** — transcribe it |
+| Sept 14 03:38 — **Sept 16 23:59** | the best zip that gates above **0.2266**; `data/submission_master_v2.zip` only as a last resort | **SUPERSEDED by effort 008**: the slot opens Sept 14 but is spent Sept 16 ~16:00 after the freeze, smoke test and container check. Master v2 (nested 0.2323) is *worse* than what is banked, so it is a diversification bet and not the default. See `docs/superpowers/plans/2026-09-13-run9-endgame-plan.md` |
 
 Every upload: note = what it is + nested number; write the score and id into `RESULTS_LOG.md`.
 

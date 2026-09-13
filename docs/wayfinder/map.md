@@ -39,6 +39,7 @@ A verified, one-command Kaggle notebook (`kaggle/run7_hemisphere`, HOWTO include
 - [PPMI DaT-SPECT: what we would get and what the DUA allows](tickets/T02-ppmi-dat-spect-what-we-would-get.md): PPMI cannot be used here — DUA bars Kaggle-style platforms and any scan-list sharing; organiser ruled PPMI-trained models prize-ineligible. External data leaves the route.
 - [Build run 7: hemisphere-level Siamese members and the super-stack notebook](tickets/T07-build-run-7-hemisphere-level-siamese-members.md): built and tested; one-command launch ready; member's 1-epoch smoke beats crop-3D (0.413 vs 0.471).
 - [Hemisphere-level and asymmetry-aware DaT classification; single-scan test-time adaptation; label-noise-robust losses](tickets/T03-hemisphere-level-and-asymmetry-aware-dat-classification-single-scan.md): hemisphere member = diversity gain, not a step change; only BN-statistics blending has single-scan TTA evidence; robust losses are out, nested-OOF soft targets are the one label-noise idea with log-loss evidence.
+- [The last submission: verify, price the prior mix, spend the size envelope](tickets/T16-the-last-submission-verify-calibrate-and-spend-the-size-envelope.md): **one** slot remains, not three — it opens Sept 14 03:38 and stays open, so it is spent Sept 16 after a freeze, not on the 14th. Q9's λ bracket is closed: λ is arithmetically capped (ADR 0006) and the recorded +0.0084 gain is impossible. Q5's "zip ≤ 850 MB" is now the *binding* constraint at 847 MB — the trimmer, not the GPU quota, decides how many seeds can ship.
 
 ## Not yet specified
 

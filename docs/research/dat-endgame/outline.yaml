@@ -1,0 +1,55 @@
+topic: "DaT Parkinson's Challenge — the last submission (Sept 13-16, 2026)"
+topic_slug: dat-endgame
+generated: 2026-09-13
+method: Deep-Research-skills (research -> research-deep -> research-report)
+
+context:
+  deadline_utc: "2026-09-16 23:59"
+  now_utc: "2026-09-13 09:05"
+  slot_opens_utc: "2026-09-14 03:38"
+  real_submissions_remaining: 1
+  banked_public: 0.2473
+  banked_nested: 0.2266
+  banked_rank: "~16 (recorded, unverified)"
+  leader_public: 0.2166
+  top10_public: 0.2379
+  gpu_hours_remaining: 30
+  zip_size_mb: 847
+  zip_ceiling_mb: 850
+  checkpoints: 71
+
+execution:
+  batch_size: 7
+  items_per_agent: 1
+  output_dir: docs/research/dat-endgame/results
+  fields_path: docs/research/dat-endgame/fields.yaml
+  validator: docs/research/dat-endgame/validate.py
+
+items:
+  - id: slot-timing
+    name: "Slot arithmetic and when to spend the last submission"
+    question: "How many real submissions remain before the deadline, and is it better to submit when the slot opens or to hold it until Sept 16?"
+
+  - id: calibration
+    name: "Prior mix and temperature"
+    question: "Where should lambda and T sit for the final zip, priced against tail risk rather than the shift-free nested curve?"
+
+  - id: gpu-spend
+    name: "GPU spend inside the size envelope"
+    question: "Given ~17 spare checkpoints at a 1050 MB ceiling and 30 GPU-hours, which training spend maximises nested gain per checkpoint shipped?"
+
+  - id: ladder-packaging
+    name: "Inference ladder and packaging risk"
+    question: "Can the 150-minute ladder silently drop arms on the hidden test set, and what makes the final zip verifiably the ensemble that was gated?"
+
+  - id: residual-error
+    name: "Residual error and the reachable ceiling"
+    question: "Is the remaining loss label noise or model error, and what nested score is actually reachable with this data?"
+
+  - id: ledger-integrity
+    name: "Ledger integrity and verification"
+    question: "Which recorded numbers carry a DrivenData id, which are internally contradictory, and what must be read off the site to settle them?"
+
+  - id: compliance
+    name: "Rules compliance and disclosure"
+    question: "What in the shipped inference path or the training venue is a disqualification or prize-eligibility risk, and what must be disclosed?"
