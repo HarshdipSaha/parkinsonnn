@@ -89,17 +89,21 @@ def _tv_backbone(name: str, weights_path: str | Path | None):
     if name == "tiny":
         m = TinyNet2D(); return m, m.out_dim
     import torchvision.models as tvm
+    if not hasattr(tvm, name):
+        raise ValueError(name)
     m = getattr(tvm, name)(weights=None)
     if weights_path:
         sd = torch.load(str(weights_path), map_location="cpu", weights_only=True)
         missing, unexpected = m.load_state_dict(sd, strict=False)
-        assert not unexpected and all(k.startswith(("fc.", "classifier.")) for k in missing), (missing, unexpected)
+        assert not unexpected and all(k.startswith(("fc.", "classifier.", "head.")) for k in missing), (missing, unexpected)
     if name.startswith("convnext"):
         m.classifier[2] = nn.Identity(); dim = m.classifier[0].normalized_shape[0]
     elif name.startswith("efficientnet"):
         dim = m.classifier[1].in_features; m.classifier[1] = nn.Identity()
     elif name.startswith("resnet"):
         dim = m.fc.in_features; m.fc = nn.Identity()
+    elif name.startswith("swin"):
+        dim = m.head.in_features; m.head = nn.Identity()
     else:
         raise ValueError(name)
     return m, dim

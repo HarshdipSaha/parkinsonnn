@@ -17,8 +17,8 @@ logloss, sigmoid, logit, fit_temperature, compositions = ns["logloss"], ns["sigm
 
 PILLARS = {"a3d_hemi": "r3d_hemi48_f?_s?", "a3d_ssl": "r3d_ssl_f?_s?", "featc": "featcarm", "a2d_cnx_cor": "r2d_convnext_tiny_cor_f?_s?", "a2d_v2s": "r2d_efficientnet_v2_s_f?_s[01]"}
 V2_SHIPPED = {**PILLARS, "a3d_hemi": "r3d_hemi48_f?_s[012]"}
-NEW = {"a3d_hemisoft": "r3d_hemisoft_f?_s?", "a3d_hemimw": "r3d_hemimw_f?_s?", "a3d_crophistsoft": "r3d_crophistsoft_f?_s?"}
-TEMPLATE_ARM = {"a3d_hemisoft": "a3d_hemi", "a3d_hemimw": "a3d_hemi", "a3d_crophistsoft": "a3d_crophist"}   # manifest entry to copy
+NEW = {"a3d_hemisoft": "r3d_hemisoft_f?_s?", "a3d_hemimw": "r3d_hemimw_f?_s?", "a3d_crophistsoft": "r3d_crophistsoft_f?_s?", "a2d_swin": "r2d_swin_t_f?_s?", "a2d_swinsoft": "r2d_swin_t_soft_f?_s?"}
+TEMPLATE_ARM = {"a3d_hemisoft": "a3d_hemi", "a3d_hemimw": "a3d_hemi", "a3d_crophistsoft": "a3d_crophist", "a2d_swin": "a2d_v2s", "a2d_swinsoft": "a2d_v2s"}   # manifest entry to copy
 DROP_ORDER = [("a2d_v2s", "_s1."), ("a3d_hemimw", ""), ("a3d_crophistsoft", ""), ("a3d_hemi", "_s4."), ("a3d_hemi", "_s3.")]   # size trimming
 
 
@@ -102,6 +102,8 @@ def build_zip(pool, names, mode, T, lam, out, max_mb, note, allow_trim=False):
     for n in names:
         base = n.replace("@all", ""); tpl = by_name[TEMPLATE_ARM.get(base, base)]
         arm = json.loads(json.dumps(tpl)); arm["name"] = base
+        if "swin" in base:
+            arm["model_kw"]["backbone"] = "swin_t"
         arm["checkpoints"] = sorted(set("artifacts/" + Path(f).name.replace("oof_", "").replace(".csv", ".pt") for f in pool.files[n])) if base != "featc" else tpl["checkpoints"]
         arms.append(arm)
     weights = {a["name"]: 1.0 / len(arms) for a in arms}
