@@ -14,6 +14,8 @@
   "harshdipsaha/dat-run3-checkpoints"
  ],
  "competition_sources": [],
- "kernel_sources": [],
+ "kernel_sources": [
+  "skyfall23/dat-run8-distill"
+ ],
  "model_sources": []
 }

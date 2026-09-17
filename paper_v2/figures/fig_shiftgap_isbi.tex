@@ -1,0 +1,37 @@
+\begin{tikzpicture}[
+  font=\sffamily,
+  scale=0.85,
+  y=17cm, x=1.2cm,
+  barlabel/.style={font=\tiny\bfseries},
+  axislabel/.style={font=\tiny\bfseries, text=gray!80!black}
+]
+  \draw[-{Latex[length=1.8mm]}, thick, gray!70!black] (0,0) -- (0,0.30) node[above, font=\tiny\bfseries] {Log loss};
+  \draw[-{Latex[length=1.8mm]}, thick, gray!70!black] (0,0) -- (4.2,0);
+
+  \foreach \val in {0.10, 0.20, 0.30} {
+    \draw[gray!25, dashed] (-0.08, \val) -- (4.0, \val);
+    \node[anchor=east, font=\tiny, text=gray!60!black] at (-0.1, \val) {\val};
+  }
+
+  % Bar 1
+  \draw[fill=blue!45!teal, draw=blue!60!black, rounded corners=1pt] (0.4, 0) rectangle (1.1, 0.2266);
+  \node[barlabel, text=blue!70!black] at (0.75, 0.237) {0.2266};
+  \node[axislabel, align=center] at (0.75, -0.03) {Random\\OOF};
+
+  % Bar 2
+  \draw[fill=orange!55!yellow, draw=orange!70!black, rounded corners=1pt] (1.5, 0) rectangle (2.2, 0.2402);
+  \node[barlabel, text=orange!80!black] at (1.85, 0.251) {0.2402};
+  \node[axislabel, align=center] at (1.85, -0.03) {Site-Fold\\OOF};
+
+  % Bar 3
+  \draw[fill=red!50!orange, draw=red!70!black, rounded corners=1pt] (2.6, 0) rectangle (3.3, 0.2473);
+  \node[barlabel, text=red!80!black] at (2.95, 0.258) {0.2473};
+  \node[axislabel, align=center] at (2.95, -0.03) {Public LB\\(Rank $\sim$16)};
+
+  % Gap bracket
+  \draw[thick, gray!60!black] (0.75, 0.268) -- (0.75, 0.274) -- (1.85, 0.274) -- (1.85, 0.268);
+  \node[font=\tiny\bfseries, fill=white, inner sep=1pt] at (1.3, 0.276) {$\shiftgap = 0.0136$};
+
+  \draw[thick, red!70!black] (0.75, 0.286) -- (0.75, 0.292) -- (2.95, 0.292) -- (2.95, 0.286);
+  \node[font=\tiny\bfseries, fill=white, inner sep=1pt, text=red!70!black] at (1.85, 0.294) {Gap $+0.0207$};
+\end{tikzpicture}

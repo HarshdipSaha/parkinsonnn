@@ -1,0 +1,37 @@
+\begin{tikzpicture}[
+  font=\footnotesize\sffamily,
+  scale=0.95, every node/.style={transform shape},
+  arm3d/.style={draw=teal!70!black, rounded corners=3pt, text width=4.6cm, minimum height=0.95cm, align=left, fill=teal!10, line width=0.8pt, inner sep=4pt},
+  arm25d/.style={draw=blue!70!black, rounded corners=3pt, text width=4.6cm, minimum height=0.95cm, align=left, fill=blue!8, line width=0.8pt, inner sep=4pt},
+  armfeat/.style={draw=orange!70!black, rounded corners=3pt, text width=4.6cm, minimum height=0.95cm, align=left, fill=orange!10, line width=0.8pt, inner sep=4pt},
+  comb/.style={draw=green!60!black, rounded corners=4pt, minimum width=4.3cm, minimum height=3.2cm, align=center, fill=green!8, line width=0.9pt, inner sep=6pt},
+  outbox/.style={draw=orange!70!black, rounded corners=3pt, minimum width=2.6cm, minimum height=1.1cm, align=center, fill=orange!18, line width=0.9pt, inner sep=4pt},
+  arrow/.style={-{Latex[length=2.2mm]}, thick, gray!70!black}
+]
+  % 5 Arms with clean text and no touching
+  \node[arm3d] (a1) at (0, 2.6) {\textbf{Hemisphere 3D} --- \textbf{50.0\%}\\{\scriptsize Shared bilateral ResNet (HemiNet3D)}};
+  \node[arm3d] (a2) at (0, 1.3) {\textbf{Self-Supervised 3D} --- \textbf{12.5\%}\\{\scriptsize Pretrained 3D CNN (VICReg)}};
+  \node[armfeat] (a3) at (0, 0.0) {\textbf{Feature Arm} --- \textbf{12.5\%}\\{\scriptsize 116 radiomics + Kernel RFF}};
+  \node[arm25d] (a4) at (0, -1.3) {\textbf{Coronal 2.5D} --- \textbf{12.5\%}\\{\scriptsize 3-slab stacks (ConvNeXt-Tiny)}};
+  \node[arm25d] (a5) at (0, -2.6) {\textbf{Axial 2.5D} --- \textbf{12.5\%}\\{\scriptsize 3-slab stacks (EfficientNetV2-S)}};
+
+  % Combiner Box
+  \node[comb] (comb) at (6.3, 0.0) {
+    \textbf{\large Calibration Combiner}\\[5pt]
+    \parbox{3.9cm}{\centering
+      \textbullet\ Log-odds: $z_i = \text{logit}(p_i)$\\[2pt]
+      \textbullet\ Weighted pooling: $\bar{z} = \sum w_i z_i$\\[2pt]
+      \textbullet\ Temperature scaling: $T=0.90$\\[2pt]
+      \textbullet\ Bayesian prior mix: $\lambda=0.01$
+    }
+  };
+
+  % Output Box
+  \node[outbox] (out) at (10.9, 0.0) {\textbf{Final Prediction}\\$\hat{p} \in [0, 1]$\\{\scriptsize Calibrated Probability}};
+
+  % Connections
+  \foreach \a in {a1, a2, a3, a4, a5} {
+    \draw[arrow] (\a.east) -- (comb.west |- \a.east);
+  }
+  \draw[arrow] (comb) -- (out);
+\end{tikzpicture}

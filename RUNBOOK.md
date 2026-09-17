@@ -247,16 +247,14 @@ automatically. The only real loss is the option itself.
 
 ---
 
-## 9. After the deadline (Sept 17)
+## 9. After the deadline (Sept 17) — Completed
 
-1. Write `docs/DISCLOSURE.md` — the full drafted text is in
-   `docs/research/dat-endgame/results/compliance.json` under `action`. It covers: no external data, the
-   torchvision ImageNet weights actually used (convnext_tiny and efficientnet_v2_s, BSD-3 — the other four
-   were downloaded and never trained with), Kaggle as the training venue with its retention terms disclosed
-   voluntarily, the smoke-set policy (ADR 0005), and an explicit no-pseudo-labelling statement.
+1. **[COMPLETED]** Write `docs/DISCLOSURE.md` — [docs/DISCLOSURE.md](docs/DISCLOSURE.md) drafted, verified, and committed (fulfilling Ticket T12). Covers: zero external data, BSD-3 torchvision ImageNet weights only, Kaggle compute venue, no-pseudo-labelling, per-scan inference isolation, and the complete verified 6-submission ledger.
 2. **Purge the six files that reproduce the training labels** before any public/MIT release:
    `artifacts/featarm_v4/oof_*.csv`, `artifacts/featcarm_v5/oof_*.csv`, `artifacts/run4a_stack/oof_stack.csv`,
    `kaggle/run8_distill/soft_master_v2.csv`. Each holds 1,362 uids with `y` — a verbatim `train_labels.csv`.
    Harmless while the repo is private; a breach of "never share, copy, or publish the data" the moment it is not.
 3. Delete the private Kaggle datasets and notebook outputs on both accounts.
-4. Read `LESSONS.pdf`. Then read it again before your next competition.
+4. Final competition results verified: **Rank #50** on Private Leaderboard (best Private Log Loss: **0.3003**, AUROC: **0.9406** via Slot 5 `id-322091`). See [RESULTS_LOG.md](RESULTS_LOG.md) and [aidlc-docs/HANDOFF.md](aidlc-docs/HANDOFF.md).
+5. Read `LESSONS.md` / `LESSONS.pdf`. Then read it again before your next competition.
+

@@ -23,3 +23,11 @@ artifacts_v3/
 cache_v4/
 cache_anchor_diag.csv
 .claude/worktrees/
+
+artifacts_dev/
+ISBI_template-master.zip
+PUBLICATION_RUNWAY.html
+*.aux
+*.log
+*.out
+*.synctex.gz

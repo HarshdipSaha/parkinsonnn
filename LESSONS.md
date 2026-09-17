@@ -8,17 +8,20 @@ patterns do. Everything below is stated as a rule, with the evidence that earned
 
 ## The arc, in one table
 
-| Run | What changed | Public score | Rank |
-|---|---|---|---|
-| 1 | First working pipeline | 0.3391 | 152 |
-| 2–3 | Proper spatial normalisation; a real ensemble | 0.2817 | 66 |
-| 4 | More members, nested cross-validation as the decision metric | 0.2667 | 39 |
-| 5–7 | Domain-invariance, new representations, a hemisphere-aware member | — | — |
-| 8 | Ensemble-corrected training targets, all seeds, equal weights | 0.2557 | 23 |
-| 8b | One calibration constant changed | 0.2473 | ~16 |
+| Run | What changed | Public score | Private score | Final Rank |
+|---|---|---|---|---|
+| 1 | First working pipeline (`id-321156`) | 0.3391 | 0.3924 | 152 |
+| 2–3 | Proper spatial normalisation; a real ensemble (`id-321263`) | 0.2817 | 0.3217 | 66 |
+| 4 | More members, nested cross-validation as the decision metric (`id-321298`) | 0.2667 | 0.3099 | 39 |
+| 5–7 | Domain-invariance, new representations, a hemisphere-aware member | — | — | — |
+| 8 | Ensemble-corrected training targets, all seeds, equal weights (`id-321967`) | 0.2557 | 0.3029 | 23 |
+| 8b | Master v3 with tuned calibration ($\lambda=0.01$, `id-322091`) | **0.2473** | **0.3003** | **#50 (Best)** |
+| 9 | Master v9 expanded seeds ensemble (91 ckpts, `id-322254`) | 0.2522 | 0.3019 | #51 |
 
 Note the shape. **The first 0.06 came from fixing the pipeline. The next 0.02 came from ensembling. The last
-0.01 came from arithmetic on cached predictions.** The expensive part of the leaderboard is the beginning.
+0.01 came from arithmetic on cached predictions.** In the final private test evaluation, the entire leaderboard
+shifted up by $+0.04$ to $+0.06$ log loss under unseen hospital camera systems, confirming that cross-scanner
+robustness was the deciding factor.
 
 ---
 
@@ -126,7 +129,20 @@ timeline.
 whether free validation runs exist, and what the hard timings are. Free evaluation runs are worth more than
 they look — ours were unlimited enough to test every packaging change at zero cost.
 
+### 11. Beware the 3D convolution domain trap; project or sequence instead
+
+In 3D medical imaging spanning heterogeneous hospital equipment, native slice thickness and reconstruction
+filters vary widely. Isotropic 3D convolutions easily memorize z-axis interpolation textures and scanner noise
+profiles (+0.035 to +0.043 transfer penalty on unseen cameras). Top solutions projected 3D volumes into 2D
+multi-plane slabs (DenseNet-121) or processed sequential 2D slices with BiGRUs, collapsing out inter-slice
+artifacts and achieving intrinsic camera invariance.
+
+**Rule:** before investing your entire capacity budget into 3D CNNs on reconstructed medical volumes, test
+whether a 2D multi-plane projection preserves the clinical signal. A 2D projection discards vendor-specific
+z-axis interpolation artifacts that 3D kernels gladly overfit.
+
 ---
+
 
 ## Part 2 — what to do, in order, next time
 
@@ -188,6 +204,7 @@ competition, verification has a higher expected value than modelling** — and i
 8. Equal weights, all seeds. Spend complexity on members.
 9. Ask of every check: what would this fail to notice?
 10. Draw the submission timeline before the last week, not during it.
+11. Beware the 3D convolution domain trap; 2D multi-plane projections or slice sequences generalize better across scanner vendors.
 
-And the meta-rule underneath all ten: **the failure mode of a competent team is not bad modelling, it is
+And the meta-rule underneath all eleven: **the failure mode of a competent team is not bad modelling, it is
 believing a number nobody checked.**

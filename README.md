@@ -4,21 +4,23 @@ Binary classification of 3D DaT-SPECT NIfTI volumes (normal vs abnormal), scored
 
 | | |
 |---|---|
-| Status | Run 2 submitted (public 0.3391, rank 152). Run 3 (registered frame, 3D + 2.5D + ROI-LR ensemble) in training. |
-| Resume work | [aidlc-docs/HANDOFF.md](aidlc-docs/HANDOFF.md) |
-| Results | [RESULTS_LOG.md](RESULTS_LOG.md) |
+| Status | **COMPLETED / CLOSED**. DrivenData Competition #311 concluded Sept 16, 2026. Official Private Leaderboard: **Rank #50** (Best Private Log Loss: **0.3003**, AUROC: **0.9406** via Slot 5 `id-322091`; Best Public: **0.2473**). All 6 official submissions and 20 smoke tests audited. |
+| Resume work / Handoff | [aidlc-docs/HANDOFF.md](aidlc-docs/HANDOFF.md) |
+| Results & Ledger | [RESULTS_LOG.md](RESULTS_LOG.md) |
+| Compliance & Disclosure | [docs/DISCLOSURE.md](docs/DISCLOSURE.md) |
+| Field Guide & Post-Mortem | [LESSONS.md](LESSONS.md) |
 
 ## Documentation
 
 | Type | Document |
 |---|---|
-| How-to | [docs/how-to-train-and-submit.md](docs/how-to-train-and-submit.md): build the caches, train on Kaggle, pack, download, submit |
-| Reference | [docs/ref-pipeline-v3.md](docs/ref-pipeline-v3.md): modules, cache layout, `manifest.json`, every script's flags |
-| Explanation | [docs/concept-registered-frame.md](docs/concept-registered-frame.md): why the run-3 design is what it is |
+| How-to | [docs/how-to-train-and-submit.md](docs/how-to-train-and-submit.md): build the caches, train on Kaggle, pack, download, submit; [RUNBOOK.md](RUNBOOK.md) |
+| Reference | [docs/ref-pipeline-v3.md](docs/ref-pipeline-v3.md): modules, cache layout, `manifest.json`, every script's flags; [docs/DISCLOSURE.md](docs/DISCLOSURE.md) |
+| Explanation | [docs/concept-registered-frame.md](docs/concept-registered-frame.md): why the registered frame design was chosen; [LESSONS.md](LESSONS.md): post-mortem & 11 engineering rules |
 | Rules and runtime | [DAT_PARKINSONS_CHALLENGE.md](DAT_PARKINSONS_CHALLENGE.md) |
 | Research | [EDA_REPORT.md](EDA_REPORT.md), [LITERATURE_REVIEW.md](LITERATURE_REVIEW.md), `PIPELINE_REC_*.md`, [COUNCIL_VERDICT.md](COUNCIL_VERDICT.md), [docs/RUN3_BRAINSTORM.md](docs/RUN3_BRAINSTORM.md), [docs/RESEARCH_SIMILAR_COMPETITIONS.md](docs/RESEARCH_SIMILAR_COMPETITIONS.md) |
 | Domain language | [CONTEXT.md](CONTEXT.md) (glossary), [docs/adr/](docs/adr/) (decision records) |
-| Plans and process | [docs/superpowers/plans/](docs/superpowers/plans/), [aidlc-docs/](aidlc-docs/README.md) |
+| Plans and process | [docs/superpowers/plans/](docs/superpowers/plans/), [aidlc-docs/](aidlc-docs/README.md) (Efforts 001–009) |
 
 ## Layout
 

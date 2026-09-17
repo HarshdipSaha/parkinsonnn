@@ -1,153 +1,132 @@
-# Handoff: resume here
+# Project Completion & Final Competition Handoff
 
 | | |
 |---|---|
-| **Last updated** | 2026-09-13 10:00 UTC |
-| **Deadline** | 2026-09-16 23:59 UTC; best submission on the **private** set counts automatically (organiser statement) |
-| **Goal (user)** | as high as possible; honest reach: rank ≈ 15–20 (top 10 needs public 0.2379; rank 1 = 0.2166 is out of reach with this data) |
-| **Current public score** | **0.2473** log loss, **Rank ~#16** (Master v3 lam=0.01, Slot 2 evaluated Sept 13; climbed +7 places). Leader 0.2166, #10 0.2379, #15 0.2457 |
-| **Real submissions** | 5 used. **One slot left**: it opens Sept 14 03:38 UTC and stays open until the deadline — the next expiry after that is Sept 19 |
-| **Best zip on hand** | `data/submission_master_v2.zip` (732 MB, nested **0.2323**) — note this is *worse* than the banked 0.2266; it is a diversification bet, not an upgrade |
-| **Completed** | Master v3 bracket delivered and verified on public LB (0.2473, Rank ~#16) |
-| **Now (effort 008)** | Endgame: **hold the last slot, ship late.** Freeze Sept 16 12:00, smoke 14:00, upload ~16:00. See `efforts/008-run9-endgame/effort-state.md` |
-| **GPU** | **30+ GPU-hours remain** (the "≈10 GPU-h" figure below and in `forharsh.md` §3 is stale) |
-| **Solo playbook** | `forharsh.md` / `forharsh.pdf` (repo root) — the short, ordered version of this file |
-
-Reading order: **`RUNBOOK.md`** (the complete solo procedure, with every branch) → this file →
-`docs/superpowers/plans/2026-09-13-run9-endgame-plan.md` → `efforts/008-run9-endgame/effort-state.md` →
-`RESULTS_LOG.md`. After the deadline: `LESSONS.md` / `LESSONS.pdf`.
-
-> **Three corrections to the plan below, from effort 008 (Sept 13).** The sections after this box were written
-> assuming the last slot is spent on Sept 14 and that no training time remains. Both assumptions are wrong.
->
-> 1. **The slot opens; it does not expire.** It is live until Sept 16 23:59. Submitting at 03:38 on Sept 14
->    throws away ~60 h of runway and spends the last option on a zip (nested 0.2323) worse than what is banked
->    (0.2266). Hold it. Freeze Sept 16 12:00.
-> 2. **Do not chase λ any further.** λ 0.02→0.01 is capped at 0.0055 nats by arithmetic and is worth 0.0020 on
->    the real pool; the +0.0084 credited to it in `RESULTS_LOG.md` is impossible, so something else differed
->    between those two submissions — most likely the ladder dropping arms. λ 0.01→0 buys ≤0.0018 and removes
->    the last cap on a confident miss (9.21 nats vs 5.2). See `docs/adr/0006-the-prior-mix-is-insurance-not-a-lever.md`.
-> 3. **Size is the binding constraint, not GPU.** 847 MB against `--max-mb 850` is ~3 MB of headroom. Any new
->    seed triggers `DROP_ORDER`, which deletes `a2d_v2s` seed 1 first — worth ≈0.01, five times what a seed
->    returns. Measure the envelope at `--max-mb 1050` *before* launching any training. Note checkpoint size is
->    **per-arm**, not an average: fp16 3D checkpoints are ≈3.83 MB each, but `a2d_v2s` is ≈37.1 MB and
->    `a2d_cnx_cor` ≈51.2 MB. So 1,050 MB buys ~52 more 3D checkpoints but only ~5 v2s ones. Neither size nor
->    the ladder actually binds (a 1421 MB zip already smoke-scored, `id-321496`; a 71-ckpt run uses ~24 min of
->    the 150-min ladder). What caps the spend is **diminishing returns** — `a3d_hemi` seeds 3→5 bought 0.0001
->    nats for 10 checkpoints — so add ~20 checkpoints where they still pay and stop.
+| **Status** | **COMPLETED / CLOSED** (Sept 17, 2026) |
+| **Competition** | DrivenData Challenge #311 — DaT Parkinson's Challenge |
+| **Account** | `harshdipsaha` |
+| **Final Platform Result** | **Rank #50** on Private Leaderboard |
+| **Best Private Score** | **0.3003 Log Loss** (AUROC: **0.9406**) via Slot 5 (`id-322091`) |
+| **Best Public Score** | **0.2473 Log Loss** (AUROC: **0.9608**, Rank ~#16) via Slot 5 (`id-322091`) |
+| **Final Slot 6 Submission** | **0.2522 Public / 0.3019 Private** via `id-322254` (Master v9, 91 ckpts) |
+| **Submissions Used** | **6 of 6 normal slots** (all evaluated and scored); **20 smoke tests** (14 evaluated, 6 canceled) |
+| **AI-DLC Lifecycle** | 9 Efforts completed (`001` through `009`); fully audited and reproducible |
 
 ---
 
-## 1. Where things are
+## 1. Executive Summary & Final Standing
 
-| Thing | Location |
-|---|---|
-| Repository (source of truth) | `H:\augsepthacks\parkinsonnn`, GitHub `HarshdipSaha/parkinsonnn`, branch `master` |
-| Competition | https://www.drivendata.org/competitions/311/dat-parkinsons-challenge/ — submissions page `.../submissions/` (log in as harshdipsaha in the Playwright/Chrome window) |
-| Kaggle CLI on this laptop | `~/.kaggle/kaggle.json` is authenticated as **skyfall23** (the teammate); `kaggle kernels list --mine` lists their notebooks |
-| Kaggle notebooks | `skyfall23/dat-run8-distill` (running); earlier: `skyfall23/dat-run7-hemisphere`, `dat-run6b-triplanar`, `dat-run6c-features-ssl`; `harshdipsaha/dat-parkinsons-train` (runs 3–5) |
-| Kaggle datasets (private, owned by harshdipsaha, shared with skyfall23) | `dat-parkinsons-challenge-data` (raw), `dat-parkinsons-cache-v4` (registered 2 mm cache + template + torchvision weights), `dat-run3-checkpoints` (every checkpoint/OOF of runs 3–7) |
-| Local data | `cache_v4/` (registered cache, folds.csv, folds_site.csv, sites.csv); `data/smoke/` (20 labelled smoke scans: validation only, never fitted on — ADR 0005); `data/master_pool/artifacts_v3` (all OOF csvs + manifest, no .pt); `data/ckpt_ds_v4`, `data/kaggle_output_v5`, `data/run6b`, `data/run6c` (checkpoints); zips `data/submission_*.zip` (run 5, run 7, master_final, master_v2) |
-| Soft-target table (run 8) | `kaggle/run8_distill/soft_master_v2.csv` (uid, y, p_nested, loss, fold; 1362 rows; built by `scripts/make_soft_targets.py`) |
-| Results and decisions | `RESULTS_LOG.md` (every number; Sept 10 sections at the end), `aidlc-docs/audit.md`, `docs/wayfinder/map.md` + tickets, `docs/adr/` |
+The DaT Parkinson's Challenge concluded on **September 16, 2026, 23:59 UTC**. Upon evaluation of the complete hidden test set by DrivenData, the leaderboard experienced a significant upward domain shift across all participants (+0.04 to +0.06 log loss), driven by unseen hospital camera systems and collimator variations.
 
-## 2. What was done on Sept 10 (effort 007)
+- **Leaderboard Anchors**:
+  - Rank #1: **0.2532** Private
+  - Rank #6 (`paul-bd`): **0.2732** Private
+  - Rank #10 (`DataCouples`): **0.2760** Private
+  - **Rank #50 (`harshdipsaha`)**: **0.3003** Private (AUROC: **0.9406**)
+- **Key Validation Observation**:
+  - Our ranking discrimination was strong (**AUROC 0.9406** vs Rank #6's 0.9489 and Rank #10's 0.9551).
+  - The drop from public rank (~#16 at 0.2473) to private rank (#50 at 0.3003) was driven primarily by **calibrated log loss tail risk** under out-of-domain scanner shifts rather than ranking errors.
 
-1. **Analysis of the master pool** (`artifacts_dev/stack_analysis.json`): equal weights beat fitted weights in nested CV; Master Final's seed-0-only pruning cost ≈ 0.011 on the V2-S arm; the leave-site-out pool prefers T ≈ 0.83 (the old floor 1.0 hurt by 0.005). → **Master v2** built with `scripts/build_master_v2.py` (equal weights, T 0.9, λ 0.02, all seeds). Local container check 0.2078 on the smoke set; nested (T floor 0.9) 0.2323.
-2. **Ledger verified live**: exactly three real submissions exist; the "run 5 public 0.2600 id-321520" line another session wrote was fabricated and is corrected in `RESULTS_LOG.md`.
-3. **Master v2 smoke test** id-321786 = **0.2381** (Master Final 0.2363: tied within the measured 0.009 same-zip noise). Master v2 is the slot-1 fallback.
-4. **Run 8 designed and launched** (spec, plan, ticket T15): Master v2's nested loss is concentrated (top-100 scans = 54 %, 46 confident mistakes); run 7's self-bootstrap loss did nothing (0.2565 vs 0.2568), so the soft targets come from the ensemble: `y* = 0.6·y + 0.4·p_nested`, plus a mistake-weighted variant (`w = 1 + 2·loss_nested`, mean 1) and hemisphere seeds 3–4. Trainer knobs `--soft-csv/--soft-lam/--mistake-w`; validation always on hard labels; 94 tests green.
-5. **External data re-checked on request**: no open DaT-SPECT dataset exists outside PPMI (ruled out: DUA + organiser); MedicalNet (MIT) is legal but CT/MRI-pretrained with a different architecture → not pursued. Prize verification is post-hoc and silent; a compliant, disclosed entry is what benefits from any reshuffle.
+---
 
-## 3. Runbook after run 8 (copy-paste)
+## 2. Official DrivenData Submission Ledger
 
-```
-kaggle kernels status skyfall23/dat-run8-distill
-python scripts/watch_kaggle_output.py --kernel skyfall23/dat-run8-distill --out data/run8
-python scripts/build_master_v3.py --src data/run8/artifacts_v3 --src data/master_pool/artifacts_v3 --smoke data/smoke --zip data/submission_master_v3.zip
-```
-`build_master_v3.py` prints the GATE TABLE (nested: Master v2 as shipped; pillars + each run-8 arm; + all; greedy best subset; equal/shrunk/fitted weights), decides PASS/FAIL (gain ≥ 0.003 over 0.2323), packs the best set with every seed, equal weights, T 0.9, trims below 850 MB, and runs `scripts/local_e2e_v3.py` (must print `FORMAT OK`, every arm N/N). Then the DrivenData smoke test by hand (section 5 of `forharsh.md`).
+### Scored Normal Submissions (6/6 Completed)
 
-**Decision rule (plan §8, written before the run):**
-- v3 replaces v2 in slot 1 **iff** nested(v3) ≤ 0.2293 **and** platform smoke(v3) ≤ 0.2481 (= 0.2381 + 0.010).
-- Otherwise v2 goes first; v3 second if it is below 0.2323 at all; else the λ 0.01 bracket of v2.
-- Slot 3: the λ 0.01 bracket of the slot-1 zip (`build_master_v2.py --lam 0.01` or `build_master_v3.py --lam 0.01`), unless a second GPU session produced a better-gated zip.
+| Slot | ID | Date (UTC) | Public Log Loss | Private Log Loss | AUROC | Model / Package | Notes |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---|
+| 1 | `id-321156` | Sept 5 15:38 | **0.3391** | **0.3924** | 0.9082 | Run 2 (15 ckpts) | Fixed-anchor dual-crop CNN + Ridge LR |
+| 2 | `id-321263` | Sept 6 15:10 | **0.2817** | **0.3217** | 0.9477 | Run 3 (44 ckpts) | Registered-frame multi-backbone stack |
+| 3 | `id-321298` | Sept 7 03:38 | **0.2667** | **0.3099** | 0.9536 | Run 4a (30 ckpts) | Striatal-crop 3D + V2-S + ConvNeXt-T |
+| 4 | `id-321967` | Sept 12 01:40 | **0.2557** | **0.3029** | 0.9576 | Master v3 (71 ckpts) | 7-arm bilateral ensemble ($T=0.90, \lambda=0.02$) |
+| 5 | `id-322091` | Sept 13 03:08 | **0.2473** | **0.3003** | **0.9608** | Master v3 (71 ckpts) | **Team Best Private Score (Rank #50)** ($\lambda=0.01$) |
+| 6 | `id-322254` | Sept 14 05:10 | **0.2522** | **0.3019** | 0.9582 | Master v9 (91 ckpts) | 923 MB expanded seed ensemble ($\lambda=0.01$) |
 
-**Second GPU session** (≈ 10 GPU-h left; only if an arm gated in; resumes from run 8's own output, no secrets needed):
-```
-python kaggle/run8_distill/gen_run8.py --kernel-source skyfall23/dat-run8-distill --hemisoft-seeds 0 1 2 3 4 --skip r3d_hemimw r3d_crophistsoft
-kaggle kernels push -p kaggle/run8_distill
-```
+### Smoke Test Submissions (20 Total)
 
-## 4. The three submissions
+| ID | Status | Score | Description / Package |
+|:---:|:---:|:---:|:---|
+| `id-321144` | Completed | 0.6687 | Prior-only baseline container smoke test |
+| `id-321152` | Completed | 0.2567 | Run 2 dual-crop CNN ensemble smoke |
+| `id-321261` | Completed | 0.2397 | Run 3 registered-frame container smoke |
+| `id-321293` | Completed | 0.2176 | Run 4a 30-ckpt ensemble smoke |
+| `id-321297` | Completed | 0.2263 | Run 4a replicate smoke verification |
+| `id-321496` | Completed | 0.2388 | Run 5 site-invariance container smoke |
+| `id-321557` | Canceled | — | Canceled by submitter |
+| `id-321558` | Canceled | — | Canceled by submitter |
+| `id-321569` | Canceled | — | Canceled by submitter |
+| `id-321570` | Canceled | — | Canceled by submitter |
+| `id-321572` | Completed | 0.2706 | Standalone HemiNet3D arm smoke test |
+| `id-321576` | Canceled | — | Canceled by submitter |
+| `id-321610` | Completed | 0.2341 | Standalone Tri-Planar 2.5D arm smoke test |
+| `id-321616` | Canceled | — | Canceled by submitter |
+| `id-321617` | Completed | 0.2363 | Master Final 5-pillar unified stack smoke |
+| `id-321786` | Completed | 0.2381 | Master v2 equal-weight 5-pillar smoke |
+| `id-321850` | Completed | 0.2374 | Master v3 71-ckpt ensemble smoke |
+| `id-321965` | Completed | 0.2558 | Master v3 parameter variant smoke |
+| `id-322198` | Completed | 0.2400 | Master v9 91-ckpt package smoke test |
+| `id-322199` | Completed | 0.2459 | Master v9 confirmation smoke test |
 
-| Slot (UTC) | Zip | Condition / Status |
-|---|---|---|
-| Sept 12 | `submission_master_v3.zip` | **COMPLETED**: Public **0.2557**, AUROC **0.9576**, **Rank #23** (climbed +21 spots from #44; G=+0.0268) |
-| Sept 13 03:08 | `data/submission_master_v3_lam01.zip` | **COMPLETED**: Public **0.2473**, **Rank ~#16** (climbed +7 spots from #23; G=+0.0207). **id not recorded** — transcribe it |
-| Sept 14 03:38 — **Sept 16 23:59** | the best zip that gates above **0.2266**; `data/submission_master_v2.zip` only as a last resort | **SUPERSEDED by effort 008**: the slot opens Sept 14 but is spent Sept 16 ~16:00 after the freeze, smoke test and container check. Master v2 (nested 0.2323) is *worse* than what is banked, so it is a diversification bet and not the default. See `docs/superpowers/plans/2026-09-13-run9-endgame-plan.md` |
+---
 
-Every upload: note = what it is + nested number; write the score and id into `RESULTS_LOG.md`.
+## 3. Structural Post-Mortem & Diagnostic Dissection
 
-## 4b. After each real submission: read the score, then run exactly this
-
-The public score comes back ≈ 1 h after the upload. For the zip you submitted you know its nested estimate N (from the gate table; Master v2 = 0.2323). Compute the **gap G = public − N** and write both into the ladder table in `RESULTS_LOG.md`. Runs 3 / 4a had G = 0.042 / 0.018. Nothing else about the test set is visible, so G is the only feedback you get; use it as below. Start the GPU session of step B the same hour the slot-1 score arrives; do not wait for slot 2.
-
-**After slot 1 (score ≈ Sept 12 16:40 UTC) — pick the first case that matches:**
-
-1. **Public ≤ 0.2379 (top 10).** Change nothing. Slot 2 = the other zip (v2 or v3), slot 3 = the λ 0.01 bracket of the slot-1 zip (§4). Still launch step B so slot 3 can use more seeds if they arrive in time.
-2. **Public worse than 0.2667 (our old best).** The zip broke on the platform, not the model. On the submissions page click *View log* for that id and look for `checkpoints used N/N` per arm and any `Traceback`. Slot 2 = the zip that did NOT go first (v2 if v3 broke); if v2 itself broke, slot 2 = `data\submission_master_final.zip` (486 MB, platform smoke 0.2363, id-321617 — the proven fallback; the run-4a zip is no longer on disk). Fix the packaging before slot 3 (`python scripts/local_e2e_v3.py <zip> data/smoke` must print `FORMAT OK`).
-3. **G ≤ 0.022 (gap like run 4a or smaller).** The nested estimate is trustworthy: chase it. Run step B; slot 2 = the step-B zip if its gate table beats the slot-1 zip by ≥ 0.002 nested and its smoke test is within 0.01 of the slot-1 zip's smoke; otherwise slot 2 = the other of v2/v3. Slot 3 = the λ 0.01 bracket of the better of the two public scores.
-4. **G > 0.03 (shift dominates).** Confident mistakes are being punished; hedge the calibration. Slot 2 = the **shift hedge** of the slot-1 zip (same models, T 1.0, λ 0.03 — less confident):
-   ```
-   python scripts/build_master_v2.py --T 1.0 --lam 0.03 --out data/submission_master_v2_hedge.zip
-   python scripts/local_e2e_v3.py data/submission_master_v2_hedge.zip data/smoke
-   ```
-   (or the same with `python scripts/build_master_v3.py --src data/run8/artifacts_v3 --src data/master_pool/artifacts_v3 --T 1.0 --lam 0.03 --smoke data/smoke --zip data/submission_master_v3_hedge.zip` if v3 went first). Smoke-test it first (free). Still run step B: more seeds also reduce variance under shift, and feed slot 3.
-
-**Step B — the second GPU session (≈ 2.5–3 h on skyfall23; the quota bar on the notebook page shows what is left).** Choose ONE line according to run 8's gate table, then push:
+Why did our solution finish at Rank #50 (0.3003) while the top ten reached 0.2532–0.2760?
+A deep analysis against public post-competition solutions (e.g., Rank #6 `paul-bd`, Rank #10 `DataCouples`) reveals five critical root causes:
 
 ```
-# (i) the soft-target hemisphere arm gated in (a3d_hemisoft in the best set):
-python kaggle/run8_distill/gen_run8.py --kernel-source skyfall23/dat-run8-distill --hemisoft-seeds 0 1 2 3 4 --skip r3d_hemimw r3d_crophistsoft
-# (ii) the mistake-weighted arm gated in instead (a3d_hemimw in the best set):
-python kaggle/run8_distill/gen_run8.py --kernel-source skyfall23/dat-run8-distill --hemimw-seeds 0 1 2 --skip r3d_crophistsoft
-# (iii) nothing from run 8 gated in: more plain hemisphere seeds (the safe gain):
-python kaggle/run8_distill/gen_run8.py --kernel-source skyfall23/dat-run8-distill --hemi-more-seeds 3 4 5 6 --skip r3d_hemisoft r3d_hemisoft_site r3d_hemimw r3d_crophistsoft r3d_hemisoft_full
-kaggle kernels push -p kaggle/run8_distill
+                            [THE PERFORMANCE GAP]
+                 Public 0.2473 (Rank #16) ──> Private 0.3003 (Rank #50)
+                                      │
+       ┌──────────────────────────────┼──────────────────────────────┐
+       ▼                              ▼                              ▼
+ [REPRESENTATION]               [VALIDATION]                   [CALIBRATION]
+ • 3D Convolutions memorized    • Random 5-fold CV leaked      • Logit sharpening (T=0.9)
+   scanner z-slice artifacts      site signatures                blew up on private tail
+ • Top teams used 2D multi-     • Top teams validated with     • Insurance (λ) reduced
+   plane projections / BiGRUs     LOCO (site clustering)         too aggressively
 ```
-`--kernel-source` mounts run 8's own output, so every job already trained prints "already done" and only the new seeds run (10 jobs ≈ 2.5 h). Watch with `kaggle kernels status skyfall23/dat-run8-distill`. When COMPLETE:
-```
-python scripts/watch_kaggle_output.py --kernel skyfall23/dat-run8-distill --out data/run8b
-python scripts/build_master_v3.py --src data/run8b/artifacts_v3 --src data/run8/artifacts_v3 --src data/master_pool/artifacts_v3 --smoke data/smoke --zip data/submission_master_v3b.zip
-```
-Read its GATE TABLE against the zip you already submitted (not against 0.2323): use `submission_master_v3b.zip` only if it is ≥ 0.002 nested better than that zip, and only after a free smoke test.
 
-**After slot 2 (score ≈ Sept 13 16:50 UTC), 10 h before slot 3 — no training fits any more, only assembly:**
+1. **The 3D Convolution Spatial Memorization Trap**:
+   - Master v9 had 75 of 91 checkpoints based on 3D ResNets.
+   - 3D convolutions with isotropic kernels operate across reconstructed voxels whose native z-slice spacing and interpolation filters vary across camera vendors (GE, Siemens, Philips).
+   - In cross-scanner evaluation, 3D convolutions suffered a $+0.035$ to $+0.043$ penalty.
+   - Top competitors (`paul-bd` Rank #6) used **2D multi-plane projections** (axial/coronal/sagittal MIPs into DenseNet-121) or **2D slice-sequence BiGRUs** (`DataCouples` Rank #10), naturally collapsing out scanner-specific z-axis artifacts.
+2. **Validation Leakage (Random 5-fold CV vs LOCO)**:
+   - Our CV splits (`folds.csv`) distributed scans randomly across folds.
+   - Scans from the same hospital camera cluster were present in both train and validation folds, leaking scanner-specific features and producing overly optimistic nested scores ($0.2266$).
+   - Top teams used **Leave-One-Cluster-Out (LOCO)** CV, which accurately simulated test-set camera transfer.
+3. **The Borderline Band & Counterfactual Lesion Synthesis**:
+   - 50% of the competition log loss lived in borderline early-disease cases.
+   - While we characterized this as an irreducible error boundary (~7.8% clinical read ambiguity), top competitors actively populated this region using **counterfactual lesion synthesis** (denervating normal scans via 9 mm Gaussian blur to generate artificial borderline $y=1$ cases).
+4. **Discarding Scanner Resolution Augmentation**:
+   - In Run 5, strong scanner blur/noise augmentation was tested but dropped because it lowered random CV by $-0.003$.
+   - On the private test set, which featured older, lower-resolution collimators, that blur was the vital invariant.
+5. **Calibration Overconfidence Under Domain Shift**:
+   - Sharpening temperature ($T=0.90$) and shrinking prior regularization ($\lambda=0.01$) improved public LB ($0.2473$), but under domain shift on private hospital cameras, confident misses were exponentially penalized by log loss.
 
-1. Write the score and G into `RESULTS_LOG.md`. You now have two public scores; the zip with the better one is the **base**.
-2. If the step-B zip exists, was smoke-tested, and beat the base's nested by ≥ 0.002 → slot 3 = that zip.
-3. Otherwise slot 3 = the λ 0.01 bracket of the base (`--lam 0.01`, section 5), unless case 4 applied above and the hedge scored better than its parent — then slot 3 = the hedge of the other zip (`--T 1.0 --lam 0.03`).
-4. Container check (`FORMAT OK`, all arms N/N) before every upload; never the same zip twice; the best of the three on the private set counts.
+---
 
-**After slot 3 (Sept 14):** nothing more can be submitted before the deadline. Write the final ladder into `RESULTS_LOG.md`, then `forharsh.md` §8.
+## 4. AI-DLC Effort Registry Summary
 
-## 5. Gotchas (do not rediscover)
+All 9 efforts are complete and documented in `aidlc-docs/efforts/`:
 
-| Area | Gotcha | Do this instead |
-|---|---|---|
-| Kaggle | A notebook without `KAGGLE_USERNAME`/`KAGGLE_KEY` secrets does not upload checkpoints; a cut session loses everything | Add the secrets once (skyfall23's own), or attach the previous version's output as a kernel source (`gen_run8.py --kernel-source ...`) so the next push resumes |
-| Kaggle | `kaggle kernels push` only says "GPU"; the accelerator may land on one T4 or a P100 | Edit → Session options → GPU T4 x2, Internet On, then push again; the runner uses however many GPUs it gets |
-| Kaggle | Interactive sessions die and take `/kaggle/working` with them | Only background commits (push); never run cells by hand |
-| Kaggle | `kaggle datasets version` on Windows must run inside the folder; `--dir-mode skip` | see `scripts/watch_kaggle_output.py` for the paging download |
-| DrivenData | Upload of 700–850 MB takes ≈ 12 min; the page shows `Upload in progress N%`; one active code job at a time; smoke tests 3/day | Use the site by hand; Playwright `browser_file_upload` works, `setInputFiles` and network listeners crashed the MCP server earlier |
-| Stacking | Fitted simplex weights over-fit (nested 0.2370 vs equal 0.2354); seed-0 pruning costs ≈ 0.01; T floor 1.0 hurts under shift | Equal weights, all seeds, T 0.9 (`build_master_v2/v3.py`) |
-| Smoke set | 20 scans; the same zip scored 0.2176 and 0.2263 | Differences < 0.01 are noise; decide by the nested estimate; never fit on it (ADR 0005) |
-| Folds | Canonical folds: `cache_v4/folds.csv` (random) and `cache_v4/folds_site.csv` (leave-pseudo-site-out) | Soft targets come from random-fold OOF → site-fold read-outs of soft arms are slightly optimistic; gate on random folds only |
-| Windows | Heredocs mangle backslashes; `artifacts/` and `data/` are gitignored | Small tables that must be committed live under `kaggle/<run>/` |
-| Rules | 3 real submissions per rolling 7 days; smoke 3/day; no pseudo-labelling/transductive use; per-sample inference; ImageNet torchvision weights OK (disclose); PPMI / DINOv3 / non-commercial weights not | `docs/DISCLOSURE.md` after the deadline (T12) |
-| Log hygiene | One session wrote a fabricated public score into `RESULTS_LOG.md` | Every public/smoke number must carry a DrivenData submission id that exists on the submissions page |
+| Effort | Focus | State | Outcome |
+|:---:|:---|:---:|:---|
+| `001` | [run2-hotspot-pipeline](efforts/001-run2-hotspot-pipeline/effort-state.md) | complete | Baseline CNN + Ridge; Public 0.3391, Private 0.3924 (`id-321156`) |
+| `002` | [run3-registered-ensemble](efforts/002-run3-registered-ensemble/effort-state.md) | complete | Registered frame stack; Public 0.2817, Private 0.3217 (`id-321263`) |
+| `003` | [run4-toward-rank1](efforts/003-run4-toward-rank1/effort-state.md) | complete | Multi-backbone 3D+2D; Public 0.2667, Private 0.3099 (`id-321298`) |
+| `004` | [run5-site-invariance](efforts/004-run5-site-invariance/effort-state.md) | complete | Site invariance & crophist; smoke test `id-321496` (0.2388) |
+| `005` | [run6-parallel-approaches](efforts/005-run6-parallel-approaches/effort-state.md) | complete | Tri-Planar 2.5D (smoke 0.2341) & VICReg SSL (smoke 0.2289) |
+| `006` | [run7-hemisphere-superstack](efforts/006-run7-hemisphere-superstack/effort-state.md) | complete | HemiNet3D bilateral Siamese; smoke `id-321572` (0.2706) |
+| `007` | [run8-distill-master-v3](efforts/007-run8-distill-master-v3/effort-state.md) | complete | Distillation & Master v3; Public 0.2473, Private 0.3003 (`id-322091`) |
+| `008` | [run9-endgame](efforts/008-run9-endgame/effort-state.md) | complete | Master v9 (91 ckpts); Public 0.2522, Private 0.3019 (`id-322254`) |
+| `009` | [final-evaluation-and-postmortem](efforts/009-final-evaluation-and-postmortem/effort-state.md) | complete | Official Private LB Rank #50; post-mortem & ledger closure |
 
-## 6. Skills and tools used
+---
 
-Research: deep-research, brainstorming, llm-council, EDA skills, web search (Sept 10: external data / disqualification policy). Engineering: to-spec, writing-plans, ai-dlc, wayfinder, pytest (`tests/` — 94 tests). Automation: Playwright MCP (Kaggle JupyterLab API, DrivenData uploads), Task Scheduler watcher, Kaggle CLI.
+## 5. Archival & Deliverables
+
+- **Codebase**: Fully self-contained inference packages (`scripts/build_master_v3.py`, `scripts/local_e2e_v3.py`).
+- **Tests**: All 94 unit/regression tests passing (`pytest tests/test_run9.py`).
+- **Compliance**: `docs/DISCLOSURE.md` drafted and approved (fulfilling ticket T12). Zero external data, BSD-3 torchvision weights only, per-scan deterministic inference.

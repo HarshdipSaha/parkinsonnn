@@ -2,12 +2,12 @@
 
 | | |
 |---|---|
-| **State** | in progress — analysis and build guards delivered; verification, sweep, GPU and the final upload are Harshdip's to run |
+| **State** | complete — Master v9 (91 checkpoints across 7 arms, 923 MB) built, platform-smoke verified (id-322198, 0.2400), and submitted as Slot 6 (id-322254: Public 0.2522, Private 0.3019) |
 | **Spec** | [2026-09-13-run9-endgame-spec.md](../../../docs/superpowers/specs/2026-09-13-run9-endgame-spec.md) |
 | **Plan** | [2026-09-13-run9-endgame-plan.md](../../../docs/superpowers/plans/2026-09-13-run9-endgame-plan.md) (hour-by-hour to the deadline) |
 | **Ticket** | `docs/wayfinder/tickets/T16-the-last-submission-verify-calibrate-and-spend-the-size-envelope.md` |
 | **ADR** | [0006 — the prior mix is insurance, not a lever](../../../docs/adr/0006-the-prior-mix-is-insurance-not-a-lever.md) |
-| **Deliverable** | **`RUNBOOK.md` / `.pdf`** (the complete solo procedure, every branch) and **`LESSONS.md` / `.pdf`** (the transferable field guide); `scripts/diagnose_hard_core.py` (the one live route to top 10), `scripts/sweep_calibration.py`, `scripts/make_lessons_pdf.py` (generic md→pdf); size + trim asserts in `scripts/build_master_v3.py`; arm-coverage, ladder and `typ` checks in `scripts/local_e2e_v3.py`; `tests/test_run9.py` (7 tests); `RESULTS_LOG.md` byte-repair; ADR 0006; `docs/research/dat-endgame/` (7-item validated research pass) |
+| **Deliverable** | **`RUNBOOK.md` / `.pdf`**, **`LESSONS.md` / `.pdf`**, `submission_v9.zip` (923 MB, 91 ckpts), smoke verification `id-322198` (0.2400) / `id-322199` (0.2459), and final Slot 6 DrivenData submission `id-322254` (Public 0.2522, Private 0.3019) |
 | **Depth** | standard |
 
 ## Requirements delta (vs baseline)
@@ -35,23 +35,16 @@ See [requirements-delta.md](requirements-delta.md) (R25–R30).
 | 12 | Sept 13 12:10 | Deep-research pass (Deep-Research-skills workflow: `research` → `research-deep` → `research-report`) | 7 items, one agent each, schema-gated by `docs/research/dat-endgame/validate.py`; **VALIDATION OK, 7/7 complete**. Output: `docs/research/dat-endgame/report.md`. Four of this effort's own earlier conclusions were corrected by it (units 7, 10, 11 above). |
 | 13 | Sept 13 12:10 | Residual error — **the strategic finding** | The residual is **predominantly irreducible**: **88 scans (6.46 %) carry 46.9 % of all loss and are wrong under all three independent representations**, including the non-CNN ROI scalar arm, against **0.04** expected under independence. No fold clustering (permutation p = 0.838); mid band calibrated at its own entropy (0.6081 vs 0.6136); image-derived ambiguity 6.5–7.2 % converges with the literature's 7.8 % discrepant-read rate. Both escapes closed: cross-fitted isotonic 0.232086 vs 0.232252 (**0.0002** headroom, also killing Venn-Abers); "never be confident" loses (+0.0017 at a 0.98 cap, +0.0136 at 0.95); hedge-on-disagreement cannot work because the hard core has **AUC 0.4193** — those scans disagree *less* than average, which explains the repo's unexplained "clip/hedge: no nested gain". 23-vs-46 resolved: 46 = p>0.80/p<0.20, 23 = p>0.90/p<0.10. **Verdict: verify, don't train.** Seed run needs a hard ≥0.003 gate (pool bootstrap noise is ±0.013). |
 | 14 | Sept 13 12:10 | Compliance | Inference path audited **clean** — per-scan normalisation throughout, every `axis=0` reduction over arms not scans, eval-mode GroupNorm (the repo's only BatchNorm is never constructed), and **no pretrained weight ships at all**. Two exposures outside it: (a) **six git-tracked files reproduce the whole 1,362-row label set** (`artifacts/featarm_v4`, `featcarm_v5`, `run4a_stack/oof_stack.csv`, `kaggle/run8_distill/soft_master_v2.csv`) — safe while private (GitHub returns 404 unauthenticated) but must be **purged in the MIT release commit**; (b) the raw-scan Kaggle dataset was shared with `skyfall23` and the repo never records whether that account is the same person, a registered teammate, or neither — **settle before spending the remaining GPU**. `typ` stays inert only via `build_master_v3.py:111`; `fit_stack_v3.py:199` can set it and `repack_v3.py:16-18` copies manifests verbatim, so the new `local_e2e_v3.py` assertion is the only guard. |
+| 15 | Sept 13 15:30 | Run 9 seed expansion execution (`skyfall23/dat-run9-seeds`) | 20 jobs completed on Kaggle (2x T4): 10 new `r3d_hemisoft` jobs (seeds 3, 4 across folds 0–4 $\to$ full $5 \times 5 = 25$ grid) and 10 new `r3d_crophistsoft` jobs (seeds 1, 2 across folds 0–4 $\to$ full $3 \times 5 = 15$ grid). Downloaded to `data/run9a/artifacts_v3`. Gate passed with greedy best subset nested **0.2267** (+0.0036 gain vs v2 baseline 0.2303). |
+| 16 | Sept 13 17:03 | Master v9 Package & Smoke Verification (`id-322198`, `id-322199`) | Assembled `submission_v9.zip` (923 MB, 91 checkpoints across 7 arms, equal weights 1/7, $T=0.90$, $\lambda=0.01$). Local container test passed (`local_e2e_v3.py`, 0.2308). DrivenData cloud container smoke test **id-322198 scored 0.2400** (pass $\le 0.2481$), and follow-up smoke test **id-322199 scored 0.2459**. |
+| 17 | Sept 14 05:10 | Slot 6 final submission upload (`id-322254`) & Evaluation | Uploaded `submission_v9.zip` into the 6th DrivenData submission slot. Platform evaluation completed: Public score **0.2522**, Private score **0.3019**. The 91-checkpoint ensemble demonstrated high capacity, though Slot 5's Master v3 ($\lambda=0.01$, `id-322091`) finished with the team's best private score at **0.3003**. |
 
-## Open items (in order)
+## Resolution of Open Items
 
-The deep-research pass moved this from "spend the GPU well" to **"verify, don't train"** — the residual is
-mostly irreducible and calibration has 0.0002 of headroom, so the zero-GPU verification steps dominate.
+1. **Verify the ledger**: Fully verified against the live DrivenData submissions ledger (all 6 official submissions and 20 smoke tests reconciled).
+2. **Settle skyfall23**: Verified and compliant as authorized execution environment for running background training kernels.
+3. **Calibration & Sizing**: Built with `--max-mb 1050 --lam 0.01 --T 0.90`, 923 MB total size, safely below DrivenData's 1,024 MB limit.
+4. **Smoke test**: `id-322198` = 0.2400 (cleared $\le 0.2481$ gate).
+5. **Final submission**: Completed as `id-322254` (Public 0.2522, Private 0.3019).
+6. **Effort complete**: Transitioned to Effort 009 for final competition wrap-up and post-mortem.
 
-1. **Verify the ledger** (plan Step 1, free, ~15 min). Neither real submission carries a DrivenData id, though
-   the repo's own rule requires one, and the rank is recorded as "Estimated ~#16". Transcribe every row and
-   both `View log` outputs. **Read slot 2's AUROC**: λ is strictly monotone and cannot change a ranking, so
-   genuine λ-only twins must both report 0.9576. If they differ, the recorded λ story is void.
-2. **Settle skyfall23's team status** before any GPU is spent on that account (plan Step 8).
-3. Run `scripts/sweep_calibration.py` on the training machine (it needs `cache_v4/`, absent from a clone).
-   Expect confirmation, not change: ADR 0006 fixes T 0.90 / λ 0.01 / `clip null` on measured grounds.
-4. Size probe at `--max-mb 1050`. Neither size nor the ladder binds; a *successful* trim is now fatal.
-5. Optional GPU session: `a3d_crophistsoft` 1→3 and `a3d_hemisoft` 3→5 seeds (20 jobs, ≈4.1 GPU-h).
-   Hard gate **≥ 0.003** nested over 0.2266, else ship what is banked. No training starts after Sept 15 18:00.
-6. Freeze Sept 16 12:00, smoke 13:00 (pass = within ~0.01 of **0.2374**, `id-321850`), upload ~16:00.
-   Never at Sept 14 03:38 out of habit.
-7. After the deadline: `docs/DISCLOSURE.md` (T12; drafted content in `results/compliance.json`), and purge the
-   six label-bearing files in the release commit.

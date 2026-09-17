@@ -1,0 +1,39 @@
+\begin{tikzpicture}[
+  font=\footnotesize\sffamily,
+  node distance=8mm and 12mm,
+  stage/.style={draw=blue!40!black, rounded corners=4pt, fill=blue!5, line width=0.8pt, align=center, minimum height=1.1cm, inner sep=6pt},
+  decision/.style={draw=orange!60!black, fill=orange!10, rounded corners=2pt, line width=0.8pt, align=center, minimum height=1.0cm, inner sep=5pt},
+  passnode/.style={draw=teal!60!black, fill=teal!10, rounded corners=4pt, line width=0.8pt, align=center, minimum height=1.1cm, inner sep=6pt},
+  failnode/.style={draw=red!60!black, fill=red!8, rounded corners=4pt, line width=0.8pt, align=center, minimum height=1.1cm, inner sep=6pt},
+  arrow/.style={-{Latex[length=2.2mm]}, thick, gray!70!black},
+  lbl/.style={font=\scriptsize\bfseries, text=gray!80!black}
+]
+  % Stage 1: Harmonization
+  \node[stage, minimum width=2.8cm] (raw) {\textbf{Multi-Site NIfTI}\\10 native hospitals\\(2.46--3.9\,mm spacing)};
+  \node[stage, right=of raw, minimum width=3.0cm] (headbox) {\textbf{Fixed Head Box}\\$192\times192\times144$\,mm\\2\,mm isotropic (CoM)};
+  
+  % Stage 2: Registration & Fallback
+  \node[stage, right=of headbox, minimum width=3.0cm] (reg) {\textbf{Affine Registration}\\to label-blind\\symmetric template};
+  \node[decision, below=7mm of reg, minimum width=2.8cm] (gate) {\textbf{Quality Gate}\\Transform OK?};
+  
+  % Paths
+  \node[passnode, right=of reg, minimum width=2.6cm] (regframe) {\textbf{Registered}\\\textbf{Frame}\\(canonical)};
+  \node[failnode, right=of gate, minimum width=2.6cm] (comframe) {\textbf{CoM Frame}\\(safe fallback)};
+  
+  % Stage 3: Normalization & Derivation
+  \node[stage, right=14mm of regframe, minimum width=3.0cm] (norm) {\textbf{Ref-Region Norm.}\\Non-striatal uptake $\to 1.0$};
+  \node[stage, right=of norm, minimum width=3.2cm] (inputs) {\textbf{Derived Inputs}\\$\bullet$ 3-Slab Stacks (2.5D)\\$\bullet$ Striatal Crops (3D)\\$\bullet$ Radiomics (Feat)};
+
+  % Connecting arrows
+  \draw[arrow] (raw) -- (headbox);
+  \draw[arrow] (headbox) -- (reg);
+  \draw[arrow] (reg) -- (gate);
+  
+  \draw[arrow] (reg) -- node[above, lbl] {Pass} (regframe);
+  \draw[arrow] (gate) -- node[above, lbl, text=red!70!black] {Fallback} (comframe);
+  
+  \draw[arrow] (regframe) -- (norm);
+  \draw[arrow] (comframe.east) -| ++(0.7,0) |- (norm.south west);
+  \draw[arrow] (norm) -- (inputs);
+
+\end{tikzpicture}

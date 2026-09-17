@@ -1,0 +1,40 @@
+\begin{tikzpicture}[
+  font=\sffamily,
+  scale=1.0,
+  y=22cm, x=1.9cm,
+  barlabel/.style={font=\footnotesize\bfseries},
+  axislabel/.style={font=\scriptsize\bfseries, text=gray!80!black}
+]
+  % Y Axis and gridlines
+  \draw[-{Latex[length=2.2mm]}, thick, gray!70!black] (0,0) -- (0,0.32) node[above=2pt, font=\footnotesize\bfseries, text=black] {Log Loss (lower is better)};
+  \draw[-{Latex[length=2.2mm]}, thick, gray!70!black] (0,0) -- (5.6,0);
+
+  \foreach \val in {0.05, 0.10, 0.15, 0.20, 0.25, 0.30} {
+    \draw[gray!25, dashed] (-0.08, \val) -- (5.3, \val);
+    \node[anchor=east, font=\tiny, text=gray!60!black] at (-0.10, \val) {\val};
+  }
+
+  % Bar 1: Random-Fold OOF (0.2266)
+  \draw[fill=blue!55!teal, draw=blue!70!black, rounded corners=2pt, line width=0.8pt] (0.5, 0) rectangle (1.4, 0.2266);
+  \node[barlabel, text=blue!70!black] at (0.95, 0.236) {0.2266};
+  \node[axislabel, align=center] at (0.95, -0.028) {Random-Fold\\Nested OOF};
+
+  % Bar 2: Leave-Site-Out OOF (0.2402)
+  \draw[fill=orange!65!yellow, draw=orange!80!black, rounded corners=2pt, line width=0.8pt] (2.2, 0) rectangle (3.1, 0.2402);
+  \node[barlabel, text=orange!90!black] at (2.65, 0.250) {0.2402};
+  \node[axislabel, align=center] at (2.65, -0.028) {Leave-Site-Out\\(Site-Fold OOF)};
+
+  % Bar 3: Public Leaderboard (0.2473)
+  \draw[fill=red!55!orange, draw=red!80!black, rounded corners=2pt, line width=0.8pt] (3.9, 0) rectangle (4.8, 0.2473);
+  \node[barlabel, text=red!85!black] at (4.35, 0.257) {\textbf{0.2473}};
+  \node[axislabel, align=center] at (4.35, -0.028) {Public Leaderboard\\(\textbf{Rank} $\sim$16 / 450)};
+
+  % Shift Gap Annotation Bracket (Between Bar 1 and Bar 2)
+  \draw[thick, gray!60!black] (0.95, 0.260) -- (0.95, 0.268) -- (2.65, 0.268) -- (2.65, 0.260);
+  \node[font=\scriptsize\bfseries, fill=white, inner sep=2pt, text=gray!80!black] at (1.80, 0.270) {Shift Gap $\Delta = +0.0136$};
+
+  % Public Gap Annotation Bracket (Between Bar 1 and Bar 3)
+  \draw[thick, red!70!black] (0.95, 0.288) -- (0.95, 0.296) -- (4.35, 0.296) -- (4.35, 0.288);
+  \node[font=\scriptsize\bfseries, fill=white, inner sep=2pt, text=red!75!black] at (2.65, 0.298) {Leaderboard Gap $\Delta = +0.0207$};
+
+\end{tikzpicture}

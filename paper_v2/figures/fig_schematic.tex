@@ -1,0 +1,52 @@
+\begin{tikzpicture}[scale=0.92, every node/.style={transform shape}]
+  \tikzset{
+    skull/.style={fill=gray!7, draw=gray!45, line width=1.1pt},
+    striatum/.style={fill=orange!85!red, draw=red!70!black, line width=0.6pt},
+    core/.style={fill=yellow!95!orange, draw=none}
+  }
+
+  % (a) Normal Scan
+  \begin{scope}[local bounding box=normalscan]
+    \draw[skull] (0,0) ellipse (2.05cm and 2.25cm);
+    \draw[dashed, gray!30, thin] (0,-2.0) -- (0,2.0);
+    
+    % Left Striatum
+    \filldraw[striatum] (-0.65,0.45) circle (0.34cm);
+    \filldraw[striatum, rotate around={25:(-0.95,-0.25)}] (-0.95,-0.25) ellipse (0.50cm and 0.21cm);
+    
+    % Right Striatum
+    \filldraw[striatum] (0.65,0.45) circle (0.34cm);
+    \filldraw[striatum, rotate around={-25:(0.95,-0.25)}] (0.95,-0.25) ellipse (0.50cm and 0.21cm);
+    
+    % Caudate hot cores
+    \filldraw[core] (-0.65,0.45) circle (0.17cm);
+    \filldraw[core] (0.65,0.45) circle (0.17cm);
+    
+    % Labels (placed well away from center)
+    \draw[-{Latex[length=1.8mm]}, thick, gray!60!black] (-1.8,1.2) node[above, font=\scriptsize\bfseries] {Caudate Head} -- (-0.85,0.6);
+    \draw[-{Latex[length=1.8mm]}, thick, gray!60!black] (-1.8,-1.2) node[below, font=\scriptsize\bfseries] {Putamen Tail} -- (-1.1,-0.45);
+    
+    \node[font=\small\bfseries, align=center] at (0,-2.7) {(a) Normal Uptake\\{\footnotesize Symmetric bilateral ``commas''}};
+  \end{scope}
+
+  % (b) Pathological Scan (placed with 6.5cm clearance)
+  \begin{scope}[xshift=6.5cm, local bounding box=abnormalscan]
+    \draw[skull] (0,0) ellipse (2.05cm and 2.25cm);
+    \draw[dashed, gray!30, thin] (0,-2.0) -- (0,2.0);
+    
+    % Left side: Partially preserved caudate, faint putamen
+    \filldraw[striatum] (-0.65,0.45) circle (0.34cm);
+    \filldraw[fill=orange!45!gray!30, draw=gray!40, dashed, line width=0.6pt, rotate around={25:(-0.90,-0.2)}] (-0.90,-0.2) ellipse (0.35cm and 0.17cm);
+    \filldraw[core] (-0.65,0.45) circle (0.15cm);
+    
+    % Right side: Complete putaminal loss ("Period" sign)
+    \filldraw[striatum] (0.65,0.45) circle (0.32cm);
+    \draw[draw=red!70!black, dashed, line width=0.8pt, rotate around={-25:(0.95,-0.25)}] (0.95,-0.25) ellipse (0.50cm and 0.21cm);
+    \filldraw[core] (0.65,0.45) circle (0.14cm);
+    
+    % Deficit callout pointing rightwards, clear of all drawings
+    \draw[-{Latex[length=2.0mm]}, line width=1pt, red!75!black] (1.85,-1.2) node[below, font=\scriptsize\bfseries, text=red!75!black, align=center] {Severe Putaminal Deficit\\(Flattened to ``Period'')} -- (1.05,-0.35);
+    
+    \node[font=\small\bfseries, align=center] at (0,-2.7) {(b) Abnormal (\texttt{is\_pathologic} = 1)\\{\footnotesize Asymmetric loss of putaminal binding}};
+  \end{scope}
+\end{tikzpicture}

@@ -1,0 +1,58 @@
+\begin{tikzpicture}[
+  font=\scriptsize\sffamily,
+  scale=0.92, every node/.style={transform shape},
+  box/.style={draw=blue!40!black, rounded corners=3pt, fill=blue!6, align=center, inner sep=4pt, minimum height=0.85cm},
+  enc/.style={draw=teal!60!black, rounded corners=4pt, fill=teal!12, align=center, line width=0.9pt, inner sep=5pt, minimum height=1.5cm},
+  head/.style={draw=orange!60!black, rounded corners=3pt, fill=orange!10, align=center, inner sep=4pt, minimum height=0.85cm},
+  op/.style={draw=gray!60!black, circle, fill=gray!12, inner sep=2pt, font=\small\bfseries},
+  arrow/.style={-{Latex[length=2mm]}, thick, gray!70!black}
+]
+  % Top row: Input & Half Crops
+  \node[box, fill=purple!8, minimum width=3.8cm] (input) at (0, 3.8) {\textbf{Striatal Crop} ($48\times48\times32$)\\(Registered / CoM frame)};
+  \node[box, minimum width=2.4cm] (left1) at (-2.6, 2.3) {Left Half\\$24\times48\times32$};
+  \node[box, minimum width=2.4cm] (right1) at (2.6, 2.3) {Right Half\\$24\times48\times32$};
+  \node[box, fill=gray!10, minimum width=2.4cm] (mirror) at (2.6, 1.0) {Midline Flip $\mathcal{M}$\\(left orientation)};
+
+  % Mid row: Shared 3D Encoder
+  \node[enc, minimum width=3.2cm] (encL) at (-2.6, -0.6) {\textbf{Shared 3D ResNet}\\\textbullet\ Conv3D Stem\\\textbullet\ 4$\times$ Block3D ($24{\to}192$)\\\textbullet\ Global Average Pool};
+  \node[enc, minimum width=3.2cm] (encR) at (2.6, -0.6) {\textbf{Shared 3D ResNet}\\\textbullet\ Conv3D Stem\\\textbullet\ 4$\times$ Block3D ($24{\to}192$)\\\textbullet\ Global Average Pool};
+  \node[font=\tiny\itshape, text=teal!70!black, align=center] at (0, -0.6) {Identical\\Shared Weights};
+  \draw[dashed, teal!60, thick] (encL.east) -- (encR.west);
+
+  % Feature vectors
+  \node[box, fill=teal!6, minimum width=2.0cm] (fL) at (-2.6, -2.1) {$f_L \in \mathbb{R}^{192}$};
+  \node[box, fill=teal!6, minimum width=2.0cm] (fR) at (2.6, -2.1) {$f_R \in \mathbb{R}^{192}$};
+
+  % Bottom row: Dual Symmetric Heads
+  \node[head, fill=green!10, minimum width=3.2cm] (combine) at (0, -3.2) {\textbf{Bilateral \& Asymmetry}\\\textbf{Feature}: $[f_L+f_R,\, |f_L-f_R|]$};
+  \node[head, minimum width=2.5cm] (pairhead) at (0, -4.5) {\textbf{Pair Head MLP}\\$384 \to 128 \to 1$};
+  
+  \node[head, minimum width=2.0cm] (sideL) at (-4.2, -3.2) {Side Head\\(shared)};
+  \node[head, minimum width=2.0cm] (sideR) at (4.2, -3.2) {Side Head\\(shared)};
+  \node[op] (maxop) at (4.2, -5.3) {$\max$};
+
+  \node[op] (sumop) at (0, -6.3) {$+$};
+  \node[box, fill=orange!20, minimum width=4.0cm, line width=1pt] (output) at (0, -7.4) {\textbf{Final Logit}: $z = z_{\text{pair}} + z_{\text{side}}$\\{\scriptsize Provably invariant to left-right scan flip}};
+
+  % Arrows
+  \draw[arrow] (input.south) -| (left1.north);
+  \draw[arrow] (input.south) -| (right1.north);
+  \draw[arrow] (left1) -- (encL);
+  \draw[arrow] (right1) -- (mirror);
+  \draw[arrow] (mirror) -- (encR);
+  \draw[arrow] (encL) -- (fL);
+  \draw[arrow] (encR) -- (fR);
+  
+  \draw[arrow] (fL.south) |- (combine.west);
+  \draw[arrow] (fR.south) |- (combine.east);
+  \draw[arrow] (combine) -- (pairhead);
+  
+  \draw[arrow] (fL.west) -| (sideL.north);
+  \draw[arrow] (fR.east) -| (sideR.north);
+  \draw[arrow] (sideL.south) -- (-4.2, -5.3) node[pos=0.4,left,font=\tiny]{$z_L$} -- (maxop.west);
+  \draw[arrow] (sideR.south) -- node[right,font=\tiny]{$z_R$} (maxop.north);
+
+  \draw[arrow] (pairhead) -- node[left,font=\tiny]{$z_{\text{pair}}$} (sumop);
+  \draw[arrow] (maxop.south) |- node[pos=0.6,above,font=\tiny]{$z_{\text{side}}$} (sumop.east);
+  \draw[arrow] (sumop) -- (output);
+\end{tikzpicture}
