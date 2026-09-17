@@ -145,16 +145,23 @@ Within each bucket, multiple seeds can be averaged equally. But a stack of 91 ch
 
 ---
 
-### RULE 5: Arithmetic Plausibility & Ceiling Checks
+### RULE 5: The Anti-Hallucination & Epistemic Rigor Protocol (Causal Bounding)
 
-**Directive:** An AI agent must never attribute an empirical gain to a cause without proving that the cause is arithmetically capable of generating that gain.
+**The AI Cognitive Vulnerability:** AI models (LLMs) are structurally biased toward constructing coherent narratives. If an AI changes Variable $X$ and subsequently observes an improvement in Metric $Y$, the AI's natural language generation will irresistibly state: *"Changing $X$ caused the improvement in $Y$, proving our hypothesis."* In complex ML pipelines, this creates **Causal Hallucinations**, blinding the team to silent bugs, dropped models, or data leaks that actually caused the variance.
 
-- **Post-hoc Transforms:** If modifying $\lambda$ from $0.02$ to $0.01$ has a mathematical ceiling of $\Delta_{\max} = 0.0055$ on log loss, and the observed leaderboard delta is $+0.0084$, the AI must NOT write *"Tuning $\lambda$ yielded $+0.0084$"*.
-- **The True Cause Must Be Investigated:** In competitive systems, unaccounted-for gains usually mean:
-  1. A silent fallback or timeout dropped an arm, changing the effective ensemble.
-  2. A race condition or container-level difference occurred.
-  3. Leaderboard sample variance (small test slices).
-- **Rule:** When $\Delta_{\text{observed}} > \Delta_{\text{ceiling}}$, mark the result `[UNEXPLAINED CONFOUND]` and inspect the execution trace before pulling that lever again.
+**Directive:** An AI agent is FORBIDDEN from attributing an empirical gain to a cause without proving mathematically that the cause is capable of generating that gain. The AI must act as a skeptical auditor of its own narrative.
+
+#### The 4 Mandates of Causal Rigor:
+1. **The Arithmetic Ceiling (Mechanistic Bounding):** 
+   Before logging an explanation for *any* parameter change (e.g., blending weights, post-hoc scaling, thresholds, prior mixing $\lambda$), the AI MUST calculate the mathematical upper bound of its effect. 
+   *(Example: If changing $\lambda$ from $0.02$ to $0.01$ mathematically bounds the maximum possible per-scan log-loss delta at $\Delta_{\max} = 0.0055$, and the leaderboard improves by $+0.0084$, the AI CANNOT attribute the gain to $\lambda$.)*
+2. **The Narrative Breaker:**
+   If $\Delta_{\text{observed}} > \Delta_{\text{ceiling}}$, the AI must explicitly break its own narrative. It must log the following exact alert:
+   > 🔴 **[CAUSAL HALLUCINATION AVOIDED / UNEXPLAINED CONFOUND]** The observed gain of X exceeds the theoretical ceiling of Y. The tested parameter did NOT cause this. A confounding variable (silent fallback, dropped arm, execution bug, or data leak) is present.
+3. **Ablation Integrity (Single-Variable Isolation):**
+   If an AI modifies two things at once (e.g., changing $\lambda$ AND refactoring the inference loop), it is mathematically disqualified from assigning causal attribution to either variable. 
+4. **Skepticism of the "Happy Path":**
+   When surprising, unpredicted leaps in validation metrics occur late in a competition, the AI must default to the **Null Hypothesis**: *Assume the gain is a bug (leakage, dropped models, evaluating on training data) rather than a modeling breakthrough.* The AI must immediately initiate a trace of the execution logs before proceeding.
 
 ---
 
