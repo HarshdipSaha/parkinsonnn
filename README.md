@@ -21,14 +21,16 @@ Binary classification of 3D DaT-SPECT NIfTI volumes (normal vs abnormal), scored
 | Research | [EDA_REPORT.md](EDA_REPORT.md), [LITERATURE_REVIEW.md](LITERATURE_REVIEW.md), `PIPELINE_REC_*.md`, [COUNCIL_VERDICT.md](COUNCIL_VERDICT.md), [docs/RUN3_BRAINSTORM.md](docs/RUN3_BRAINSTORM.md), [docs/RESEARCH_SIMILAR_COMPETITIONS.md](docs/RESEARCH_SIMILAR_COMPETITIONS.md) |
 | Domain language | [CONTEXT.md](CONTEXT.md) (glossary), [docs/adr/](docs/adr/) (decision records) |
 | Plans and process | [docs/superpowers/plans/](docs/superpowers/plans/), [aidlc-docs/](aidlc-docs/README.md) (Efforts 001–009) |
+| Jupyter Notebooks | [notebooks/](notebooks/) (01 EDA, 02 Scanner Shift, 03 Registration, 04 Radiomics, 05 Model Zoo, 06 Ensemble) |
 
 ## Layout
 
 ```
+notebooks/        educational and reproducible Jupyter notebooks (01 EDA to 06 Master Ensemble)
 datsc/            package shared by training and inference (run-3 modules end in _v3; run-2 modules kept for the submitted zip)
 scripts/          cache building, template, registration, gate, training, stacking, packing
 main_v3.py        DrivenData entrypoint (packed as main.py)
-kaggle/           notebook generator / sync / submission helpers
+kaggle/           notebook generator / sync / submission helpers (runs 6-10)
 tests/            pytest (run: python -m pytest tests -q)
 artifacts/        template, run-2 artefacts (gitignored except .gitkeep)
 ```
