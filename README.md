@@ -9,16 +9,18 @@ Binary classification of 3D DaT-SPECT NIfTI volumes (normal vs abnormal), scored
 | Results & Ledger | [RESULTS_LOG.md](RESULTS_LOG.md) |
 | Compliance & Disclosure | [docs/DISCLOSURE.md](docs/DISCLOSURE.md) |
 | Field Guide & Post-Mortem | [LESSONS.md](LESSONS.md) |
+| Deep Retrospective | [COMPETITION_DEEP_RETROSPECTIVE.md](COMPETITION_DEEP_RETROSPECTIVE.md) |
+| ML-AIDLC Protocol | [ML_AIDLC.md](ML_AIDLC.md) |
 
 ## Documentation
 
 | Type | Document |
 |---|---|
 | How-to | [docs/how-to-train-and-submit.md](docs/how-to-train-and-submit.md): build the caches, train on Kaggle, pack, download, submit; [RUNBOOK.md](RUNBOOK.md) |
-| Reference | [docs/ref-pipeline-v3.md](docs/ref-pipeline-v3.md): modules, cache layout, `manifest.json`, every script's flags; [docs/DISCLOSURE.md](docs/DISCLOSURE.md) |
-| Explanation | [docs/concept-registered-frame.md](docs/concept-registered-frame.md): why the registered frame design was chosen; [LESSONS.md](LESSONS.md): post-mortem & 11 engineering rules |
+| Reference | [ML_AIDLC.md](ML_AIDLC.md): The AI-Driven Lifecycle ML operational protocol; [docs/ref-pipeline-v3.md](docs/ref-pipeline-v3.md); [docs/DISCLOSURE.md](docs/DISCLOSURE.md) |
+| Explanation | [COMPETITION_DEEP_RETROSPECTIVE.md](COMPETITION_DEEP_RETROSPECTIVE.md): Exhaustive breakdown of failure modes and transferable mental models; [LESSONS.md](LESSONS.md); [docs/concept-registered-frame.md](docs/concept-registered-frame.md) |
 | Rules and runtime | [DAT_PARKINSONS_CHALLENGE.md](DAT_PARKINSONS_CHALLENGE.md) |
-| Research | [EDA_REPORT.md](EDA_REPORT.md), [LITERATURE_REVIEW.md](LITERATURE_REVIEW.md), `PIPELINE_REC_*.md`, [COUNCIL_VERDICT.md](COUNCIL_VERDICT.md), [docs/RUN3_BRAINSTORM.md](docs/RUN3_BRAINSTORM.md), [docs/RESEARCH_SIMILAR_COMPETITIONS.md](docs/RESEARCH_SIMILAR_COMPETITIONS.md) |
+| Research | [EDA_REPORT.md](EDA_REPORT.md), [LITERATURE_REVIEW.md](LITERATURE_REVIEW.md), [docs/RUN3_BRAINSTORM.md](docs/RUN3_BRAINSTORM.md), [docs/RESEARCH_SIMILAR_COMPETITIONS.md](docs/RESEARCH_SIMILAR_COMPETITIONS.md) |
 | Domain language | [CONTEXT.md](CONTEXT.md) (glossary), [docs/adr/](docs/adr/) (decision records) |
 | Plans and process | [docs/superpowers/plans/](docs/superpowers/plans/), [aidlc-docs/](aidlc-docs/README.md) (Efforts 001–009) |
 | Jupyter Notebooks | [notebooks/](notebooks/) (01 EDA, 02 Scanner Shift, 03 Registration, 04 Radiomics, 05 Model Zoo, 06 Ensemble) |
